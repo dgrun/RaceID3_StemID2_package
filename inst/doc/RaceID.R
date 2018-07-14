@@ -65,7 +65,7 @@ plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE)
 
 ## ------------------------------------------------------------------------
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,log=TRUE)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE)
 
 ## ------------------------------------------------------------------------
 dg <- clustdiffgenes(sc,4,pvalue=.01)

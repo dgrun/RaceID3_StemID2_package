@@ -139,10 +139,11 @@ plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE)
 g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
 plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE)
 ```
+
 It is also possible to highight expression only for a subset of cells, e.g. a particular batch or sample:
 ```{r}
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,log=TRUE)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE)
 ```
 
 For the murine intestinal example data, inspetion of known marker genes suggests that cluster 2 and 3 correspnd to Lgr5-expressing intestinal stem cells. Cluster 2 is proliferative as indicated by up-regulation of Mki67, Cluster 1 comprises transiently amplifying progenitors biased towards absorptive entorytes in cluster 4 marked by Apolipoproteins. Cluster 7 comprises Lysozyme-expressing Paneth cells while Mucus-producing goblet cells constitute clusters 6 and 10.
