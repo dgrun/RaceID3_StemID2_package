@@ -1,0 +1,752 @@
+---
+title: "RaceID reference manual"
+date: "`r Sys.Date()`"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{An introduction to RaceID and StemID.}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg') 
+```
+## Prerequisites
+
+RaceID is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by an outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data obtained by quantification with unique molecular identifiers. StemID permits subsequent inference of a lineage tree based on clusters, i.e. cell types, identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published [@FateID]. 
+This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells.
+RaceID offers several optional steps and here we will show  examples of how to perform typical RaceID/StemID analyses.
+
+## RaceID 
+
+Input to RaceID is a matrix of raw expression values (unique molecular identifiers with or without Poisson correction [@Noise]) with cells as column and genes as rows. This matrix can be provided as a matrix object, a data.frame or a sparse matrix produced by the `Matrix` package.
+
+The `RaceID` package comes with sample data `intestinalData` for murine intestinal epethelial cells stored in sparse matrix format. The dataset was published previously [@StemID].
+
+RaceID and StemID functions have various input and output parameters, which are explained in detail on the `help` pages. Here, we mostly use default parameters, which represent a good choice for common datasets.
+
+To start the analysis, a RaceID single-cell sequencing (`SCseq`) object is initialized with a count matrix.
+```{r}
+library(RaceID)
+sc <- SCseq(intestinalData)
+```
+
+The first step is the application of filtering for the purpose of quality control. Cells with a relatively low total number of transcripts are discarded.
+```{r}
+sc <- filterdata(sc,mintotal=2000)
+```
+
+In this example, we filter out cells with <2,000 transcipts.
+The function allows the detection and removal of batch effects by different methods as outlined below in addtional examples. Alternatively, individual genes or groups of genes correlating to specific genes can be removed with the `FGenes` and `CGenes` arguments. This frequently allows a minimally invasive removal of batch effects or of particularly highly expressed genes with an unwanted dominating effect on the clustering.
+
+
+Next, the distance matrix is computed as the input for clustering and outlier identification. This can be done with or without imputing gene expression from nearest neighbours (see example below for imputing). 
+```{r}
+sc <- compdist(sc,metric="pearson")
+```
+On this distance matrix clustering is performed:
+```{r results='hide', message=FALSE}
+sc <- clustexp(sc)
+```
+
+To infer the initial cluster number, this function computes the average within-cluster dispersion up to a number of clusters specified by the `clustnr` arguments, which equals 30 by default. If more major populations are expected, this parameter needs to be set to higher values which will increase the run time. The initial cluster number only serves as a rough estimate, since the subsequent outlier identification will infer additional clusters. The internal inference of the cluster number and the evaluation of cluster stability by the computation of Jaccard's similarity is done on all cells by default. For large datasets it is reasonable to subsample a limited number of cells, by setting the `samp` argument, e.g., to 1,000. In this case, the cluster number is inferred based on this smaller subset and Jacccard's similarity is not computed by bootstrapping but by sub-sampling. For k-medoids clustering, subsetting will imply almost deterministic clustering partitions, if the sample size approaches the size of the dataset. Therefore, `samp` should be signicantly smaller then the size of the dataset. Otherwise, bootstrapping is better for assessing the cluster stability.
+Subsampling can be expected to give a good estimate of the number of major clusters. Additional small clusters which might have been missed by the sampling can be reintroduces during the outlier identification step.
+
+The inferred cluster number can be inspected in a saturation plot, which shows the decrease of the average within-cluster dispersion with increasing cluster number. If this decrease becomes constant, saturation is reached. The automatically chosen cluster number is detected such that the decrease is equal to the decrease upon further increasing the cluster number within the error bars:
+```{r}
+plotsaturation(sc,disp=FALSE)
+```
+
+The average within-cluster dispersion can also by plotted:
+```{r}
+plotsaturation(sc,disp=TRUE)
+```
+
+The cluster stability as assessed by Jaccard's similarity should also be inspected:
+```{r}
+plotjaccard(sc)
+```
+
+In this example, the automated criterion overestimated the cluster number leading to instability as indicated by low Jaccard's similarity. Based on visual inspection of the average within-cluster dispersion as a function of the cluster number, we manually set the cluster number to 7 without recomputing the saturation behaviour.
+```{r results='hide', message=FALSE}
+sc <- clustexp(sc,cln=7,sat=FALSE)
+```
+
+This function perform k-medoids clustering by default. K-means clustering or hierarchical clustering can be chosen with the `FUNcluster` argument. For very large datasets, hierarchical clustering leads to significantly smaller run time.
+
+Subsequently, outliers in the initial k-medoids clusters are identified based on an internally computed background model for the expected gene expression variability and the assumption that transcript counts follow a negative binomial distribution defined by the mean and the variance of the expression of each gene in a cluster. Outlier genes will be in the tail of this distribution at a p-value defined by the `probthr` parameter (1e-3 by default), and outlier cells require the presence of a number of outlier genes defined by the `outlg` parameter (2 by default). 
+```{r results='hide', message=FALSE}
+sc <- findoutliers(sc)
+```
+
+In contrast to previous versions, outlier genes are inferred from non-normalized transcript counts, which follow a negative binomial distribution modeling the joint technical and biological variability. The assumption of a negative binomial distribution was demonstrated for raw transcript (UMI) count data, but is not strictly valid for normalized expression values [@Noise]. Hence, RaceID does not require normalization, since the correlation-based metric for the computation of the distance object is also independent of the normalization. Normalizaion is only relevant when using, e.g., the euclidean metric for the derivation of the distance matrix. RaceID applies a simple size normalization for data representation and follow-up analyses.
+
+The background noise model can be inspected:
+```{r}
+plotbackground(sc)
+```
+
+The number of outliers as a function of the p-value can be plotted:
+```{r}
+plotsensitivity(sc)
+```
+
+Another way of checking the presence of outliers is the inspection of a barplot of p-values across all cells in each cluster:
+```{r}
+plotoutlierprobs(sc)
+```
+
+A heatmap of cell-to-cell distances grouped be the final clusters inferred based on the original clusters and the outliers allows visual inspection of the clusters:
+```{r}
+clustheatmap(sc)
+```
+
+This function is not recommended for very large datasets, since it produces similarly large plotting output.
+
+The best way of visualising the detetcted cell types is plotting cells and clusters in a two-dimensional reduction representaion. RaceID can compute a t-SNE map 
+```{r}
+sc <- comptsne(sc)
+```
+
+or a k-nearest neighbour graph layout utilizing the Fruchterman-Rheingold algorithm:
+```{r}
+sc <- compfr(sc,knn=10)
+```
+
+In this example, the number of nearest neighbours was chosen to be 10. In general, different values for `knn` should be tested to find an ideal layout.
+The t-SNE map can be plotted by
+```{r}
+plotmap(sc)
+```
+
+and the Fruchterman-Rheingold layout can be plotted by
+```{r}
+plotmap(sc,fr=TRUE)
+```
+
+Maps can be changed for both t-SNE and Fruchterman-Rheingold algorithm by initializing the `rseed` argument of the `comptsne` or `compfr` function with a random number.
+
+The dimensional reduction maps can be inspected, e.g., for the localization of (a subset of) samples included in the analysis:
+```{r}
+types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
+subset <- types[grep("IV|V",types)]
+plotsymbolsmap(sc,types,subset=subset,fr=TRUE)
+```
+
+Expression of a gene of interest or aggregated expression for a group of genes can be highlighted in the dimensional reduction representation:
+```{r}
+plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE)
+g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
+plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE)
+```
+It is also possible to highight expression only for a subset of cells, e.g. a particular batch or sample:
+```{r}
+sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
+plotexpmap(sc,"Lyz1",cells=sample,log=TRUE)
+```
+
+For the murine intestinal example data, inspetion of known marker genes suggests that cluster 2 and 3 correspnd to Lgr5-expressing intestinal stem cells. Cluster 2 is proliferative as indicated by up-regulation of Mki67, Cluster 1 comprises transiently amplifying progenitors biased towards absorptive entorytes in cluster 4 marked by Apolipoproteins. Cluster 7 comprises Lysozyme-expressing Paneth cells while Mucus-producing goblet cells constitute clusters 6 and 10.
+To inspect clusters in more detail, differentially expressed genes can be inferred by an internal approach akin to DESeq2 [@DESeq2] but with a dispersion estimated globally from the background model of RaceID.
+
+For instance, to obtain differentially expressed genes within cluster 9 compared to all other cells:
+```{r}
+dg <- clustdiffgenes(sc,4,pvalue=.01)
+head(dg,25)
+```
+
+The differentially expressed genes (in this example only the up-regulated ones with a fold change >1) can be plottted in a heatmap, which can highlight the clusters and samples of origin:
+```{r}
+types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
+genes <- head(rownames(dg)[dg$fc>1],10)
+plotmarkergenes(sc,genes,samples=types)
+```
+The heatmap can also be ordered by cell names (i.e. by batch or sample) by setting `order.cells` to `TRUE`. With the input parameters `cl` and `cells`, the heatmap can be restricted to a subset of cluster or cells, respectively.
+```{r}
+plotmarkergenes(sc,genes,cl=c(2,6,7,8,10),samples=types,order.cells=TRUE)
+```
+In this example, no inter-sample differences are apparent and all samples contribute to each cluster.
+
+A differential gene expression analysis between two defined sets of cell, e.g., two (groups of) clusters can be performed:
+```{r}
+A <- names(sc@cpart)[sc@cpart %in% c(2,4)]
+B <- names(sc@cpart)[sc@cpart %in% c(3)]
+x <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
+plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2",Bname="Cl.3,5",show_names=TRUE,padj=TRUE)
+```
+
+See the paragraphs below for additional options of RaceID analyses and parameter choices ideal for analysing large datasets.
+
+## StemID analysis
+
+StemID is an algorithm for the inference of lineage trees and differentiation trajectories based on pseudo-temporal ordering of single-cell transcriptomes. It utilizies the clusters predicted by RaceID and thus requires to run RaceID first. The algorithm was originally published along with RaceID2 [@StemID] and the improved current version StemID2 was published later [@FateID].
+In a nutshell, StemID infers links between clusters which are more populated with intermediate single-cell transcriptomes than expected by chance. To assign cells to inter-cluster links, two fundamentally different strategies are available (see `nmode` argument below). The first strategy considers the projection of a vector connecting a cluster medoid to a member cell of the same cluster onto the links from the medoid of its cluster to the medoids of all other clusters. The longest projection identifies the link this cell is assigned to and defines the projection coordinate. The second (nearest neighbour) mode identifies for a cell in a given cluster the number of k nearest neighbours in each other cluster and assigns the cell to the link with the cluster where the average distance to these k nearest neighbours is minimized. The coordinate on the link is inferred as in the first mode. A faster approximate version of the first mode is also implemented.
+
+As a first step, a lineage tree object for the StemID analysis needs to be initialized with an SCseq object obtained from a RaceID analysis:
+```{r}
+ltr <- Ltree(sc)
+```
+Next, the transcriptome entropy of cell needs to be calculated. This is used by the StemID algorithm for the prediction of the stem cell type, based on maximum transcriptome entropy and maximum number of links to other clusters.
+```{r}
+ltr <- compentropy(ltr)
+```
+In the subsequent step, cells are projected onto inter-cluster links. Cells are assigned to a link based on minimum distance to k nearest neighbours (`nmode=TRUE`) or based on the maximum projection coordinate (`nmode=FALSE`). Only clusters with `>cthr` cells are included in the analysis. If `fr=TRUE` then the Fruchterman-Rheingold layout will be used for representation of the inferred lineage tree. Otherwise, representation will be done in t-SNE space. The computation of the lineage graph is independent of the dimensional reduction method which is only used for visualization.
+```{r}
+ltr <- projcells(ltr,cthr=5,nmode=FALSE,fr=TRUE)
+```
+If projections are used for link determenation (`nmode=FALSE`), the derivation of link significance is done by comparing to the link population after randomizing cell positions within the boundaries imposed by the gene expression manifold. This is done by bootstrapping using 500 randomizations by default. More randomizations are possible, but obviously linearly increase runtime.
+```{r results='hide', message=FALSE}
+ltr <- projback(ltr,pdishuf=100)
+```
+Based on this information, a lineage graph is computed to approximate the lineage tree (a tree structure is not strictly imposed).
+```{r results='hide', message=FALSE}
+ltr <- lineagegraph(ltr)
+```
+Finally, link p-values are computed and a threshold `pthr` is applied on the p-values:
+```{r}
+ltr <- comppvalue(ltr,pthr=0.1)
+```
+The resulting graph can be plotted, overlaid with a dimensional reduction representation (Fruchterman-Rheingold or t-SNE, see `projcells`). To retain only the more populated links, a cutoff `scthr` on the linkscore can be applied, e.g. 0.2:
+```{r}
+plotgraph(ltr,scthr=0.2,showCells=FALSE,showTsne=TRUE)
+```
+
+To predict the stem cell, the StemID score can be computed and visualized:
+```{r}
+x <- compscore(ltr,scthr=0.2)
+```
+
+StemID offers a number of plotting functions to inspect the results.
+RaceID performs clustering using Pearson's correlation as a metric by default. The StemID projections require a Euclidean space and thus an initial embedding into a high-dimensional space is performed by classical multidimensional scaling. To inspect how well cell-to-cell distances are preserved, a histogram of the log-ratios between the original and transformed distances can be plotted:
+```{r}
+plotdistanceratio(ltr)
+```
+
+The StemID prediction can be compared to a minimal spanning tree of the cluster medoids:
+```{r}
+plotspantree(ltr)
+```
+
+The cell projections onto the links can be directly compared with this minimal spanning tree:
+```{r}
+plotprojections(ltr)
+```
+
+All linkscores and fold enrichments of the population on a link can be plotted as heatmaps:
+```{r}
+plotlinkscore(ltr)
+projenrichment(ltr)
+```
+
+The (z-scores of the) projections of all cells from a given cluster across all links can be plotted as heatmap, e.g. for cluster 3:
+```{r}
+x <- getproj(ltr,i=3)
+```
+
+All cells on two different branches originating from the same cluster, e.g. cluster 3 cells on the links to cluster 1 and 8, can be extracted for the computation of differentially expressed genes:
+```{r}
+x <- branchcells(ltr,list("1.3","3.8"))
+head(x$diffgenes$z)
+```
+
+The cells on the two branches can be plotted as additional clusters in the dimensional reduction representation:
+```{r}
+plotmap(x$scl,fr=TRUE)
+```
+
+## StemID: nearest-neighbour mode
+
+Since the randomizations of cell positions for the derivation of link significance require long computation time, and the projection-based method leads to some weak links which are potentially false positives (and can be filtered out based on linkscore), the nearest-neighbour-based method has now be selected to the default mode of StemID. This method is more robust and fast even on large datasets. The downside is that it will miss some weak links, i.e. lead to more false negatives in comparison to the projection mode.
+
+First, a lineage tree object needs to be initialized followed by the calculation of the transcriptome entropy of each cell.
+```{r}
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+```
+Next, cell projection are calculated with the parameter `nmode=TRUE`, which is also the default value:
+```{r}
+ltr <- projcells(ltr,cthr=5,nmode=TRUE,fr=TRUE,knn=3)
+```
+The `knn` parameter determines how many nearest neighbours are considered in each cluster for determining the link assignment: the distance two each cluster is calculated as the average across the distance of a cell to the `knn` nearest neighbours within each other cluster, and the cell is assigned to the link with the cluster minimizing this distance.
+Now, the lineage tree is inferred and the p-values for the links are calculated based on a binomial model:
+```{r results='hide', message=FALSE}
+ltr <- lineagegraph(ltr)
+ltr <- comppvalue(ltr,pthr=0.05)
+```
+The resulting lineage graph can be inspected and reveals the expected trajectories connecting the stem cells (cluster 2 and 3 of cycling and quiescent cells, respectively) to enterocytes (cluster 4) via transiently amplifying progenitors (cluster 1), to Paneth cells (cluster 7), and to goblet cells (cluster 6).
+The StemID score suggests stem cell identity for clusters 2 and 3:
+```{r}
+plotgraph(ltr,showCells=FALSE,showTsne=TRUE)
+x <- compscore(ltr)
+```
+
+
+## RaceID Options: 
+# Batch effect removal
+RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `scran` package [@mnnCorrect]. In order to do this, a list with a vector of cell ids for each batch needs to be defined, e.g.:
+```{r}
+n <- colnames(intestinalData)
+b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
+```
+
+This list is provided as input to the `filterdata` function, and the `bmode` argument is initialized with the desired method, i.e. `scran` or `RaceID`. The latter method simply compares the local neigbourhood, i.e. the set of k nearest neighbours, for each cell between two batches and identifies the neighbourhood of the two batches with the smallest average distance. A differential gene expression analysis between the closest neighbourhoods of two batches yields batch associated genes. The next batch is then compared in the same way to the merged dataset of the previous batches. Batches are compared and successively merged according to the order they are provided in `b`. An additional input parameter `knn` controls the number of nearest neighbours, i.e. the size of the neighbourhood.
+```{r}
+sc <- SCseq(intestinalData)
+sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
+```
+The `filterdata` function will identify all batch-associated genes, which are stored in the `filterpar$BGenes` slot of the `SCseq` object. All genes that correlate to a batch gene are removed for the computation of a distance object. This is a minimally invasive strategy in comparison to `mnnCorrect`, which works well if batches are very similar, such as datasets produced from the same material using the same single-cell RNA-seq technology.
+
+# Imputing of gene expression
+RaceID also offers optional imputing of gene expression, which can be useful if gene expression differences between cell types or states are governed only by lowly expressed genes and are difficult to resolve by clustering based on raw counts.
+If imputing is desired, the `knn` argument needs to be initialized with the number of nearest neighbours used for imputing gene expression :
+```{r results='hide', message=FALSE}
+sc <- compdist(sc,knn=5,metric="pearson")
+```
+
+Now, for each cell the `knn` nearest neighbours are used to infer a local negative binomial for each gene, utilizing a weighted mean expression and the internal RaceID noise model to obtain the corresponding negative binomial. The weights are derived by quadratic programming, computing the expression vector of a cell as a linear combination of its `knn` nearest neighbours. The cell itself contributes with the same weight as the aggregated weights of the nearest neighbours to the weighted mean expression.
+With the help of this negative binomial the tail probability of each  gene is derived across all `knn` nearest neighbours. The geometric means of these tail probabilities are finally applied as a weights for each nearest neighbours in the calculation of the imputed gene expression. This strategy ensures that gene expression can only be learned from nearest neighbours following the same transcript count distributions.
+
+After this, all steps remain the same. Imputing often helps to improve cluster discrimination and stability. Importantly, distances derived from imputed gene expression are only used for clustering. The outlier identification relies on unimputed gene expression, and hence can correct spurious clusters produced from imputed values.
+```{r results='hide', message=FALSE}
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- compfr(sc)
+sc <- comptsne(sc)
+plotmap(sc,fr=TRUE)
+```
+
+If batch effect removal has been applied, the remaining batch effect can be checked by plotting symbols representig the sample of origin:
+```{r}
+types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
+plotsymbolsmap(sc,types,fr=TRUE)
+```
+
+Ideally, all samples should intermingle in each clusters. Imputed gene expression can be plotted by setting the `imputed` argument to `TRUE`. Otherwise, unimputed values are shown.
+```{r eval=FALSE}
+plotexpmap(sc,"Mki67",imputed=TRUE,fr=TRUE)
+plotmarkergenes(sc,c("Clca4","Mki67","Defa24","Defa20","Agr2","Apoa1"),imputed=TRUE,samples=types)
+```
+
+An expression matrix with imputed expression values can be extracted for further analysis:
+```{r}
+k <- imputeexp(sc)
+```
+
+# Removing variability by regression
+RaceID can also regress out variability associated with particular sources such as batches or cell cycle. If batch effect removal has been done by the `filterdata` function with `bmode="RaceID"` then this function can further regress out residual variability remaining after batch associated genes have been discarded for the distance computation. In the case, the argument `Batch` has to be set to `TRUE` and `vars` can be left empty if no further sources of variability should be regressed out.
+Batch effects can also be regressed out directly without prior removal using the `filterdata` function:
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- SCseq(intestinalData)
+sc <- filterdata(sc,mintotal=2000)
+vars <- data.frame(row.names=colnames(intestinalData),batch=sub("(\\_\\d+)$","",colnames(intestinalData)))
+sc   <- varRegression(sc,vars)
+sc <- compdist(sc,metric="pearson")
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+sc <- compfr(sc)
+plotmap(sc)
+```
+However, regression also leads to loss of biological variation and this step is only recommended if variability associated with a particular variable is a strong confounding factor and cannot be removed by other means.
+
+# Prior dimensional reduction and removal of variability by PCA/ICA
+After runnfing the `filterdara` function, a prior dimensional reduction using PCA or ICA can be performed using the `CCcorrect` function. This function can also be provided with a list `vset` of sets of genes, and principal components with loadings enriched in any of these sets will be discarded. Another options is to provide a list `CGenes` of genes, and sets to be tested for enrichment in each component are derived as the groups of all genes correlating to a component in FGenes.
+The `CCcorrect` function predicts a dimension for the prior dimensional reduction based on an ellbow function of the explained variability as a function of the number of components. This can be inspected by the `plotdimsat` function and manually adjusted:
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- SCseq(intestinalData)
+sc <- filterdata(sc,mintotal=2000)
+sc <- CCcorrect(sc,dimR=TRUE)
+plotdimsat(sc)
+plotdimsat(sc,change=FALSE)
+sc <- filterdata(sc,mintotal=2000)
+sc <- CCcorrect(sc,nComp=9)
+sc <- compdist(sc,metric="pearson")
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+sc <- compfr(sc)
+plotmap(sc)
+```
+Rerunning `CCcorrect` requires to run `filterdata` first, because otherwise the dimensional reduction scores in the `dimRed` slot will be subject to a second dimensional reduction, which is not desired.
+All sub-sequent steps remain unaltered.
+
+# Inferring stable clusters by random forests analysis
+RaceID provides the option to run a random forests based reclassifiction, in order to obtain a stable clustering partition.
+This can be done on the final clustering after running `findoutliers`:
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- SCseq(intestinalData)
+sc <- filterdata(sc,mintotal=2000)
+sc <- compdist(sc,metric="pearson")
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- rfcorrect(sc)
+sc <- comptsne(sc)
+sc <- compfr(sc)
+plotmap(sc)
+```
+However, this is normally not required, since the improved outlier detection of the current version leads to stable clusters which do not change substantially after applying this function. Running `rfcorrect` takes very long for large datasets and should be omitted in this case.
+
+## Parameters: Large Datasets
+In the following, we discuss a few paramters critical for the runtime of RaceID/StemID on large datasets.
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- SCseq(intestinalData)
+sc <- filterdata(sc,mintotal=2000)
+sc <- compdist(sc)
+``` 
+Preferentially, clustering should be done by `FUNcluster="kmedoids"` but `"hclust"` often gives similar results and is significantly faster. 
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- clustexp(sc,samp=100,FUNcluster="hclust")
+```
+For the determination of the cluster number and the inference of Jaccard's similarity, sub-sampling should be applied by setting the subset size `samp` to an integer number. A good choice could be 10-25% of the total number of cells. For large datasets this should be sufficient to discriminate the most abundant cluster, and additional smaller clusters will automatically be identified in the next step using the `findoutliers` function. It is important that the `clustnr` argument is much larger then the expected number of clusters. If stability analysis is not wanted, one can set `bootnr=1`. If clustering is re-run with a specific cluster number, e.g. `cln=12`, then the saturation criterion should be disabled by setting `sat=FALSE`.
+
+If the cluster granularity is too fine or too coarse, the `probthr` argment can be decreased or increased, respectively, e.g.:
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- findoutliers(sc,probthr=1e-4)
+```
+
+It is adviced to change the `perplexity` argument to larger values, when computing the t-SNE map for large datasets, e.g. `perplexity=200`. However, a large perplexity will return an error for small datasets.
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- comptsne(sc,perplexity=100)
+plotmap(sc)
+```
+
+The Fruchterman-Rheingold layout critically depends on the number `knn` of nearest neighbours, and different values should be tested:
+```{r results='hide', message=FALSE, eval=FALSE}
+sc <- compfr(sc,knn=10)
+plotmap(sc,fr=TRUE)
+```
+
+For a sub-sequent StemID analysis of very large datasets, the nearest-neighbour mode (see above) will help to reduce the runtime.
+
+##	Inspecting pseudo-temporal gene expression changes
+
+To inspect pseudotemporal expression profiles, functions provided by the `FateID` package can be utilized.
+First, the trajectory needs to be defined based on a sequence of clusters. This sequence should ideally correspond to a trajectory predicted by StemID2, i.e. the clusters should be connected by a series of significant links. However, non-linked clusters can also be included. A pseudo-temporally ordered vector of cells along a StemID trajectory can be extracted with the `cellsfromtree` function from an `Ltree` object:
+```{r}
+n <- cellsfromtree(ltr,c(2,1,4))
+```
+The list `n` contains a vector `n$f` of cell ids ordered by their projection coordinate along the trajectory reflecting differentiation pseudotime.
+This vector and a filtered or unfiltered expression matrix can be used as input for pseudo-temporal gene expression analysis.
+The filtered expression data used for RaceID3 can be extracted with the `getfdata` function:
+```{r}
+x <- getfdata(ltr@sc)
+```
+
+Additional filtering and subsetting of the gene expression matrix for cells on the trajectory, `n$f`, is done in the next step, utilizing functions from the `FateID` package:
+```{r results='hide', message=FALSE, warnings=FALSE}
+library(FateID)
+fs  <- filterset(x,n=n$f)
+```
+
+The `filterset` function can be used to eliminate lowly expressed genes on the trajectory from the subsequent analysis and has two additional arguments to discard genes, which are not expressed at a level of `minexpr` or higher in at least `minnumber` of cells. The function returns a filtered expression data frame with genes as rows and cells as columns in the same order as in the input vector `n`.
+In the next step, a self-organizing map (SOM) of the pseudo-temporal expression profiles is computed:
+```{r}
+s1d <- getsom(fs,nb=1000,k=5,locreg=TRUE,alpha=.5)
+```
+
+This map provides a grouping of similar expression profiles into modules. The first input argument is again an expression data frame. In this case, we use the filtered expression table generated by the filterset function to retain only genes that are expressed on the trajectory under consideration.
+Pseudo-temporal expression profiles along the differentiation trajectory of interest are computed after smoothing either by running mean of window size `k` or, if `locreg` is `TRUE`, by local regression with smoothing parameter `alpha`.
+
+This function returns a list of the following three components, i. e. a som object returned by the function `som` of the package `som`, a data frame `x` with smoothened and normalized expression profiles, and a data frame `zs` of z-score transformed pseudo-temporal expression profiles.
+
+The SOM is then processed by another function to group the nodes of the SOM into larger modules and to produce additional z-score transformed and binned expression data frames for display:  
+```{r}
+ps  <- procsom(s1d,corthr=.85,minsom=3)
+```
+
+The first input argument is given by the SOM computed by the function `getsom`. The function has two additional input parameters to control the grouping of the SOM nodes into larger modules. The parameter `corthr` defines a correlation threshold. If the correlation of the z-scores of the average normalized pseudo-temporal expression profiles of neighboring nodes in the SOM exceeds this threshold, genes of the neighboring nodes are merged into a larger module. Only modules with at least `minsom` genes are kept. The function returns a list of various data frames with normalized, z-score-transformed, or binned expression along with the assignment of genes to modules of the SOM (see man pages for details).
+
+The output of the processed SOM can be plotted using the plotheatmap function.
+First, in order to highlight the clustering partition `y` the same color scheme as in the `SCseq` object can be used:
+```{r}
+y    <- ltr@sc@cpart[n$f]
+fcol <- ltr@sc@fcol
+```
+
+Now, the different output data frames of the `procsom` function can be plotted. 
+
+Plot average z-score for all modules derived from the SOM:
+
+```{r eval=FALSE}
+plotheatmap(ps$nodes.z,xpart=y,xcol=fcol,ypart=unique(ps$nodes),xgrid=FALSE,ygrid=TRUE,xlab=FALSE)
+```
+
+Plot z-score profile of each gene ordered by SOM modules:
+
+```{r}
+plotheatmap(ps$all.z,xpart=y,xcol=fcol,ypart=ps$nodes,xgrid=FALSE,ygrid=TRUE,xlab=FALSE)
+```
+
+Plot normalized expression profile of each gene ordered by SOM modules:
+
+```{r eval=FALSE}
+plotheatmap(ps$all.e,xpart=y,xcol=fcol,ypart=ps$nodes,xgrid=FALSE,ygrid=TRUE,xlab=FALSE)
+```
+
+Plot binarized expression profile of each gene (z-score < -1, -1 < z-score < 1, z-score > 1):
+
+```{r eval=FALSE}
+plotheatmap(ps$all.b,xpart=y,xcol=fcol,ypart=ps$nodes,xgrid=FALSE,ygrid=TRUE,xlab=FALSE)
+```
+
+
+In order to inspect genes within individual modules of the SOM, these genes can be extracted given the number of the module. The module numbers are contained in the return value `nodes` of the `procsom` function and can be extracted, e. g. for module number 24:
+
+```{r}
+g <- names(ps$nodes)[ps$nodes == 24]
+```
+
+The average pseudo-temporal expression profile of this group can be plotted by the function `plotexpression`:
+
+```{r}
+plotexpression(fs,y,g,n$f,k=25,col=fcol,name="Node 24",cluster=FALSE,locreg=TRUE,alpha=.5,types=NULL)
+```
+
+In the same way it is possible to plot expression profiles of individual genes, e.g.:
+
+```{r}
+plotexpression(fs,y,"Clca4",n$f,k=25,col=fcol,cluster=FALSE,locreg=TRUE,alpha=.5,types=NULL)
+```
+
+It is also possible to highlight the data points as specific symbols, for example reflecting batches, by using the types argument:
+
+```{r}
+plotexpression(fs,y,g,n$f,k=25,col=fcol,name="Node 24",cluster=FALSE,locreg=TRUE,alpha=.5,types=sub("\\_\\d+","",n$f))
+```
+
+
+For bug reports and any questions related to RaceID and StemID please email directly to [link](mailto:dominic.gruen@gmail.com). 
+
+## References
+
+---
+references:
+- id: mnnCorrect
+  type: article-journal
+  author:
+  - family: Haghverdi
+    given: L.
+  - family: Lun
+    given: A. T. L.
+  - family: Morgan
+    given: M. D.
+  - family: Marioni
+    given: J. C.
+  issued:
+  - year: '2018'
+    month: '6'
+  title: '[Batch effects in single-cell RNA-sequencing data are
+corrected by matching mutual nearest neighbors]{.nocase}'
+  container-title: Nat. Biotechnology
+  page: '421-427'
+  volume: '36'
+  issue: '5'
+  
+- id: FateID
+  type: article-journal
+  author:
+  - family: Herman
+    given: J. S.
+  - family: Sagar
+    given:
+  - family: Grün
+    given: D.
+  issued:
+  - year: '2018'
+    month: '5'
+  title: '[FateID infers cell fate bias in multipotent progenitors from single-cell RNA-seq data]{.nocase}'
+  container-title: Nat. Methods
+  page: '379-386'
+  volume: '15'
+  issue: '5'
+  
+- id: Noise
+  type: article-journal
+  author:
+  - family: Grün
+    given: D.
+  - family: Kester
+    given: L.
+  - family: van Oudenaarden
+    given: A.
+  issued:
+  - year: '2014'
+    month: '6'
+  title: '[Validation of noise models for single-cell transcriptomics]{.nocase}'
+  container-title: Nat. Methods
+  page: '637-640'
+  volume: '11'
+  issue: '6'
+  
+- id: Census
+  type: article-journal
+  author:
+  - family: Qiu
+    given: X.
+  - family: Hill
+    given: A.
+  - family: Packer
+    given: J.
+  - family: Lin
+    given: D.
+  - family: Ma
+    given: Y. A.
+  - family: Trapnell
+    given: C.
+  issued:
+  - year: '2017'
+    month: '3'
+  title: '[Single-cell mRNA quantification and differential analysis with Census]{.nocase}'
+  container-title: Nat. Methods
+  page: '309-315'
+  volume: '14'
+  issue: '3'
+
+- id: StemID
+  type: article-journal
+  author:
+  - family: Grün
+    given: D.
+  - family: Muraro
+    given: M. J.
+  - family: Boisset
+    given: J. C.
+  - family: Wiebrands
+    given: K.
+  - family: Lyubimova
+    given: A.
+  - family: Dharmadhikari
+    given: G.
+  - family: Born
+    given: M.
+    dropping-particle: van den
+  - family: Es
+    given: J.
+    dropping-particle: van
+  - family: Jansen
+    given: 'E.'
+  - family: Clevers
+    given: H.
+  - family: Koning
+    given: E. J. P.
+    dropping-particle: de
+  - family: Oudenaarden
+    given: A.
+    dropping-particle: van
+  issued:
+  - year: '2016'
+    month: '8'
+  title: '[De Novo Prediction of Stem Cell Identity using Single-Cell Transcriptome
+    Data]{.nocase}'
+  container-title: Cell Stem Cell
+  page: '266-277'
+  volume: '19'
+  issue: '2'
+
+- id: DESeq
+  type: article-journal
+  author:
+  - family: Anders
+    given: S.
+  - family: Huber
+    given: W.
+  issued:
+  - year: '2010'
+  title: '[Differential expression analysis for sequence count data]{.nocase}'
+  container-title: Genome Biol.
+  page: R106
+  volume: '11'
+  issue: '10'
+
+- id: DESeq2
+  type: article-journal
+  author:
+  - family: Love
+    given: M. I.
+  - family: Huber
+    given: W.
+  - family: Anders
+    given: S.
+  issued:
+  - year: '2014'
+  title: '[Moderated estimation of fold change and dispersion for RNA-seq data with
+    DESeq2]{.nocase}'
+  container-title: Genome Biol.
+  page: '550'
+  volume: '15'
+  issue: '12'
+
+- id: RandomForests
+  type: article-journal
+  author:
+  - family: Breiman
+    given: L.
+  issued:
+  - year: '2001'
+  title: '[Random Forests]{.nocase}'
+  container-title: Mach. Learn.
+  page: '5-32'
+  volume: '45'
+  issue: '1'
+
+- id: TSNE
+  type: article-journal
+  author:
+  - family: Maaten
+    given: L.
+    dropping-particle: van der
+  - family: Hinton
+    given: G.
+  issued:
+  - year: '2008'
+  title: '[Visualizing Data using t-SNE]{.nocase}'
+  container-title: J. Mach. Learn.
+  page: '2570-2605'
+  volume: '9'
+
+- id: DPT
+  type: article-journal
+  author:
+  - family: Haghverdi
+    given: L.
+  - family: Buttner
+    given: M.
+  - family: Wolf
+    given: F. A.
+  - family: Buettner
+    given: F.
+  - family: Theis
+    given: F. J.
+  issued:
+  - year: '2016'
+    month: '10'
+  title: '[Diffusion pseudotime robustly reconstructs lineage branching]{.nocase}'
+  container-title: Nat. Methods
+  page: '845-848'
+  volume: '13'
+  issue: '10'
+
+- id: Destiny
+  type: article-journal
+  author:
+  - family: Angerer
+    given: P.
+  - family: Haghverdi
+    given: L.
+  - family: Buttner
+    given: M.
+  - family: Theis
+    given: F. J.
+  - family: Marr
+    given: C.
+  - family: Buettner
+    given: F.
+  issued:
+  - year: '2016'
+    month: '4'
+  title: '[destiny: diffusion maps for large-scale single-cell data in R]{.nocase}'
+  container-title: Bioinformatics
+  page: '1241-1243'
+  volume: '32'
+  issue: '8'
+...
+
