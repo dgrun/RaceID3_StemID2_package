@@ -17,19 +17,19 @@ lineage tree.
 
 After downloading and unzipping
 ```
-unzip RaceID3_StemID2_package.zip 
+unzip RaceID3_StemID2_package-master.zip 
 ```
 
 it can be installed from the command line by
 ```
-R CMD INSTALL RaceID3_StemID2_package
+R CMD INSTALL RaceID3_StemID2_package-master
 ```
 
 or directly in R from source by
 ```
-install.packages("RaceID3_StemID2_package",repos = NULL, type="source")
+install.packages("RaceID3_StemID2_package-master",repos = NULL, type="source")
 ```
-(if R is started from the directory where `RaceID3_StemID2_package.zip` has been downloaded to; otherwise specify the full path)
+(if R is started from the directory where `RaceID3_StemID2_package-master.zip` has been downloaded to; otherwise specify the full path)
 
 
 Alternatively, install in R directly from github using devtools:
@@ -43,7 +43,7 @@ install_github("dgrun/RaceID3_StemID2_package")
 
 Load package:
 ```
-libary(RaceID)
+library(RaceID)
 ```
 
 See vignette for details and examples:
