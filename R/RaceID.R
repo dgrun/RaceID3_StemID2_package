@@ -522,7 +522,6 @@ plotexpmap <- function(object,g,n=NULL,logsc=FALSE,imputed=FALSE,fr=FALSE,cells=
     h <- colnames(object@ndata) %in% cells
     mi <- min(l,na.rm=TRUE)
     ma <- max(l,na.rm=TRUE)
-    ##ColorRamp <- colorRampPalette(c("grey90","red4","red3"))(80)​
     ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
     ColorLevels <- seq(mi, ma, length=length(ColorRamp))
     v <- round((l - mi)/(ma - mi)*99 + 1,0)
@@ -898,7 +897,7 @@ compfr <- function(object,knn=10,rseed=15555){
     gr <- layout.fruchterman.reingold(g)
     object@fr <- as.data.frame(gr)
     rownames(object@fr) <- colnames(object@ndata)
-    plotmap(object,fr=T)
+   
     return(object)
 }
 
