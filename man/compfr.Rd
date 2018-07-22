@@ -20,3 +20,11 @@ compfr(object, knn = 10, rseed = 15555)
 This functions performs the computation of a Fruchterman-Rheingold graph layout based on an adjacency matrix derived
 from the distance object in slot \code{distances} using the \pkg{igraph} package.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- compfr(sc)
+}

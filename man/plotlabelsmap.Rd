@@ -9,7 +9,7 @@ plotlabelsmap(object, labels = NULL, fr = FALSE)
 \arguments{
 \item{object}{\code{SCseq} class object.}
 
-\item{labels}{Vector of labels for all cells to be highlighted in the t-SNE map. Order has to be the same as for the
+\item{labels}{Vector of labels for all cells to be highlighted in the t-SNE map. The order has to be the same as for the
 columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} and cell names are highlighted.}
 
 \item{fr}{logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.}

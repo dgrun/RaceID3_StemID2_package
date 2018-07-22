@@ -22,3 +22,11 @@ multidimensional scaling. Default is \code{TRUE}.}
 \description{
 This functions performs the computation of a t-SNE map from the distance object in slot \code{distances} using the \pkg{Rtsne} package.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+}

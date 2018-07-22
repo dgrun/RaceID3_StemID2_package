@@ -15,3 +15,15 @@ An Ltree class object with lineage graph-related data stored in slots \code{ltco
 \description{
 This function assembles a lineage graph based on the cell projections onto inter-cluster links.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+ltr <- projcells(ltr)
+ltr <- lineagegraph(ltr)
+}

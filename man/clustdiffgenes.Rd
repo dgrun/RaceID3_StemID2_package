@@ -25,3 +25,12 @@ A data.frame of differentially expressed genes ordered by p-value in increasing 
 This functions computes differentially expressed genes in a cluster by comparing to all remaining cells outside of the cluster based on a negative binomial
 model of gene expression
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+x <- clustdiffgenes(sc,1)
+head(x[x$fc>1,])
+}

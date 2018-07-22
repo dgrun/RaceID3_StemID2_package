@@ -24,3 +24,8 @@ slot \code{cluster$features}.
 \description{
 This functions computes the distance matrix used for cell type inference by RaceID3.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+}

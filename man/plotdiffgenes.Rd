@@ -17,3 +17,13 @@ None
 \description{
 This functions produces a barplot of differentially expressed genes derived by the function \code{diffgenes}
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+x <- diffgenes(sc,1,2)
+head(x$z)
+plotdiffgenes(x,names(x$z)[1])
+}

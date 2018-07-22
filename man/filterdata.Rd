@@ -39,3 +39,7 @@ An SCseq class object with filtered and normalized expression data.
 This function allows filtering of genes and cells to be used in the RaceID3 analysis.
 It also can perform batch effect correction using an internal method or a recently published alternative \code{mnnCorrect} from the \pkg{scran} package.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+}

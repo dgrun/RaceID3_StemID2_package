@@ -23,3 +23,10 @@ The function returns an updated \code{SCseq} object with the corrected expressio
 \description{
 This functions regresses out variability associated with particular sources.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+b <- sub("(\\\\_\\\\d+)$","",colnames(intestinalData))
+vars <- data.frame(row.names=colnames(intestinalData),batch=b)
+sc   <- varRegression(sc,vars)
+}

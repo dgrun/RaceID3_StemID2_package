@@ -34,3 +34,9 @@ Default is 30.}
 \description{
 This functions performs the initial clustering of the RaceID3 algorithm.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+}

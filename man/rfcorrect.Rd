@@ -29,3 +29,11 @@ or \code{TRUE}, respectively) is overwritten with the partition derived from  th
 \description{
 This functions applies random forests-based reclassification of cell clusters to enhance robustness of the final clusters.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- rfcorrect(sc)
+}

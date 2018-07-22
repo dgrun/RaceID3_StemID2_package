@@ -27,3 +27,10 @@ the distance distribution of  pairs of cells in the orginal clusters after outli
 \description{
 This functions performs the outlier identification based on the clusters infered with the \code{clustexp} function.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+}

@@ -87,7 +87,15 @@ setMethod("initialize",
 #' @description This function computes the transcriptome entropy for each cell.
 #' @param object \code{Ltree} class object.
 #' @return An Ltree class object with a vector of entropies for each cell in the same order as column names in slot sc@ndata.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
 #' @export
 compentropy <- function(object){
     probs   <- t(t(object@sc@ndata)/apply(object@sc@ndata,2,sum))
@@ -105,7 +113,16 @@ compentropy <- function(object){
 #' @param knn Positive integer number. See \code{nmode}. Default is 3.
 #' @param fr logical. Use Fruchterman-Rheingold layout instead of t-SNE for dimensional-reduction representation of the lineage tree. Default is \code{FALSE}.
 #' @return An Ltree class object with all information on cell projections onto links stored in the \code{ldata} slot.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr)
 #' @export
 projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE){
     if ( ! is.numeric(cthr) ) stop( "cthr has to be a non-negative number" ) else if ( cthr < 0 ) stop( "cthr has to be a non-negative number" )
@@ -188,7 +205,17 @@ projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE){
 #' will be used to infer significance. The function will do nothing in this case. Default is \code{FALSE}.
 #' @param rseed Integer number used as seed to ensure reproducibility of randomizations. Defaut is 17000.
 #' @return An Ltree class object with all information on randomized cell projections onto links stored in the \code{prbacka} slot.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr,nmode=FALSE)
+#' ltr <- projback(ltr,pdishuf=50)
 #' @export
 projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
     if ( !is.numeric(fast) & !is.logical(fast) ) stop("argument fast has to be logical (TRUE/FALSE)")
@@ -221,7 +248,17 @@ projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
 #' @description This function assembles a lineage graph based on the cell projections onto inter-cluster links.
 #' @param object \code{Ltree} class object.
 #' @return An Ltree class object with lineage graph-related data stored in slots \code{ltcoord}, \code{prtree}, and \code{cdata}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr)
+#' ltr <- lineagegraph(ltr)
 #' @export
 lineagegraph <- function(object){
     if ( length(object@trproj) == 0 ) stop("run projcells before lineagegraph")
@@ -307,7 +344,18 @@ lineagegraph <- function(object){
 #' @param sensitive logical. Only relevant when \code{nmode=TRUE} in function \code{projcell}. If \code{TRUE}, then all cells on the most highly significant link are
 #' and the link itself are disregard to test significance of the remaining links with a binomial p-value. Default is \code{FALSE}.
 #' @return An Ltree class object with link p-value and occupancy data stored in slot \code{cdata}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr)
+#' ltr <- lineagegraph(ltr)
+#' ltr <- comppvalue(ltr)
 #' @export
 comppvalue <- function(object,pthr=0.01,sensitive=FALSE){
     if ( length(object@prtree) == 0 ) stop("run lineagegraph before comppvalue")
@@ -827,13 +875,21 @@ compscore <- function(object,nn=1,scthr=0,show=TRUE){
 #'   \item{k}{a vector with the StemID score for each cluster.}
 #'   \item{diffgenes}{a vector with the StemID score for each cluster.}
 #' @examples
-#' \donttest{
-#' x <- branchcells(ltr,list("1.3","1.2"))
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr)
+#' ltr <- lineagegraph(ltr)
+#' ltr <- comppvalue(ltr)
+#' x <- branchcells(ltr,list("1.3","3.6"))
 #' head(x$diffgenes$z)
-#' plottsne(x$scl)
+#' plotmap(x$scl)
 #' plotdiffgenes(x$diffgenes,names(x$diffgenes$z)[1])
-#' }
-#' 
 #' 
 #' @export
 branchcells <- function(object,br){
@@ -874,11 +930,18 @@ branchcells <- function(object,br){
 #'   \item{f}{a vector of cells ids ordered along the trajectory defined by \code{z}.}
 #'   \item{g}{a vector of integer number. Number \code{i} indicates that a cell resides on the link between the i-th and (i+1)-th cluster in \code{z}.}
 #' @examples
-#' \donttest{
-#' x <- cellsfromtree(ltr,c(1,3,5))
-#' }
-#' 
-#' 
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
+#' ltr <- Ltree(sc)
+#' ltr <- compentropy(ltr)
+#' ltr <- projcells(ltr)
+#' ltr <- lineagegraph(ltr)
+#' ltr <- comppvalue(ltr)
+#' x <- cellsfromtree(ltr,c(1,3,6,2))
 #' @export
 cellsfromtree <- function(object,z){
     prtr <- object@prtree

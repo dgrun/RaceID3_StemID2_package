@@ -91,7 +91,9 @@ setMethod("initialize",
 #' Only genes correlating  less than \code{ccor} to all genes in \code{CGenes} are retained for analysis. Default is 0.4.
 #' @param bmode Method used for batch effect correction. Any of \code{"RaceID","scran"}. Default is \code{"RaceID"}.
 #' @return An SCseq class object with filtered and normalized expression data.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
 #' @export
 filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NULL, knn=10, CGenes=NULL, FGenes=NULL, ccor=.4,bmode="RaceID"){
     if ( ! is.numeric(mintotal) ) stop( "mintotal has to be a positive number" ) else if ( mintotal <= 0 ) stop( "mintotal has to be a positive number" )
@@ -307,7 +309,15 @@ plotsensitivity <- function(object) {
 #'   \item{cl2}{a \code{data.frame} with expression values for cells in \code{cl2}.}
 #'   \item{cl1n}{a vector of cluster numbers for cells in \code{cl1}.}
 #'   \item{cl2n}{a vector of cluster numbers for cells in \code{cl2}.}
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' x <- diffgenes(sc,1,2)
+#' head(x$z)
+#' plotdiffgenes(x,names(x$z)[1])
 #' @export
 diffgenes <- function(object,cl1,cl2,mincount=1){
     part <- object@cpart
@@ -348,8 +358,16 @@ diffgenes <- function(object,cl1,cl2,mincount=1){
 #' @description This functions produces a barplot of differentially expressed genes derived by the function \code{diffgenes}
 #' @param z Output of \code{diffgenes}
 #' @param gene Valid gene name. Has to correspond to one of the rownames of the \code{ndata} slot of the \code{SCseq} object.
-#' @return None 
-#'
+#' @return None
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' x <- diffgenes(sc,1,2)
+#' head(x$z)
+#' plotdiffgenes(x,names(x$z)[1])
 #' @export
 plotdiffgenes <- function(z,gene){
   if ( ! is.list(z) ) stop("first arguments needs to be output of function diffgenes")
@@ -410,7 +428,6 @@ plotmap <- function(object,final=TRUE,tp=1,fr=FALSE){
     for ( i in 1:max(part) ){
         if ( sum(part == i) > 0 ) points(d[object@medoids[i],1],d[object@medoids[i],2],col=adjustcolor(object@fcol[i],tp),pch=20,cex=4)
         if ( sum(part == i) > 0 ) points(d[object@medoids[i],1],d[object@medoids[i],2],col=adjustcolor("white",tp),pch=20,cex=3)
-        #if ( sum(part == i) > 0 ) text(d[object@medoids[i],1],d[object@medoids[i],2],i,col=adjustcolor("white",tp),cex=.75,font=4)
         if ( sum(part == i) > 0 ) text(d[object@medoids[i],1],d[object@medoids[i],2],i,col=adjustcolor("black",tp),cex=.75,font=4)
     }
 
@@ -422,7 +439,7 @@ plotmap <- function(object,final=TRUE,tp=1,fr=FALSE){
 #' @description This functions plots cell labels into a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
 #' of the singe-cell transcriptome data.
 #' @param object \code{SCseq} class object.
-#' @param labels Vector of labels for all cells to be highlighted in the t-SNE map. Order has to be the same as for the
+#' @param labels Vector of labels for all cells to be highlighted in the t-SNE map. The order has to be the same as for the
 #' columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} and cell names are highlighted.
 #' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
 #' @return None
@@ -574,7 +591,10 @@ getfdata <- function(object,g=NULL,n=NULL){
 #' @param FSelect Logical parameter. If \code{TRUE}, then feature selection is performed prior to RaceID3 analysis. Default is \code{TRUE}.
 #' @return \code{SCseq} object with the distance matrix in slot \code{distances}. If \code{FSelect=TRUE}, the genes used for computing the distance object are stored in
 #' slot \code{cluster$features}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
 #' @importFrom coop pcor
 #' @importFrom quadprog solve.QP
 #' @export
@@ -687,7 +707,11 @@ imputeexp <- function(object,genes=NULL){
 #' @param FUNcluster Clustering method used by RaceID3. One of \code{"kmedoids", "kmeans", "hclust"}. Default is \code{"kmedoids"}.
 #' @return \code{SCseq} object with clustering data stored in slot \code{cluster} and slot \code{clusterpar}. The clustering partition is stored in
 #' \code{cluster$kpart}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
 #' @export
 clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rseed=17000,FUNcluster="kmedoids"){
     if ( ! is.numeric(clustnr) ) stop("clustnr has to be a positive integer") else if ( round(clustnr) != clustnr | clustnr <= 0 ) stop("clustnr has to be a positive integer")
@@ -721,7 +745,12 @@ clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rse
 #' the distance distribution of  pairs of cells in the orginal clusters after outlier removal. Default is 0.95.
 #' @return \code{SCseq} object with outlier data stored in slot \code{out} and slot \code{outlierpar}. The final clustering partition is stored in
 #' \code{cpart}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
 #' @export
 findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95){
     if ( length(object@cluster$kpart) == 0 ) stop("run clustexp before findoutliers")
@@ -862,7 +891,13 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
 #' @param perplexity Positive number. Perplexity of the t-SNE map. Default is \code{30}.
 #' @param rseed Integer number. Random seed to enforce reproducible t-SNE map.
 #' @return \code{SCseq} object with t-SNE coordinates stored in slot \code{tsne}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- comptsne(sc)
 #' @importFrom Rtsne Rtsne
 #' @export
 comptsne <- function(object,initial_cmd=TRUE,perplexity=30,rseed=15555){
@@ -882,9 +917,15 @@ comptsne <- function(object,initial_cmd=TRUE,perplexity=30,rseed=15555){
 #' @param knn Positive integer number of nearest neighbours used for the inference of the Fruchterman-Rheingold layout. Default is \code{10}.
 #' @param rseed Integer number. Random seed to enforce reproducible layouts.
 #' @return \code{SCseq} object with layout coordinates stored in slot \code{fr}.
-#'
-#' @export
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- compfr(sc)
 #' @import igraph
+#' @export
 compfr <- function(object,knn=10,rseed=15555){
     if ( length(object@cluster$kpart) == 0 ) stop("run clustexp before compfr")
     if ( ! is.numeric(knn) ) stop("knn has to be a positive integer number")
@@ -914,9 +955,15 @@ compfr <- function(object,knn=10,rseed=15555){
 #'   \item{fc}{fold-change of mean expression in cluster \code{cl} versus the remaining cells.}
 #'   \item{pv}{inferred p-value for differential expression.}
 #'   \item{padj}{Benjamini-Hochberg corrected FDR.}
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' x <- clustdiffgenes(sc,1)
+#' head(x[x$fc>1,])
 #' @export
-#' @import igraph
 clustdiffgenes <- function(object,cl,pvalue=.01){
     if ( length(object@cpart) == 0 ) stop("run findoutliers before clustdiffgenes")
     if ( ! is.numeric(pvalue) ) stop("pvalue has to be a number between 0 and 1") else if (  pvalue < 0 | pvalue > 1 ) stop("pvalue has to be a number between 0 and 1")
@@ -1126,7 +1173,13 @@ barplotgene <- function(object,g,n=NULL,logsc=FALSE){
 #' @return The function returns an updated \code{SCseq} object with random forests votes written to slot \code{out$rfvotes}. The clustering
 #' partition prior or post outlier identification (slot \code{cluster$kpart} or \code{cpart}, if parameter \code{final} equals \code{FALSE}
 #' or \code{TRUE}, respectively) is overwritten with the partition derived from  the reclassification.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- rfcorrect(sc)
 #' @importFrom randomForest randomForest
 #' @export
 rfcorrect <- function(object,rfseed=12345,nbtree=NULL,final=TRUE,nbfactor=5,...){
@@ -1295,7 +1348,12 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
 #' @param Batch logical. If \code{TRUE}, then the function will regress out batch-associated variability based on genes stored in the \code{filterpar$BGenes}
 #' slot of the \code{SCseq} object. This requires prior batch correction with the \code{filterdata} function using \code{bmode="RaceID"}.
 #' @return The function returns an updated \code{SCseq} object with the corrected expression matrix written to the slot \code{dimRed$x} of the \code{SCseq} object.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' b <- sub("(\\_\\d+)$","",colnames(intestinalData))
+#' vars <- data.frame(row.names=colnames(intestinalData),batch=b)
+#' sc   <- varRegression(sc,vars)
 #' @export
 varRegression <- function(object,vars=NULL,logscale=FALSE,Batch=FALSE){
     if ( ! is.null(object@dimRed$x) ){
@@ -1376,7 +1434,10 @@ varRegression <- function(object,vars=NULL,logscale=FALSE,Batch=FALSE){
 #' as computed in the function \code{filterdata}. See \code{FSelect} for function \code{filterdata}. Default is \code{TRUE}.
 #' @return The function returns an updated \code{SCseq} object with the principal or independent component matrix written to the slot \code{dimRed$x} of the \code{SCseq}
 #' object. Additional information on the PCA or ICA is stored in slot \code{dimRed}.
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- CCcorrect(sc,dimR=TRUE,nComp=3)
 #' @importFrom irlba irlba
 #' @importFrom ica icafast 
 #' @export
@@ -1571,8 +1632,15 @@ plotdimsat <- function(object,change=TRUE,lim=NULL){
 #' \item{vf1}{a data frame of three columns, indicating the mean \code{m}, the variance \code{v} and the fitted variance \code{vm} for set \code{A}.}
 #' \item{vf2}{a data frame of three columns, indicating the mean \code{m}, the variance \code{v} and the fitted variance \code{vm} for set \code{B}.}
 #' \item{res}{a data frame with the results of the differential gene expression analysis with the structure of the \code{DESeq} output, displaying mean expression of the two sets, fold change and log2 fold change between the two sets, the p-value for differential expression (\code{pval}) and the Benjamini-Hochberg corrected false discovery rate (\code{padj}).} 
-#'
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' A <- names(sc@cpart)[sc@cpart %in% c(1,2)]
+#' B <- names(sc@cpart)[sc@cpart %in% c(3)]
+#' y <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
 #' @importFrom stats var approxfun fitted lm coef dnbinom p.adjust
 #' @importFrom locfit locfit
 #' @export
@@ -1640,8 +1708,6 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
     }
     sf  <- function(x,i) x**2/(max(x + 1e-6,vf(x,i)) - x)
 
-    #psp <- 1e-99
-    #pv <- apply(data.frame(m[[1]],m[[2]]),1,function(x){ p12 <- (dnbinom(0:round(x[1]*length(A) + x[2]*length(B),0),mu=mean(x)*length(A),size=length(A)*sf(mean(x),1)) + psp)*(dnbinom(round(x[1]*length(A) + x[2]*length(B),0):0,mu=mean(x)*length(B),size=length(B)*sf(mean(x),2)) + psp); sum(p12[p12 <= p12[round(x[1]*length(A),0) + 1]])/sum(p12)} )
     pv <- apply(data.frame(m[[1]],m[[2]]),1,function(x){ p12 <- (dnbinom(0:round(x[1]*length(A) + x[2]*length(B),0),mu=mean(x)*length(A),size=length(A)*sf(mean(x),1)))*(dnbinom(round(x[1]*length(A) + x[2]*length(B),0):0,mu=mean(x)*length(B),size=length(B)*sf(mean(x),2))); if ( sum(p12) == 0 ) 0 else sum(p12[p12 <= p12[round(x[1]*length(A),0) + 1]])/(sum(p12))} )
     
     res <- data.frame(baseMean=(m[[1]] + m[[2]])/2,baseMeanA=m[[1]],baseMeanB=m[[2]],foldChange=m[[2]]/m[[1]],log2FoldChange=log2(m[[2]]/m[[1]]),pval=pv,padj=p.adjust(pv,method="BH"))
@@ -1666,7 +1732,16 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
 #' @param Bname name of expression set \code{B}, which was used as input to \code{diffexpnb}. If provided, this name is used in the axis labels. Default value is \code{NULL}.
 #' @param show_names logical value. If \code{TRUE} then gene names displayed for differentially expressed genes. Default value is \code{FALSE}.
 #' @return None
-#'
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' A <- names(sc@cpart)[sc@cpart %in% c(1,2)]
+#' B <- names(sc@cpart)[sc@cpart %in% c(3)]
+#' y <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
+#' plotdiffgenesnb(y)
 #' @importFrom grDevices rainbow colorRampPalette adjustcolor
 #' @export
 plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bname=NULL,show_names=TRUE){

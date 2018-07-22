@@ -20,3 +20,16 @@ An Ltree class object with link p-value and occupancy data stored in slot \code{
 \description{
 This function computes a p-value for the significance (i.e. over-representation of assigned cells) of each inter-cluster link.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+ltr <- projcells(ltr)
+ltr <- lineagegraph(ltr)
+ltr <- comppvalue(ltr)
+}

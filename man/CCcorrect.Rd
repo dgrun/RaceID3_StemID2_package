@@ -42,3 +42,8 @@ object. Additional information on the PCA or ICA is stored in slot \code{dimRed}
 This functions performs dimensional reduction by PCA or ICA and removes components enriched for particular gene sets, e.g. cell cycle related genes
 genes associated with technical batch effects.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- CCcorrect(sc,dimR=TRUE,nComp=3)
+}

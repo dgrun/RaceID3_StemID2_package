@@ -24,3 +24,14 @@ An Ltree class object with all information on cell projections onto links stored
 \description{
 This function computes the projections of cells onto inter-cluster links in a high-dimensional embedded space.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+ltr <- projcells(ltr)
+}

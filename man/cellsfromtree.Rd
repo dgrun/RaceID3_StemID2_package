@@ -20,9 +20,16 @@ A list ot four components:
 This function extracts a vector of cells on a given differentiation trajectory in pseudo-temporal order determined from the projection coordinates.
 }
 \examples{
-\donttest{
-x <- cellsfromtree(ltr,c(1,3,5))
-}
-
-
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+ltr <- projcells(ltr)
+ltr <- lineagegraph(ltr)
+ltr <- comppvalue(ltr)
+x <- cellsfromtree(ltr,c(1,3,6,2))
 }

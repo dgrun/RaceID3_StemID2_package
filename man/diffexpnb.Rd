@@ -38,3 +38,13 @@ Otherwise, a list of three components is returned:
 \description{
 This function performs differential expression analysis between two sets of single cell transcriptomes. The inference is based on a noise model or relies on the \code{DESeq2} approach.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+A <- names(sc@cpart)[sc@cpart \%in\% c(1,2)]
+B <- names(sc@cpart)[sc@cpart \%in\% c(3)]
+y <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
+}

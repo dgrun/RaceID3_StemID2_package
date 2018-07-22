@@ -26,3 +26,13 @@ A list with four components:
 \description{
 This functions computes expression differences between clusters and ranks genes by z-score differences.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+x <- diffgenes(sc,1,2)
+head(x$z)
+plotdiffgenes(x,names(x$z)[1])
+}

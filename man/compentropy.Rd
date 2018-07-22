@@ -15,3 +15,13 @@ An Ltree class object with a vector of entropies for each cell in the same order
 \description{
 This function computes the transcriptome entropy for each cell.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+}

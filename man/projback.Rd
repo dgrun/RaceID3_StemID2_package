@@ -24,3 +24,15 @@ An Ltree class object with all information on randomized cell projections onto l
 This function computes the projections of cells onto inter-cluster links for randomized cell positions in a high-dimensional embedded space. Significance
 of link based on an increased number of cells on a link is inferred based on this background model.
 }
+\examples{
+sc <- SCseq(intestinalDataSmall)
+sc <- filterdata(sc)
+sc <- compdist(sc)
+sc <- clustexp(sc)
+sc <- findoutliers(sc)
+sc <- comptsne(sc)
+ltr <- Ltree(sc)
+ltr <- compentropy(ltr)
+ltr <- projcells(ltr,nmode=FALSE)
+ltr <- projback(ltr,pdishuf=50)
+}

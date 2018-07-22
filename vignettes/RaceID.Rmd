@@ -11,13 +11,13 @@ vignette: >
 ```{r echo=FALSE}
 knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg') 
 ```
-## Prerequisites
+# Prerequisites
 
 RaceID is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by an outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data obtained by quantification with unique molecular identifiers. StemID permits subsequent inference of a lineage tree based on clusters, i.e. cell types, identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published [@FateID]. 
 This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells.
 RaceID offers several optional steps and here we will show  examples of how to perform typical RaceID/StemID analyses.
 
-## RaceID 
+# RaceID 
 
 Input to RaceID is a matrix of raw expression values (unique molecular identifiers with or without Poisson correction [@Noise]) with cells as column and genes as rows. This matrix can be provided as a matrix object, a data.frame or a sparse matrix produced by the `Matrix` package.
 
@@ -177,7 +177,7 @@ plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2",Bname="Cl.3,5",show_name
 
 See the paragraphs below for additional options of RaceID analyses and parameter choices ideal for analysing large datasets.
 
-## StemID analysis
+# StemID: projection mode
 
 StemID is an algorithm for the inference of lineage trees and differentiation trajectories based on pseudo-temporal ordering of single-cell transcriptomes. It utilizies the clusters predicted by RaceID and thus requires to run RaceID first. The algorithm was originally published along with RaceID2 [@StemID] and the improved current version StemID2 was published later [@FateID].
 In a nutshell, StemID infers links between clusters which are more populated with intermediate single-cell transcriptomes than expected by chance. To assign cells to inter-cluster links, two fundamentally different strategies are available (see `nmode` argument below). The first strategy considers the projection of a vector connecting a cluster medoid to a member cell of the same cluster onto the links from the medoid of its cluster to the medoids of all other clusters. The longest projection identifies the link this cell is assigned to and defines the projection coordinate. The second (nearest neighbour) mode identifies for a cell in a given cluster the number of k nearest neighbours in each other cluster and assigns the cell to the link with the cluster where the average distance to these k nearest neighbours is minimized. The coordinate on the link is inferred as in the first mode. A faster approximate version of the first mode is also implemented.
@@ -254,7 +254,7 @@ The cells on the two branches can be plotted as additional clusters in the dimen
 plotmap(x$scl,fr=TRUE)
 ```
 
-## StemID: nearest-neighbour mode
+# StemID: nearest-neighbour mode
 
 Since the randomizations of cell positions for the derivation of link significance require long computation time, and the projection-based method leads to some weak links which are potentially false positives (and can be filtered out based on linkscore), the nearest-neighbour-based method has now be selected to the default mode of StemID. This method is more robust and fast even on large datasets. The downside is that it will miss some weak links, i.e. lead to more false negatives in comparison to the projection mode.
 
@@ -281,8 +281,8 @@ x <- compscore(ltr)
 ```
 
 
-## RaceID Options: 
-# Batch effect removal
+# RaceID Options: 
+## Batch effect removal
 RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `scran` package [@mnnCorrect]. In order to do this, a list with a vector of cell ids for each batch needs to be defined, e.g.:
 ```{r}
 n <- colnames(intestinalData)
@@ -296,7 +296,7 @@ sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
 ```
 The `filterdata` function will identify all batch-associated genes, which are stored in the `filterpar$BGenes` slot of the `SCseq` object. All genes that correlate to a batch gene are removed for the computation of a distance object. This is a minimally invasive strategy in comparison to `mnnCorrect`, which works well if batches are very similar, such as datasets produced from the same material using the same single-cell RNA-seq technology.
 
-# Imputing of gene expression
+## Imputing of gene expression
 RaceID also offers optional imputing of gene expression, which can be useful if gene expression differences between cell types or states are governed only by lowly expressed genes and are difficult to resolve by clustering based on raw counts.
 If imputing is desired, the `knn` argument needs to be initialized with the number of nearest neighbours used for imputing gene expression :
 ```{r results='hide', message=FALSE}
@@ -332,7 +332,7 @@ An expression matrix with imputed expression values can be extracted for further
 k <- imputeexp(sc)
 ```
 
-# Removing variability by regression
+## Removing variability by regression
 RaceID can also regress out variability associated with particular sources such as batches or cell cycle. If batch effect removal has been done by the `filterdata` function with `bmode="RaceID"` then this function can further regress out residual variability remaining after batch associated genes have been discarded for the distance computation. In the case, the argument `Batch` has to be set to `TRUE` and `vars` can be left empty if no further sources of variability should be regressed out.
 Batch effects can also be regressed out directly without prior removal using the `filterdata` function:
 ```{r results='hide', message=FALSE, eval=FALSE}
@@ -349,7 +349,7 @@ plotmap(sc)
 ```
 However, regression also leads to loss of biological variation and this step is only recommended if variability associated with a particular variable is a strong confounding factor and cannot be removed by other means.
 
-# Prior dimensional reduction and removal of variability by PCA/ICA
+## Prior dimensional reduction and removal of variability by PCA/ICA
 After runnfing the `filterdara` function, a prior dimensional reduction using PCA or ICA can be performed using the `CCcorrect` function. This function can also be provided with a list `vset` of sets of genes, and principal components with loadings enriched in any of these sets will be discarded. Another options is to provide a list `CGenes` of genes, and sets to be tested for enrichment in each component are derived as the groups of all genes correlating to a component in FGenes.
 The `CCcorrect` function predicts a dimension for the prior dimensional reduction based on an ellbow function of the explained variability as a function of the number of components. This can be inspected by the `plotdimsat` function and manually adjusted:
 ```{r results='hide', message=FALSE, eval=FALSE}
@@ -370,7 +370,7 @@ plotmap(sc)
 Rerunning `CCcorrect` requires to run `filterdata` first, because otherwise the dimensional reduction scores in the `dimRed` slot will be subject to a second dimensional reduction, which is not desired.
 All sub-sequent steps remain unaltered.
 
-# Inferring stable clusters by random forests analysis
+## Inferring stable clusters by random forests analysis
 RaceID provides the option to run a random forests based reclassifiction, in order to obtain a stable clustering partition.
 This can be done on the final clustering after running `findoutliers`:
 ```{r results='hide', message=FALSE, eval=FALSE}
@@ -419,7 +419,6 @@ plotmap(sc,fr=TRUE)
 For a sub-sequent StemID analysis of very large datasets, the nearest-neighbour mode (see above) will help to reduce the runtime.
 
 ##	Inspecting pseudo-temporal gene expression changes
-
 To inspect pseudotemporal expression profiles, functions provided by the `FateID` package can be utilized.
 First, the trajectory needs to be defined based on a sequence of clusters. This sequence should ideally correspond to a trajectory predicted by StemID2, i.e. the clusters should be connected by a series of significant links. However, non-linked clusters can also be included. A pseudo-temporally ordered vector of cells along a StemID trajectory can be extracted with the `cellsfromtree` function from an `Ltree` object:
 ```{r}
@@ -517,7 +516,7 @@ plotexpression(fs,y,g,n$f,k=25,col=fcol,name="Node 24",cluster=FALSE,locreg=TRUE
 
 For bug reports and any questions related to RaceID and StemID please email directly to [link](mailto:dominic.gruen@gmail.com). 
 
-## References
+# References
 
 ---
 references:
