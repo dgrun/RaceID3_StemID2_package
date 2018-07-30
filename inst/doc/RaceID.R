@@ -244,7 +244,7 @@ library(FateID)
 fs  <- filterset(x,n=n$f)
 
 ## ------------------------------------------------------------------------
-s1d <- getsom(fs,nb=1000,k=5,locreg=TRUE,alpha=.5)
+s1d <- getsom(fs,nb=1000,alpha=.5)
 
 ## ------------------------------------------------------------------------
 ps  <- procsom(s1d,corthr=.85,minsom=3)
@@ -269,11 +269,11 @@ plotheatmap(ps$all.z,xpart=y,xcol=fcol,ypart=ps$nodes,xgrid=FALSE,ygrid=TRUE,xla
 g <- names(ps$nodes)[ps$nodes == 24]
 
 ## ------------------------------------------------------------------------
-plotexpression(fs,y,g,n$f,k=25,col=fcol,name="Node 24",cluster=FALSE,locreg=TRUE,alpha=.5,types=NULL)
+plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=NULL)
 
 ## ------------------------------------------------------------------------
-plotexpression(fs,y,"Clca4",n$f,k=25,col=fcol,cluster=FALSE,locreg=TRUE,alpha=.5,types=NULL)
+plotexpression(fs,y,"Clca4",n$f,col=fcol,cluster=FALSE,alpha=.5,types=NULL)
 
 ## ------------------------------------------------------------------------
-plotexpression(fs,y,g,n$f,k=25,col=fcol,name="Node 24",cluster=FALSE,locreg=TRUE,alpha=.5,types=sub("\\_\\d+","",n$f))
+plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=sub("\\_\\d+","",n$f))
 
