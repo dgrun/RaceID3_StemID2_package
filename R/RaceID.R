@@ -545,6 +545,8 @@ plotexpmap <- function(object,g,n=NULL,logsc=FALSE,imputed=FALSE,fr=FALSE,cells=
     
     d <- object@tsne
     if ( fr ) d <- object@fr
+
+    pardefault <- par()
     
     layout(matrix(data=c(1,3,2,4), nrow=2, ncol=2), widths=c(5,1,5,1), heights=c(5,1,1,1))
     par(mar = c(3,5,2.5,2))
@@ -553,14 +555,14 @@ plotexpmap <- function(object,g,n=NULL,logsc=FALSE,imputed=FALSE,fr=FALSE,cells=
     d <- d[h,]
     kk <- order(v,decreasing=F)
     points(d[kk,1],d[kk,2],col=ColorRamp[v[kk]],pch=20,cex=1.5)
-    ##par(mar = c(3,2.5,2.5,2))
-    par(mar = c(20,2.5,2.5,4))
+    par(mar = c(10,2.5,2.5,4))
     image(1, ColorLevels,
           matrix(data=ColorLevels, ncol=length(ColorLevels),nrow=1),
           col=ColorRamp,
           xlab="",ylab="",
           xaxt="n")
     layout(1)
+    par(mar=pardefault$mar)
 }
 
 #' @title Extracting filtered expression data

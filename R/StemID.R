@@ -637,8 +637,9 @@ plotgraph <- function(object,showCells=FALSE,showTsne=TRUE,tp=.5,scthr=0){
     cnl <- object@ldata$cnl
     u <- object@ltcoord[,1]
     v <- object@ltcoord[,2]
+    pardefault <- par()
     layout( cbind(c(1, 1), c(2, 3)),widths=c(5,1,1),heights=c(5,5,1))
-    par(mar = c(12,5,1,1))
+    par(mar = c(10,5,1,1))
     xlim <- c(min(u),max(u))
     ylim <- c(min(v),max(v))
     if ( showTsne ){
@@ -709,6 +710,7 @@ plotgraph <- function(object,showCells=FALSE,showTsne=TRUE,tp=.5,scthr=0){
           xlab="",ylab="",
           xaxt="n")
     layout(1)
+    par(mar=pardefault$mar)
 }
 
 #' @title Histogram of Cell-to-Cell Distances in Real versus Embedded Space
