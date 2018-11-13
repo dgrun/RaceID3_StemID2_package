@@ -5,7 +5,7 @@
 \title{Highlighting gene expression in the t-SNE map}
 \usage{
 plotexpmap(object, g, n = NULL, logsc = FALSE, imputed = FALSE,
-  fr = FALSE, cells = NULL)
+  fr = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -24,6 +24,12 @@ and untransformed values are shown.}
 
 \item{cells}{Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 this subset.}
+
+\item{cex}{size of data points. Default value is 1.}
+
+\item{map}{logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.}
+
+\item{leg}{logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.}
 }
 \value{
 None

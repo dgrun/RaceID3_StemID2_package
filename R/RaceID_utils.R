@@ -271,3 +271,6 @@ QP <- function(k,m,norm=TRUE){
 gm_mean = function(x, na.rm=TRUE){
     exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
+
+
+zscore <- function(x) ( x - apply(x,1,mean) )/sqrt(apply(x,1,var))

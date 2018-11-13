@@ -408,30 +408,49 @@ plotdiffgenes <- function(z,gene){
 #' clusters prior to outlier identification. Default is \code{TRUE}.
 #' @param tp Number between 0 and 1 to change transparency of dots in the map. Default is 1.
 #' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param cex size of data points. Default value is 0.5.
 #' @return None
 #'
 #' @export
-plotmap <- function(object,final=TRUE,tp=1,fr=FALSE){
-    if ( length(object@tsne) == 0 & length(object@fr) == 0 ) stop("run comptsne/compfr before plotmap")
-    if ( final & length(object@cpart) == 0 ) stop("run findoutliers before plotmap")
-    if ( !final & length(object@cluster$kpart) == 0 ) stop("run clustexp before plotmap")
-    if ( !is.numeric(tp) | (is.numeric(tp) & tp > 1 | tp < 0)) stop("tp has to be a number between 0 and 1 (transparency)")
-    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
-    part <- if ( final ) object@cpart else object@cluster$kpart
-    
-    if ( fr | dim(object@tsne)[1] == 0 ) d <- object@fr else d <- object@tsne 
+plotmap <- function(object, final = TRUE, tp = 1, fr = FALSE, cex = .5)
+{
+    if (length(object@tsne) == 0 & length(object@fr) == 0) 
+        stop("run comptsne/compfr before plotmap")
+    if (final & length(object@cpart) == 0) 
+        stop("run findoutliers before plotmap")
+    if (!final & length(object@cluster$kpart) == 0) 
+        stop("run clustexp before plotmap")
+    if (!is.numeric(tp) | (is.numeric(tp) & tp > 1 | tp < 0)) 
+        stop("tp has to be a number between 0 and 1 (transparency)")
+    if (!is.logical(fr)) 
+        stop("fr has to be TRUE or FALSE")
+    part <- if (final) 
+        object@cpart
+    else object@cluster$kpart
+    if (fr | dim(object@tsne)[1] == 0) 
+        d <- object@fr
+    else d <- object@tsne
     row.names(d) <- names(part)
-    plot(d,xlab="",ylab="",cex=0,axes=FALSE)
-    for ( i in 1:max(part) ){
-        if ( sum(part == i) > 0 ) points(d[part == i,1],d[part == i,2],col=adjustcolor(object@fcol[i],tp),pch=20,cex=1)
+    plot(d, xlab = "", ylab = "", cex = 0, axes = FALSE)
+    for (i in 1:max(part)) {
+        if (sum(part == i) > 0) 
+            points(d[part == i, 1], d[part == i, 2], col = adjustcolor(object@fcol[i], 
+                tp), pch = 20, cex = cex)
     }
-    for ( i in 1:max(part) ){
-        if ( sum(part == i) > 0 ) points(d[object@medoids[i],1],d[object@medoids[i],2],col=adjustcolor(object@fcol[i],tp),pch=20,cex=4)
-        if ( sum(part == i) > 0 ) points(d[object@medoids[i],1],d[object@medoids[i],2],col=adjustcolor("white",tp),pch=20,cex=3)
-        if ( sum(part == i) > 0 ) text(d[object@medoids[i],1],d[object@medoids[i],2],i,col=adjustcolor("black",tp),cex=.75,font=4)
+    for (i in 1:max(part)) {
+        if (sum(part == i) > 0) 
+            points(d[object@medoids[i], 1], d[object@medoids[i], 
+                2], col = adjustcolor(object@fcol[i], tp), pch = 20, 
+                cex = 4)
+        if (sum(part == i) > 0) 
+            points(d[object@medoids[i], 1], d[object@medoids[i], 
+                2], col = adjustcolor("white", tp), pch = 20, 
+                cex = 3)
+        if (sum(part == i) > 0) 
+            text(d[object@medoids[i], 1], d[object@medoids[i], 
+                2], i, col = adjustcolor("black", tp), cex = 0.75, 
+                font = 4)
     }
-
-
 }
 
 #' @title Plot labels in the t-SNE map
@@ -464,32 +483,37 @@ plotlabelsmap <- function(object,labels=NULL,fr=FALSE){
 #' columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} and each cell is highlighted by a different symbol.
 #' @param subset Vector containing a subset of types from \code{types} to be highlighted in the map. Default is \code{NULL} and all
 #' types are shown.
+#' @param samples_col Vector of colors used for highlighting all samples contained in \code{samples} in the map. Default is \code{NULL}.
+#' @param cex size of data points. Default value is 0.25.
 #' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
+#' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
 #' @return None
 #'
 #' @export
-plotsymbolsmap <- function(object,types=NULL,subset=NULL,fr=FALSE){
-    if ( is.null(types) ) types <- colnames(object@ndata)
-    if ( length(object@tsne) == 0 & length(object@fr) == 0 ) stop("run comptsne/compfr before plotsymbolsmap")
-    if ( length(types) != ncol(object@ndata) ) stop("types argument has wrong length. Length has to equal to the column number of object@ndata")
-    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
-
-    fp <- rep(TRUE,length(types))
-    if ( !is.null(subset) ){
-        fp <- rep(FALSE,length(types))
+plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.25, fr=FALSE, leg = TRUE, map = TRUE){
+    if ( is.null(subset) ) subset <- unique(types)
+    h <- sort(unique(types)) %in% subset
+    if (!is.null(subset)) {
+        fp <- rep(FALSE, length(types))
         fp[types %in% subset] <- TRUE
     }
-    
-    coloc <- rainbow(length(unique(types[fp])))
-    syms <- c()
-    if ( fr | dim(object@tsne)[1] == 0 ) d <- object@fr else d <- object@tsne 
-    plot(d,xlab="",ylab="",pch=20,col="grey",axes=FALSE)
-    for ( i in 1:length(unique(types[fp])) ){
-        f <- types == sort(unique(types[fp]))[i]
-        syms <- append( syms, ( (i-1) %% 25 ) + 1 )
-        points(d[f,1],d[f,2],col=coloc[i],pch=( (i-1) %% 25 ) + 1,cex=1)
+    if ( is.null(samples_col) ){
+        samples_col <- rainbow(length(unique(types[fp])))
+    }else{
+        samples_col <- samples_col[h]
     }
-    legend("topleft", legend=sort(unique(types[fp])), col=coloc, pch=syms)
+    if ( fr | dim(object@tsne)[1] == 0 ) d <- object@fr else d <- object@tsne 
+    if ( map ){
+        plot(d, xlab = "", ylab = "",  axes = FALSE, cex=cex, pch=20, col="grey")
+        for (i in 1:length(unique(types[fp]))) {
+            f <- types == sort(unique(types[fp]))[i]
+            points(d[f, 1], d[f, 2], col = samples_col[i], pch = 20, cex = cex)
+        }
+    }else{
+        plot(d, xlab = "", ylab = "",  axes = FALSE, cex=0, pch=20, col="grey", xlim=c(min(d[,1]),max(d[,1])), ylim=c(min(d[,2]),max(d[,2])))
+    }
+    if ( leg ) legend("topleft", legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex=.75, bty="n")
 }
 
 #' @title Highlighting gene expression in the t-SNE map
@@ -506,63 +530,84 @@ plotsymbolsmap <- function(object,types=NULL,subset=NULL,fr=FALSE){
 #' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
 #' @param cells Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 #' this subset.
+#' @param cex size of data points. Default value is 1.
+#' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
+#' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
 #' @return None
 #'
 #' @export
 #' @importFrom RColorBrewer brewer.pal
-plotexpmap <- function(object,g,n=NULL,logsc=FALSE,imputed=FALSE,fr=FALSE,cells=NULL){
-    if ( length(object@tsne) == 0 & length(object@fr) == 0 ) stop("run comptsne/compfr before plotexpmap")
-    if ( length(intersect(g,rownames(object@ndata))) < length(unique(g)) ) stop("second argument does not correspond to set of rownames slot ndata of SCseq object")
-    if ( !is.numeric(logsc) & !is.logical(logsc) ) stop("argument logsc has to be logical (TRUE/FALSE)")
-    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
-    if ( !is.null(cells) ){ if (sum(! cells %in% colnames(object@ndata)) > 0 )stop("cells has to be a subset of cell ids, i.e. column names of slot ndata") }
-    if ( imputed & length(object@imputed) == 0 ) stop("imputing needs to be done by running compdist with knn > 0")
-    if ( is.null(n) ) n <- g[1]
-    if ( is.null(cells) ) cells <- colnames(object@ndata)
+plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE ){
+    if (length(object@tsne) == 0 & length(object@fr) == 0) 
+        stop("run comptsne/compfr before plotexpmap")
+    if (length(intersect(g, rownames(object@ndata))) < length(unique(g))) 
+        stop("second argument does not correspond to set of rownames slot ndata of SCseq object")
+    if (!is.numeric(logsc) & !is.logical(logsc)) 
+        stop("argument logsc has to be logical (TRUE/FALSE)")
+    if (!is.logical(fr)) 
+        stop("fr has to be TRUE or FALSE")
+    if (!is.null(cells)) {
+        if (sum(!cells %in% colnames(object@ndata)) > 0) 
+            stop("cells has to be a subset of cell ids, i.e. column names of slot ndata")
+    }
+    if (imputed & length(object@imputed) == 0) 
+        stop("imputing needs to be done by running compdist with knn > 0")
+    if (is.null(n)) 
+        n <- g[1]
+    if (is.null(cells)) 
+        cells <- colnames(object@ndata)
     knn <- object@imputed$knn
-    if ( length(g) == 1 ){
-        l <- as.vector(object@ndata[g,]*min(object@counts)+ .1)
-    }else{
-        l <- apply(as.data.frame(as.matrix(object@ndata)[g,])*min(object@counts),2,sum) + .1
+    if (length(g) == 1) {
+        l <- as.vector(object@ndata[g, ] * min(object@counts) + 
+            0.1)
     }
-    if ( imputed ){
-        l <- apply(rbind(object@imputed$nn,object@imputed$probs),2,function(y){ ind <- y[1:(knn + 1)]; p <- y[(knn + 2):(2*knn + 2)]; sum(l[ind]*p)  }) 
-        ##nn <- apply(object@distances,1,function(x){ j <- order(x,decreasing=F); head(j,knn + 1); } )
-        ##l <- apply(nn,2,function(y){ mean(l[y]) } )
+    else {
+        l <- apply(as.data.frame(as.matrix(object@ndata)[g, ]) * 
+            min(object@counts), 2, sum) + 0.1
     }
-    
+    if (imputed) {
+        l <- apply(rbind(object@imputed$nn, object@imputed$probs), 
+            2, function(y) {
+                ind <- y[1:(knn + 1)]
+                p <- y[(knn + 2):(2 * knn + 2)]
+                sum(l[ind] * p)
+            })
+    }
     if (logsc) {
         f <- l == 0
         l <- log2(l)
         l[f] <- NA
     }
     h <- colnames(object@ndata) %in% cells
-    mi <- min(l,na.rm=TRUE)
-    ma <- max(l,na.rm=TRUE)
-    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
-    ColorLevels <- seq(mi, ma, length=length(ColorRamp))
-    v <- round((l - mi)/(ma - mi)*99 + 1,0)
-    
+    mi <- min(l, na.rm = TRUE)
+    ma <- max(l, na.rm = TRUE)
+    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
+    ColorLevels <- seq(mi, ma, length = length(ColorRamp))
+    v <- round((l - mi)/(ma - mi) * 99 + 1, 0)
     d <- object@tsne
-    if ( fr ) d <- object@fr
-
+    if (fr) 
+        d <- object@fr
     pardefault <- par()
-    
-    layout(matrix(data=c(1,3,2,4), nrow=2, ncol=2), widths=c(5,1,5,1), heights=c(5,1,1,1))
-    par(mar = c(3,5,2.5,2))
-    plot(d,xlab="",ylab="",main=n,pch=20,cex=1,col="lightgrey",axes=FALSE)
-    v <- v[h]
-    d <- d[h,]
-    kk <- order(v,decreasing=F)
-    points(d[kk,1],d[kk,2],col=ColorRamp[v[kk]],pch=20,cex=1.5)
-    par(mar = c(10,2.5,2.5,4))
-    image(1, ColorLevels,
-          matrix(data=ColorLevels, ncol=length(ColorLevels),nrow=1),
-          col=ColorRamp,
-          xlab="",ylab="",
-          xaxt="n")
-    layout(1)
-    par(mar=pardefault$mar)
+    layout(matrix(data = c(1, 3, 2, 4), nrow = 2, ncol = 2), 
+        widths = c(5, 1, 5, 1), heights = c(5, 1, 1, 1))
+    par(mar = c(3, 5, 2.5, 2))
+    if ( ! leg ) n <- NA
+    plot(c(min(d[,1]),max(d[,1])),c(min(d[,2]),max(d[,2])), xlab = NA, ylab = NA, main = n, pch = 20, cex = 0, 
+         col = "lightgrey", axes = FALSE)
+    if ( map ){
+        v <- v[h]
+        d <- d[h, ]
+        kk <- order(v, decreasing = F)
+        points(d[kk, 1], d[kk, 2], col = ColorRamp[v[kk]], pch = 20, 
+               cex = cex)
+    }
+    if ( leg ){
+        par(mar = c(10, 2.5, 2.5, 4))
+        image(1, ColorLevels, matrix(data = ColorLevels, ncol = length(ColorLevels), 
+                                     nrow = 1), col = ColorRamp, xlab = "", ylab = "", xaxt = "n")
+        layout(1)
+        par(mar = pardefault$mar)
+    }
 }
 
 #' @title Extracting filtered expression data
@@ -1216,10 +1261,10 @@ rfcorrect <- function(object,rfseed=12345,nbtree=NULL,final=TRUE,nbfactor=5,...)
 #' @param cthr Interger number greater or equal zero. Only clusters with \code{>cthr} cells are included in the t-SNE map. Default is 0.
 #' @param cl Vector of valid cluster numbers contained in slot \code{cpart} of the \code{SCseq} object. Default is \code{NULL} and all clusters with \code{>cthr}
 #' cells are included.
-#' @param cells Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
+#' @param cells Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is only shown for
 #' this subset.
 #' Default is \code{NULL} and all cells are included. The set of \code{cells} is intersected with the subset of clusters in \code{cl} if given.
-#' @param order.cells logical. If \code{TRUE}, then columns of the heatmap are ordered be cell name and not by cluster number.
+#' @param order.cells logical. If \code{TRUE}, then columns of the heatmap are ordered by cell name and not by cluster number. If \code{cells} are given, then columns are ordered as in \code{cells}.
 #' @param aggr logical. If \code{TRUE}, then only average expression is shown for each cluster. Default is \code{FALSE} and expression in individual cells is shown.
 #' @param norm logical. If \code{TRUE}, then expression of each gene across clusters is normalized to 1, in order to depict all genes on the same scale.
 #' Default is \code{FALSE}.
@@ -1231,12 +1276,15 @@ rfcorrect <- function(object,rfseed=12345,nbtree=NULL,final=TRUE,nbfactor=5,...)
 #' @param cluster_cols logical. If \code{TRUE}, then columns are clustered. Default is \code{FALSE}.
 #' @param cluster_rows logical. If \code{TRUE}, then rows are clustered. Default is \code{TRUE}.
 #' @param cluster_set logical. If \code{TRUE} then clusters are ordered by hierarchical clustering of the cluster medoids.
+#' @param samples_col Vector of colors used for highlighting all samples contained in \code{samples} in the heatmap. Default is \code{NULL}.
+#' @param zsc logical. If \code{TRUE} then a z-score transformation is applied. Default is \code{FALSE}.
+#' @param logscale logical. If \code{TRUE} then a log2 transformation is applied. Default is \code{TRUE}.
 #' @return None
 #'
 #' @export
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom pheatmap pheatmap
-plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL,order.cells=FALSE,aggr=FALSE,norm=FALSE,cap=NULL,flo=NULL,samples=NULL,cluster_cols=FALSE,cluster_rows=TRUE,cluster_set=FALSE){
+plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL,order.cells=FALSE,aggr=FALSE,norm=FALSE,cap=NULL,flo=NULL,samples=NULL,cluster_cols=FALSE,cluster_rows=TRUE,cluster_set=FALSE, samples_col=NULL,zsc=FALSE,logscale=TRUE){
     if ( imputed & length(object@imputed) == 0 ) stop("imputing needs to be done by running compdist with knn > 0")
     if ( !is.null(cl) ){ if (sum(! cl %in% object@cpart) > 0 )stop("cl has to be a subset of clusters in slot cpart") }
     if ( !is.null(cells) ){ if (sum(! cells %in% names(object@cpart)) > 0 )stop("cells has to be a subset of cell ids, i.e. names of slot cpart") }
@@ -1283,7 +1331,7 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
             for ( i in 1:ncol(xl) ) xl[ xl[,i] < flo, i] <- flo 
         }
         
-        pheatmap(xl,cluster_cols=cluster_cols,cluster_rows=cluster_rows)
+        pheatmap(xl,cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA)
     }else{
         if (length(unique(pt)) == 1 ){
             n <- names(pt)
@@ -1296,7 +1344,6 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
                 p <- names(pt)[pt == i]
                 if (length(p) >= 2 ){
                     k <- hclust(as.dist(dist.gen(as.matrix(t(z[ apply(z[,p],1,var) >= 0,p])),method=object@clusterpar$metric)))
-                                        #k <- hclust(dist.gen(as.matrix(t(log2(x[,p]))),method=object@clusterpar$metric))
                     n <- append(n,p[k$order])
                 }else{
                     n <- append(n,p)
@@ -1312,7 +1359,8 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         rownames(anc) <- n
         v <- object@fcol[unique(pt[n])]
         names(v) <- paste("c",unique(pt[n]),sep="")
-        xl <- log2(x[,n])
+        if ( logscale ) xl <- log2(x[,n]) else xl <- x[,n]
+        if ( zsc ) xl <- zscore(xl)
         if ( ! is.null(cap) ){
             for ( i in 1:ncol(xl) ) xl[ xl[,i] > cap, i] <- cap 
         }
@@ -1321,21 +1369,28 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         }
 
         if ( order.cells ){
+            #if ( ! is.null(cells) ){
+            #    g <- cells
+            #}else{
             g <- order(colnames(xl))
-            xl <- xl[,g]
-            #for ( i in names(anc) ){
-            #    anc[[i]] <- anc[[i]][g]
             #}
+            xl <- xl[,g]
         }
         if ( !is.null(samples) ){
             f <- object@cpart %in% sort(unique(pt[n]))
+            h <- sort(unique(samples)) %in% unique(samples[f])
             samples <- samples[f]
-            saCol <- rainbow(length(unique(samples)))
-            names(saCol) <- unique(samples)
-            pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE)
+            if ( is.null(samples_col) ){
+                saCol <- rainbow(length(unique(samples)))
+                names(saCol) <- unique(samples)
+            }else{
+                saCol <- samples_col[h]
+                names(saCol) <- sort(unique(samples))
+            }
+             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA)
         }
         else{
-            pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE)
+             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA)
         }
     }
 }

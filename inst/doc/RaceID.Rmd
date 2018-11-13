@@ -36,14 +36,18 @@ The first step is the application of filtering for the purpose of quality contro
 sc <- filterdata(sc,mintotal=2000)
 ```
 
-In this example, we filter out cells with <2,000 transcipts.
-The function allows the detection and removal of batch effects by different methods as outlined below in addtional examples. Alternatively, individual genes or groups of genes correlating to specific genes can be removed with the `FGenes` and `CGenes` arguments. This frequently allows a minimally invasive removal of batch effects or of particularly highly expressed genes with an unwanted dominating effect on the clustering.
+In this example, we filter out cells with <2,000 transcipts. The function allows further filtering of genes by choosing the input parameters `minexpr` and `minnumber`, i.e. only genes with at least `minexpr` transcripts in at least `minnumber` cells are retained. The filtered and normalized expression matrix (normalized to the minimum total transcript count across all cells retained after filtering) can be retrieved by the `getfdata` function:
+```{r}
+fdata <- getfdata(sc)
+```
+The `filterdata` function allows the detection and removal of batch effects by different methods as outlined below in addtional examples. Alternatively, individual genes or groups of genes correlating to specific genes can be removed with the `FGenes` and `CGenes` arguments. This frequently allows a minimally invasive removal of batch effects or of particularly highly expressed genes with an unwanted dominating effect on the clustering.
 
 
 Next, the distance matrix is computed as the input for clustering and outlier identification. This can be done with or without imputing gene expression from nearest neighbours (see example below for imputing). 
 ```{r}
 sc <- compdist(sc,metric="pearson")
 ```
+This function computes the distance matrix based on highly variable genes by default. If all genes should be used, then the parameter `FSelect` needs to be set to `FALSE`.
 On this distance matrix clustering is performed:
 ```{r results='hide', message=FALSE}
 sc <- clustexp(sc)
@@ -285,7 +289,8 @@ x <- compscore(ltr)
 
 # RaceID Options: 
 ## Batch effect removal
-RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `scran` package [@mnnCorrect]. In order to do this, a list with a vector of cell ids for each batch needs to be defined, e.g.:
+RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `scran` package [@mnnCorrect]. The `scran` package needs to be separately installed from bioconductor if this mode is desired.
+In order to apply batch effect removal, a list with a vector of cell ids for each batch needs to be defined, e.g.:
 ```{r}
 n <- colnames(intestinalData)
 b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
@@ -352,7 +357,7 @@ plotmap(sc)
 However, regression also leads to loss of biological variation and this step is only recommended if variability associated with a particular variable is a strong confounding factor and cannot be removed by other means.
 
 ## Prior dimensional reduction and removal of variability by PCA/ICA
-After runnfing the `filterdara` function, a prior dimensional reduction using PCA or ICA can be performed using the `CCcorrect` function. This function can also be provided with a list `vset` of sets of genes, and principal components with loadings enriched in any of these sets will be discarded. Another options is to provide a list `CGenes` of genes, and sets to be tested for enrichment in each component are derived as the groups of all genes correlating to a component in FGenes.
+After running the `filterdata` function, a prior dimensional reduction using PCA or ICA can be performed using the `CCcorrect` function. This function can also be provided with a list `vset` of sets of genes, and principal components with loadings enriched in any of these sets will be discarded. Another options is to provide a list `CGenes` of genes, and sets to be tested for enrichment in each component are derived as the groups of all genes correlating to a component in FGenes.
 The `CCcorrect` function predicts a dimension for the prior dimensional reduction based on an ellbow function of the explained variability as a function of the number of components. This can be inspected by the `plotdimsat` function and manually adjusted:
 ```{r results='hide', message=FALSE, eval=FALSE}
 sc <- SCseq(intestinalData)

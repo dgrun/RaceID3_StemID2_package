@@ -7,7 +7,8 @@
 plotmarkergenes(object, genes, imputed = FALSE, cthr = 0, cl = NULL,
   cells = NULL, order.cells = FALSE, aggr = FALSE, norm = FALSE,
   cap = NULL, flo = NULL, samples = NULL, cluster_cols = FALSE,
-  cluster_rows = TRUE, cluster_set = FALSE)
+  cluster_rows = TRUE, cluster_set = FALSE, samples_col = NULL,
+  zsc = FALSE, logscale = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -23,11 +24,11 @@ If \code{FALSE}, then raw counts are shown. Default is \code{FALSE}}
 \item{cl}{Vector of valid cluster numbers contained in slot \code{cpart} of the \code{SCseq} object. Default is \code{NULL} and all clusters with \code{>cthr}
 cells are included.}
 
-\item{cells}{Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
+\item{cells}{Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is only shown for
 this subset.
 Default is \code{NULL} and all cells are included. The set of \code{cells} is intersected with the subset of clusters in \code{cl} if given.}
 
-\item{order.cells}{logical. If \code{TRUE}, then columns of the heatmap are ordered be cell name and not by cluster number.}
+\item{order.cells}{logical. If \code{TRUE}, then columns of the heatmap are ordered by cell name and not by cluster number. If \code{cells} are given, then columns are ordered as in \code{cells}.}
 
 \item{aggr}{logical. If \code{TRUE}, then only average expression is shown for each cluster. Default is \code{FALSE} and expression in individual cells is shown.}
 
@@ -47,6 +48,12 @@ Default is \code{NULL} and no \code{floor} is applied.}
 \item{cluster_rows}{logical. If \code{TRUE}, then rows are clustered. Default is \code{TRUE}.}
 
 \item{cluster_set}{logical. If \code{TRUE} then clusters are ordered by hierarchical clustering of the cluster medoids.}
+
+\item{samples_col}{Vector of colors used for highlighting all samples contained in \code{samples} in the heatmap. Default is \code{NULL}.}
+
+\item{zsc}{logical. If \code{TRUE} then a z-score transformation is applied. Default is \code{FALSE}.}
+
+\item{logscale}{logical. If \code{TRUE} then a log2 transformation is applied. Default is \code{TRUE}.}
 }
 \value{
 None

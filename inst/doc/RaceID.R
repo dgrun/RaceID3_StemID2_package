@@ -9,6 +9,9 @@ sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=2000)
 
 ## ------------------------------------------------------------------------
+fdata <- getfdata(sc)
+
+## ------------------------------------------------------------------------
 sc <- compdist(sc,metric="pearson")
 
 ## ----results='hide', message=FALSE---------------------------------------
