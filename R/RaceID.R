@@ -1614,7 +1614,7 @@ CCcorrect <- function(object,vset=NULL,CGenes=NULL,ccor=.4,pvalue=.01,quant=.01,
       Xhat <- Xpca$u[,(1:nComp)[f]] %*% diag(Xpca$d)[(1:nComp)[f],]
   }
   if ( mode == "ica" ){
-    Xhat <- Xica$S[,(1:nComp)[f]]
+      Xhat <- t(x) %*% Xica$S[,(1:nComp)[f]]
   }
   Xhat <- t(Xhat)
  

@@ -1,8 +1,8 @@
 Package: RaceID
 Title: Identification of Cell Types and Inference of Lineage Trees from
         Single-Cell RNA-Seq Data
-Version: 0.1.2
-Date: 2018-11-13
+Version: 0.1.3
+Date: 2019-01-22
 Author: Dominic Grün <dominic.gruen@gmail.com>
 Maintainer: Dominic Grün <dominic.gruen@gmail.com>
 Description: Application of 'RaceID' allows inference of cell types and prediction of lineage trees by he StemID2 algorithm. Herman, J.S., Sagar, Grün D. (2018) <DOI:10.1038/nmeth.4662>.
@@ -18,4 +18,4 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
 NeedsCompilation: no
-Packaged: 2018-11-13 10:37:23 UTC; d.grun
+Packaged: 2019-01-22 10:44:51 UTC; d.grun
