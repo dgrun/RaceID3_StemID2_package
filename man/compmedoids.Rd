@@ -16,5 +16,6 @@ of slot \code{ndata} from the \code{SCseq} object.}
 Returns a list of medoids (column names of slot \code{ndata} from the \code{SCseq} object) ordered by increasing cluster number.
 }
 \description{
-This functions computes cluster medoids given an \code{SCseq} object and a clustering partition.
+This functions computes cluster medoids given an \code{SCseq} object and a clustering partition. The medoids are either derived from the
+distance matrix or, if the slot \code{distances} is empty, from the dimensionally reduced feature matrix in slot \code{dimRed$x} using the euclidean metric.
 }

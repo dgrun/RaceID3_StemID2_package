@@ -4,18 +4,23 @@
 \alias{compdist}
 \title{Computing a distance matrix for cell type inference}
 \usage{
-compdist(object, metric = "pearson", FSelect = TRUE, knn = NULL)
+compdist(object, metric = "pearson", FSelect = TRUE, knn = NULL,
+  alpha = 1, no_cores = 1)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
 
 \item{metric}{Distances are computed from the filtered expression matrix after optional feature selection, dimensional reduction, and/or transformation (batch correction).
-Possible values for \code{metric} are \code{"pearson", "spearman", "logpearson",  "euclidean"}.  Default is \code{"pearson"}. In case of the correlation based methods,
-the distance is computed as 1 – correlation.}
+Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, rho, phi, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
+the distance is computed as 1 – correlation. \code{rho} and \code{phi} are measures of proportionality computed on non-normalized counts, taken from the \pkg{propr} package.}
 
 \item{FSelect}{Logical parameter. If \code{TRUE}, then feature selection is performed prior to RaceID3 analysis. Default is \code{TRUE}.}
 
 \item{knn}{Positive integer number of nearest neighbours used for imputing gene expression values. Default is \code{NULL} and no imputing is done.}
+
+\item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for imputing gene expression. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the wieghted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are applied for the derivation of the imputed gene expression for each cell. Default is 1. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood.}
+
+\item{no_cores}{Positive integer number. Number of cores for multithreading during imputation. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.}
 }
 \value{
 \code{SCseq} object with the distance matrix in slot \code{distances}. If \code{FSelect=TRUE}, the genes used for computing the distance object are stored in

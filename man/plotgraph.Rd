@@ -4,20 +4,22 @@
 \alias{plotgraph}
 \title{StemID2 Lineage Graph}
 \usage{
-plotgraph(object, showCells = FALSE, showTsne = TRUE, tp = 0.5,
-  scthr = 0)
+plotgraph(object, showCells = FALSE, showMap = TRUE, tp = 0.5,
+  scthr = 0, cex = 1)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
 
 \item{showCells}{logical. If \code{TRUE}, then projections of cells are shown in the plot. Default is \code{FALSE}.}
 
-\item{showTsne}{logical. Tf \code{TRUE}, then show transparent t-SNE map (with transparency \code{tp}) of cells in the background. Default is \code{TRUE}.}
+\item{showMap}{logical. Tf \code{TRUE}, then show transparent t-SNE map (with transparency \code{tp}) of cells in the background. Default is \code{TRUE}.}
 
-\item{tp}{Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5. See \code{showTsne}.}
+\item{tp}{Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5. See \code{showMap}.}
 
-\item{scthr}{Real number between zero and one. Score threshold for links to be shown in the graph. For \code{scthr=0} all significant links are shown. The
-maximum score is one.}
+\item{scthr}{Real number between zero and one. Score threshold for links to be shown in the graph. For \code{scthr=0} all significant links are shown.
+The maximum score is one. Default is 0.}
+
+\item{cex}{real positive number. Size of data points. Deault is 1.}
 }
 \value{
 None.

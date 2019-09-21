@@ -22,6 +22,8 @@ validity function for SCceq
 
 \item{\code{ndata}}{Filtered data with expression normalized to one for each cell.}
 
+\item{\code{noise}}{Matrix with local gene expression noise estimates (used for VarID analysis)}
+
 \item{\code{counts}}{Vector with total transcript counts for each cell in \code{ndata} remaining after filtering.}
 
 \item{\code{genes}}{Vector with gene names of all genes in \code{ndata} remaining after filtering.}
@@ -37,6 +39,8 @@ the second matrix contains the probabilities at which each cell contributes to t
 \item{\code{tsne}}{data.frame with coordinates of two-dimensional tsne layout computed by RaceID3.}
 
 \item{\code{fr}}{data.frame with coordinates of two-dimensional Fruchterman-Rheingold graphlayout computed by RaceID3.}
+
+\item{\code{umap}}{data.frame with coordinates of two-dimensional umap representation computed by RaceID3.}
 
 \item{\code{cluster}}{list storing information on the initial clustering step of the RaceID3 algorithm}
 

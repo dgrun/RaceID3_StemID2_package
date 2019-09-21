@@ -15,7 +15,7 @@ filterdata(object, mintotal = 3000, minexpr = 5, minnumber = 5,
 
 \item{minexpr}{minimum required transcript count of a gene in at least \code{minnumber} cells. All other genes are filtered out. Default is 5.}
 
-\item{minnumber}{See \code{minexpr}. Default is 1.}
+\item{minnumber}{See \code{minexpr}. Default is 5.}
 
 \item{LBatch}{List of experimental batches used for batch effect correction. Each list element contains a vector with cell names
 (i.e. column names of the input expression data) falling into this batch. Default is \code{NULL}, i.e. no batch correction.}

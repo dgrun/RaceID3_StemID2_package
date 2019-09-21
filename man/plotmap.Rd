@@ -4,7 +4,8 @@
 \alias{plotmap}
 \title{Plotting a t-SNE map}
 \usage{
-plotmap(object, final = TRUE, tp = 1, fr = FALSE, cex = 0.5)
+plotmap(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE,
+  cex = 0.5)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -14,7 +15,9 @@ clusters prior to outlier identification. Default is \code{TRUE}.}
 
 \item{tp}{Number between 0 and 1 to change transparency of dots in the map. Default is 1.}
 
-\item{fr}{logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.}
+\item{fr}{logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.}
+
+\item{um}{logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
 
 \item{cex}{size of data points. Default value is 0.5.}
 }

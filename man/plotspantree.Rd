@@ -4,14 +4,21 @@
 \alias{plotspantree}
 \title{Minimum Spanning Tree of RaceID3 clusters}
 \usage{
-plotspantree(object)
+plotspantree(object, tp = 0.5, cex = 1, projections = FALSE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
+
+\item{tp}{Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5.}
+
+\item{cex}{real positive number. Size of data points. Deault is 1.}
+
+\item{projections}{logical. If \code{TRUE}, then the projections of the cells onto the inter-medoid links as computed by StemID
+are shown. Default is \code{FALSE}}
 }
 \value{
 None.
 }
 \description{
-This function plots a minimum spanning tree of the RaceID3 cluster medoids in a two-dimensional t-SNE representation.
+This function plots a minimum spanning tree of the RaceID3 cluster medoids in a two-dimensional reduction representation.
 }

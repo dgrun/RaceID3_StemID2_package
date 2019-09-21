@@ -4,7 +4,8 @@
 \alias{projcells}
 \title{Compute transcriptome entropy of each cell}
 \usage{
-projcells(object, cthr = 5, nmode = TRUE, knn = 3, fr = FALSE)
+projcells(object, cthr = 5, nmode = TRUE, knn = 3, fr = FALSE,
+  um = FALSE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
@@ -16,7 +17,9 @@ the \code{knn} nearest neighbours within this cluster. Default is \code{TRUE}.}
 
 \item{knn}{Positive integer number. See \code{nmode}. Default is 3.}
 
-\item{fr}{logical. Use Fruchterman-Rheingold layout instead of t-SNE for dimensional-reduction representation of the lineage tree. Default is \code{FALSE}.}
+\item{fr}{logical. Use Fruchterman-Rheingold layout instead of t-SNE for dimensional-reduction representation of the lineage graph. Default is \code{FALSE}.}
+
+\item{um}{logical. Use umap representation instead of t-SNE for dimensional-reduction representation of the lineage graph. Default is \code{FALSE}.}
 }
 \value{
 An Ltree class object with all information on cell projections onto links stored in the \code{ldata} slot.

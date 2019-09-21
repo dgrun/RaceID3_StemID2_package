@@ -4,7 +4,7 @@
 \alias{plotlabelsmap}
 \title{Plot labels in the t-SNE map}
 \usage{
-plotlabelsmap(object, labels = NULL, fr = FALSE)
+plotlabelsmap(object, labels = NULL, fr = FALSE, um = FALSE, cex = 0.5)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -12,7 +12,11 @@ plotlabelsmap(object, labels = NULL, fr = FALSE)
 \item{labels}{Vector of labels for all cells to be highlighted in the t-SNE map. The order has to be the same as for the
 columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} and cell names are highlighted.}
 
-\item{fr}{logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.}
+\item{fr}{logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.}
+
+\item{um}{logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
+
+\item{cex}{positive real number. Size of the labels. Default is 0.5.}
 }
 \value{
 None

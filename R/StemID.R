@@ -111,7 +111,8 @@ compentropy <- function(object){
 #' @param nmode logical. If \code{TRUE}, then a cell of given cluster is assigned to the link to the cluster with the smallest average distance of
 #' the \code{knn} nearest neighbours within this cluster. Default is \code{TRUE}.
 #' @param knn Positive integer number. See \code{nmode}. Default is 3.
-#' @param fr logical. Use Fruchterman-Rheingold layout instead of t-SNE for dimensional-reduction representation of the lineage tree. Default is \code{FALSE}.
+#' @param fr logical. Use Fruchterman-Rheingold layout instead of t-SNE for dimensional-reduction representation of the lineage graph. Default is \code{FALSE}.
+#' @param um logical. Use umap representation instead of t-SNE for dimensional-reduction representation of the lineage graph. Default is \code{FALSE}.
 #' @return An Ltree class object with all information on cell projections onto links stored in the \code{ldata} slot.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -124,11 +125,23 @@ compentropy <- function(object){
 #' ltr <- compentropy(ltr)
 #' ltr <- projcells(ltr)
 #' @export
-projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE){
+projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE,um=FALSE){
     if ( ! is.numeric(cthr) ) stop( "cthr has to be a non-negative number" ) else if ( cthr < 0 ) stop( "cthr has to be a non-negative number" )
     if ( ! is.numeric(knn) ) stop( "knn has to be a non-negative number" ) else if ( knn < 0 ) stop( "knn has to be a non-negative number" )
     if ( ! length(object@sc@cpart == 0) ) stop( "please run findoutliers on the SCseq input object before initializing Ltree" )
     if ( !is.numeric(nmode) & !is.logical(nmode) ) stop("argument nmode has to be logical (TRUE/FALSE)")
+    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
+    if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")  
+
+        
+    if ( fr == FALSE & um == FALSE & dim(object@sc@tsne)[1] == 0 ){
+        if ( dim(object@sc@fr)[1] != 0 ){
+            fr <- TRUE
+        }else if ( dim(object@sc@umap)[1] != 0 ){
+            um <- TRUE
+        }
+    }
+    
     knn <- max(1,round(knn,0))
     
     object@par$cthr  <- cthr
@@ -136,6 +149,7 @@ projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE){
     object@par$nmode <- nmode
     object@par$fast  <- FALSE
     object@par$fr    <- fr
+    object@par$um    <- um
     
     lp <- object@sc@cpart
     ld <- object@sc@distances
@@ -151,8 +165,10 @@ projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE){
     lp <- lp[f]
     ld <- ld[f,f]
    
-    if (fr | dim(object@sc@tsne)[1] == 0){
+    if ( fr ){
         pdil <- object@sc@fr[f,]
+    }else if ( um ){
+        pdil <- object@sc@umap[f,]
     }else{
         pdil <- object@sc@tsne[f,]
     }
@@ -513,13 +529,17 @@ plotlinkscore <- function(object){
 
 #' @title Minimum Spanning Tree of RaceID3 clusters
 #'
-#' @description This function plots a minimum spanning tree of the RaceID3 cluster medoids in a two-dimensional t-SNE representation.
+#' @description This function plots a minimum spanning tree of the RaceID3 cluster medoids in a two-dimensional reduction representation.
 #' @param object \code{Ltree} class object.
+#' @param projections logical. If \code{TRUE}, then the projections of the cells onto the inter-medoid links as computed by StemID
+#' are shown. Default is \code{FALSE}
+#' @param tp Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5.
+#' @param cex real positive number. Size of data points. Deault is 1.
 #' @return None.
 #'
 #' @importFrom vegan spantree
 #' @export
-plotspantree <- function(object){
+plotspantree <- function(object,tp=.5,cex=1,projections=FALSE){
     if ( length(object@cdata) <= 0 ) stop("run comppvalue before plotspantree")
     
     fdata <- getfdata(object@sc)
@@ -530,49 +550,32 @@ plotspantree <- function(object){
     rownames(dc) <- sort(unique(object@sc@cpart))
     trl <- spantree(dc[object@ldata$m,object@ldata$m])
     
-    
-    u <- object@ldata$pdil[,1]
-    v <- object@ldata$pdil[,2]
-    cnl <- object@ldata$cnl
-    plot(u,v,cex=1.5,col="grey",pch=20,,xlab="",ylab="",axes=FALSE)
-    for ( i in unique(object@ldata$lp) ){ f <- object@ldata$lp == i; text(u[f],v[f],i,cex=.75,font=4,col=object@sc@fcol[i]) }
-    points(cnl[,1],cnl[,2])
-    text(cnl[,1],cnl[,2],object@ldata$m,cex=2)
-    for ( i in 1:length(trl$kid) ){
-        lines(c(cnl[i+1,1],cnl[trl$kid[i],1]),c(cnl[i+1,2],cnl[trl$kid[i],2]),col="black")
+    if ( projections ){
+        u <- object@ltcoord[,1]
+        v <- object@ltcoord[,2]
+    }else{
+        u <- object@ldata$pdil[,1]
+        v <- object@ldata$pdil[,2]
     }
+    cnl <- object@ldata$cnl
+    xlim <- c(min(u),max(u))
+    ylim <- c(min(v),max(v))
+    part <- object@ldata$lp
+    
+    plot(0,0,cex=0,xlim=xlim,ylim=ylim,xlab="",ylab="",axes=FALSE)
+    for ( i in 1:max(part) ){
+        if ( sum(part == i) > 0 ) points(u[part == i],v[part == i],col=adjustcolor(object@sc@fcol[i],tp),pch=20,cex=cex)
+    }
+    
+    for ( i in 1:length(trl$kid) ){
+        lines(c(cnl[i+1,1],cnl[trl$kid[i],1]),c(cnl[i+1,2],cnl[trl$kid[i],2]),col="darkgrey",lwd=1.5)
+    }
+    
+    points(cnl[,1],cnl[,2],cex=5,col="darkgrey",pch=20)
+    text(cnl[,1],cnl[,2],object@ldata$m,,cex=1.25,font=4,col="white")
+ 
 }
 
-#' @title Two-Dimensional Map of Cell Projections
-#'
-#' @description This function plots the projections of cells on inter-clustering links connecting cluster medoids in a two-dimensional t-SNE representation.
-#' A minimum spanning tree of the cluster centers is overlaid for comparison.
-#' @param object \code{Ltree} class object.
-#' @return None.
-#'
-#' @importFrom vegan spantree
-#' @export
-plotprojections <- function(object){
-    if ( length(object@cdata) <= 0 ) stop("run comppvalue before plotprojections")
-    
-    fdata <- getfdata(object@sc)
-    cent <- fdata[object@sc@cluster$features,compmedoids(object@sc,object@sc@cpart)]
-    dc <- as.data.frame(as.matrix(dist.gen(t(as.matrix(cent)),method=object@sc@clusterpar$metric)))
-    names(dc) <- sort(unique(object@sc@cpart))
-    rownames(dc) <- sort(unique(object@sc@cpart))
-    trl <- spantree(dc[object@ldata$m,object@ldata$m])
-    
-    u <- object@ltcoord[,1]
-    v <- object@ltcoord[,2]
-    cnl <- object@ldata$cnl
-    plot(u,v,cex=1.5,col="grey",pch=20,xlab="",ylab="",axes=FALSE)
-    for ( i in unique(object@ldata$lp) ){ f <- object@ldata$lp == i; text(u[f],v[f],i,cex=.75,font=4,col=object@sc@fcol[i]) }
-    points(cnl[,1],cnl[,2])
-    text(cnl[,1],cnl[,2],object@ldata$m,cex=2)
-    for ( i in 1:length(trl$kid) ){
-        lines(c(cnl[i+1,1],cnl[trl$kid[i],1]),c(cnl[i+1,2],cnl[trl$kid[i],2]),col="black")
-    }
-}
 
 #' @title StemID2 Lineage Graph
 #'
@@ -581,14 +584,15 @@ plotprojections <- function(object){
 #' of transcriptome entropy.
 #' @param object \code{Ltree} class object.
 #' @param showCells logical. If \code{TRUE}, then projections of cells are shown in the plot. Default is \code{FALSE}.
-#' @param showTsne logical. Tf \code{TRUE}, then show transparent t-SNE map (with transparency \code{tp}) of cells in the background. Default is \code{TRUE}.
-#' @param tp Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5. See \code{showTsne}.
-#' @param scthr Real number between zero and one. Score threshold for links to be shown in the graph. For \code{scthr=0} all significant links are shown. The
-#' maximum score is one.
+#' @param showMap logical. Tf \code{TRUE}, then show transparent t-SNE map (with transparency \code{tp}) of cells in the background. Default is \code{TRUE}.
+#' @param tp Real number between zero and one. Level of transparency of the t-SNE map. Deafault is 0.5. See \code{showMap}.
+#' @param scthr Real number between zero and one. Score threshold for links to be shown in the graph. For \code{scthr=0} all significant links are shown.
+#' The maximum score is one. Default is 0.
+#' @param cex real positive number. Size of data points. Deault is 1.
 #' @return None.
 #'
 #' @export
-plotgraph <- function(object,showCells=FALSE,showTsne=TRUE,tp=.5,scthr=0){
+plotgraph <- function(object,showCells=FALSE,showMap=TRUE,tp=.5,scthr=0,cex=1){
     if ( length(object@cdata) <= 0 ) stop("run comppvalue before plotgraph")
     if ( !is.numeric(showCells) & !is.logical(showCells) ) stop("argument showCells has to be logical (TRUE/FALSE)")
     if ( ! is.numeric(scthr) ) stop( "scthr has to be a non-negative number" ) else if ( scthr < 0 | scthr > 1 ) stop( "scthr has to be a number between 0 and 1" )
@@ -642,11 +646,13 @@ plotgraph <- function(object,showCells=FALSE,showTsne=TRUE,tp=.5,scthr=0){
     par(mar = c(10,5,1,1))
     xlim <- c(min(u),max(u))
     ylim <- c(min(v),max(v))
-    if ( showTsne ){
+    if ( showMap ){
         part <- object@ldata$lp
         f <- object@sc@cpart %in% unique(part)
         if ( object@par$fr ){
             d <- object@sc@fr[f,]
+        }else if ( object@par$um ){
+            d <- object@sc@um[f,]
         }else{
             d <- object@sc@tsne[f,]
         }
@@ -654,11 +660,11 @@ plotgraph <- function(object,showCells=FALSE,showTsne=TRUE,tp=.5,scthr=0){
         ylim <- c(min(v,d[,2]),max(v,d[,2]))
     }
     plot(0,0,cex=0,xlim=xlim,ylim=ylim,xlab="",ylab="",axes=FALSE)
-    if ( showTsne ){
-        points(d,xlab="",ylab="",pch=20,cex=1.5,col=adjustcolor("lightgrey",tp))
+    if ( showMap ){
+        #points(d,xlab="",ylab="",pch=20,cex=1.5,col=adjustcolor("lightgrey",tp))
         for ( i in 1:max(part) ){
             #if ( sum(part == i) > 0 ) text(d[part == i,1],d[part == i,2],i,col=adjustcolor(object@sc@fcol[i],tp),cex=.75,font=4)
-            if ( sum(part == i) > 0 ) points(d[part == i,1],d[part == i,2],col=adjustcolor(object@sc@fcol[i],tp),pch=20,cex=1)
+            if ( sum(part == i) > 0 ) points(d[part == i,1],d[part == i,2],col=adjustcolor(object@sc@fcol[i],tp),pch=20,cex=cex)
         }
     }
     

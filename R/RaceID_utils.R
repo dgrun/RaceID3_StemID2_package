@@ -1,9 +1,21 @@
+#dist.gen <- function(x,method="euclidean", ...){
+#    if ( method == "spearman" ) 1 - cor(t(x),method=method,...)
+#    else if ( method == "pearson" ) 1 - pcor(t(x))
+#    else if ( method == "logpearson" )  1 - pcor(log2(t(x)))
+#    else as.matrix(dist(x,method=method,...))
+#}
+
+
 dist.gen <- function(x,method="euclidean", ...){
-    if ( method == "spearman" ) 1 - cor(t(x),method=method,...)
-    else if ( method == "pearson" ) 1 - pcor(t(x))
-    else if ( method == "logpearson" )  1 - pcor(log2(t(x)))
-    else as.matrix(dist(x,method=method,...))
+  if ( method == "spearman" ) 1 - cor(t(x),method=method,...)
+  else if ( method == "pearson" ) 1 - cor(t(x), method = method)
+  else if ( method == "logpearson" )  1 - cor(log2(t(x)), method = method)
+  else if ( method == "rho") { yy <- propr(t(x), metric = "rho", alpha = 0.1);  1 - yy@matrix }
+  else if ( method == "phi") { yy <- propr(t(x), metric = "phi", alpha = 0.1, symmetrize = T);  yy@matrix }
+   else if ( method == "kendall") 1 - cor(t(x), method=method) 
+  else as.matrix(dist(x,method=method,...))
 }
+
 plot.err.bars.x <- function(x, y, x.err, col="black", lwd=1, lty=1, h=0.1){
   arrows(x-x.err,y,x+x.err,y,code=0, col=col, lwd=lwd, lty=lty)
   arrows(x-x.err,y-h,x-x.err,y+h,code=0, col=col, lwd=lwd, lty=lty)
@@ -274,3 +286,7 @@ gm_mean = function(x, na.rm=TRUE){
 
 
 zscore <- function(x) ( x - apply(x,1,mean) )/sqrt(apply(x,1,var))
+
+PAdjust <- function(x){min(p.adjust(x,method="bonferroni"),na.rm=TRUE)}
+
+      

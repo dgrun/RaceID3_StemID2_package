@@ -5,7 +5,8 @@
 \title{Highlighting gene expression in the t-SNE map}
 \usage{
 plotexpmap(object, g, n = NULL, logsc = FALSE, imputed = FALSE,
-  fr = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE)
+  fr = FALSE, um = FALSE, cells = NULL, cex = 1, map = TRUE,
+  leg = TRUE, noise = FALSE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -20,7 +21,9 @@ and untransformed values are shown.}
 
 \item{imputed}{logical. If \code{TRUE} and imputing was done by calling \code{compdist} with \code{knn > 0}, then imputed expression values are shown. If \code{FALSE}, then raw counts are shown. Default is \code{FALSE}.}
 
-\item{fr}{logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.}
+\item{fr}{logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.}
+
+\item{um}{logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
 
 \item{cells}{Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 this subset.}
@@ -30,6 +33,8 @@ this subset.}
 \item{map}{logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.}
 
 \item{leg}{logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.}
+
+\item{noise}{logical. If \code{TRUE} then display local gene expression variability instead of gene expression (requires VarID analysis)/ Default value is \code{FALSE}.}
 }
 \value{
 None

@@ -1,6 +1,8 @@
 #' @import Matrix
 #' @import FateID
 #' @import methods
+#' @import umap
+#' @import ggplot2
 #' @importFrom graphics abline arrows axis barplot box hist layout legend lines par plot points rect text
 #' @importFrom grDevices colorRamp rgb
 #' @importFrom stats aggregate as.dist as.formula binom.test cmdscale cor dist fisher.test hclust kmeans median pnbinom quantile residuals runif
@@ -14,6 +16,7 @@
 #'
 #' @slot expdata The raw expression data matrix with cells as columns and genes as rows in sparse matrix format.
 #' @slot ndata Filtered data with expression normalized to one for each cell.
+#' @slot noise Matrix with local gene expression noise estimates (used for VarID analysis)
 #' @slot counts Vector with total transcript counts for each cell in \code{ndata} remaining after filtering.
 #' @slot genes Vector with gene names of all genes in \code{ndata} remaining after filtering.
 #' @slot dimRed list object object storing information on a feature matrix obtained by dimensional reduction, batch effect correction etc.
@@ -23,6 +26,7 @@
 #' the second matrix contains the probabilities at which each cell contributes to thye imputed gene expression value for the cell correponding to the columns.
 #' @slot tsne data.frame with coordinates of two-dimensional tsne layout computed by RaceID3.
 #' @slot fr data.frame with coordinates of two-dimensional Fruchterman-Rheingold graphlayout computed by RaceID3.
+#' @slot umap data.frame with coordinates of two-dimensional umap representation computed by RaceID3.
 #' @slot cluster list storing information on the initial clustering step of the RaceID3 algorithm
 #' @slot background list storing the polynomial fit for the background model of gene expression variability computed by RaceID3,
 #' which is used for outlier identification.
@@ -39,7 +43,7 @@
 #' @aliases SCseq-class
 #' @exportClass SCseq
 #' @export
-SCseq <- setClass("SCseq", slots = c(expdata = "ANY", ndata = "ANY", counts = "vector", genes = "vector", dimRed = "list", distances = "ANY", imputed = "list", tsne = "data.frame", fr = "data.frame", cluster = "list", background = "list", out = "list", cpart = "vector", medoids = "vector", fcol = "vector", filterpar = "list", clusterpar = "list", outlierpar ="list" ))
+SCseq <- setClass("SCseq", slots = c(expdata = "ANY", ndata = "ANY", noise = "ANY", counts = "vector", genes = "vector", dimRed = "list", distances = "ANY", imputed = "list", tsne = "data.frame", fr = "data.frame", umap = "data.frame", cluster = "list", background = "list", out = "list", cpart = "vector", medoids = "vector", fcol = "vector", filterpar = "list", clusterpar = "list", outlierpar ="list" ))
 
 #' validity function for SCceq
 #'
@@ -80,7 +84,7 @@ setMethod("initialize",
 #' @param object \code{SCseq} class object.
 #' @param mintotal minimum total transcript number required. Cells with less than \code{mintotal} transcripts are filtered out. Default is 3000.
 #' @param minexpr minimum required transcript count of a gene in at least \code{minnumber} cells. All other genes are filtered out. Default is 5.
-#' @param minnumber See \code{minexpr}. Default is 1.
+#' @param minnumber See \code{minexpr}. Default is 5.
 #' @param LBatch List of experimental batches used for batch effect correction. Each list element contains a vector with cell names
 #' (i.e. column names of the input expression data) falling into this batch. Default is \code{NULL}, i.e. no batch correction.
 #' @param knn Number of nearest neighbors used to infer corresponding cell types in different batches. Defult is 10.
@@ -207,7 +211,8 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
         for ( i in 2:length(LBatch) ) str <- c(str,paste(c("bd[[",i,"]]"),collapse=""))
         str <- paste(str,collapse=",")
         y <- list()
-        eval(parse(text=paste(c("y <- scran::mnnCorrect(",str,",subset.row=bg$n)"),collapse="")))
+        knnL <- min(knn,ncol(bd[[i]]))
+        eval(parse(text=paste(c("y <- scran::mnnCorrect(",str,",k=",knnL,",subset.row=bg$n)"),collapse="")))
         xc <- y$corrected[[1]]
         for ( i in 2:length(y$corrected) ){
             xc <- cbind(xc,y$corrected[[i]])
@@ -407,29 +412,43 @@ plotdiffgenes <- function(z,gene){
 #' @param final logical. If \code{TRUE}, then highlight final clusters after outlier identification. If \code{FALSE}, then highlight initial
 #' clusters prior to outlier identification. Default is \code{TRUE}.
 #' @param tp Number between 0 and 1 to change transparency of dots in the map. Default is 1.
-#' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param fr logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.
+#' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
 #' @param cex size of data points. Default value is 0.5.
 #' @return None
 #'
 #' @export
-plotmap <- function(object, final = TRUE, tp = 1, fr = FALSE, cex = .5)
+plotmap <- function(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE, cex = .5)
 {
-    if (length(object@tsne) == 0 & length(object@fr) == 0) 
-        stop("run comptsne/compfr before plotmap")
+    if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 )
+        stop("run comptsne/compfr/compumap before plotlabelsmap")
     if (final & length(object@cpart) == 0) 
         stop("run findoutliers before plotmap")
     if (!final & length(object@cluster$kpart) == 0) 
         stop("run clustexp before plotmap")
     if (!is.numeric(tp) | (is.numeric(tp) & tp > 1 | tp < 0)) 
         stop("tp has to be a number between 0 and 1 (transparency)")
-    if (!is.logical(fr)) 
-        stop("fr has to be TRUE or FALSE")
-    part <- if (final) 
+    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
+    if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")
+    
+    if ( fr == FALSE & um == FALSE & dim(object@tsne)[1] == 0 ){
+        if ( dim(object@fr)[1] != 0 ){
+            fr <- TRUE
+        }else if ( dim(object@umap)[1] != 0 ){
+            um <- TRUE
+        }
+    }
+    
+   part <- if (final) 
         object@cpart
     else object@cluster$kpart
-    if (fr | dim(object@tsne)[1] == 0) 
+    if ( fr ){
         d <- object@fr
-    else d <- object@tsne
+    }else if ( um ){
+        d <- object@umap
+    }else{
+        d <- object@tsne
+    }
     row.names(d) <- names(part)
     plot(d, xlab = "", ylab = "", cex = 0, axes = FALSE)
     for (i in 1:max(part)) {
@@ -460,18 +479,35 @@ plotmap <- function(object, final = TRUE, tp = 1, fr = FALSE, cex = .5)
 #' @param object \code{SCseq} class object.
 #' @param labels Vector of labels for all cells to be highlighted in the t-SNE map. The order has to be the same as for the
 #' columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} and cell names are highlighted.
-#' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param fr logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.
+#' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
+#' @param cex positive real number. Size of the labels. Default is 0.5.
 #' @return None
 #'
 #' @export
-plotlabelsmap <- function(object,labels=NULL,fr=FALSE){
+plotlabelsmap <- function(object,labels=NULL,fr=FALSE,um=FALSE,cex=.5){
     if ( is.null(labels ) ) labels <- colnames(object@ndata)
-    if ( length(object@tsne) == 0 & length(object@fr) == 0 ) stop("run comptsne/compfr before plotlabelsmap")
+    if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
     if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
+    if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")
+        
+    if ( fr == FALSE & um == FALSE & dim(object@tsne)[1] == 0 ){
+        if ( dim(object@fr)[1] != 0 ){
+            fr <- TRUE
+        }else if ( dim(object@umap)[1] != 0 ){
+            um <- TRUE
+        }
+    }
     
-    if ( fr | dim(object@tsne)[1] == 0 ) d <- object@fr else d <- object@tsne 
-    plot(d,xlab="",ylab="",pch=20,cex=1.5,col="lightgrey",axes=FALSE)
-    text(d[,1],d[,2],labels,cex=.5)
+    if ( fr ){
+        d <- object@fr
+    }else if ( um ){
+        d <- object@umap
+    }else{
+        d <- object@tsne
+    }
+    plot(d,xlab="",ylab="",pch=20,cex=cex,col="lightgrey",axes=FALSE)
+    text(d[,1],d[,2],labels,cex=cex)
 }
 
 #' @title Plotting groups as different symbols in the t-SNE map
@@ -484,14 +520,27 @@ plotlabelsmap <- function(object,labels=NULL,fr=FALSE){
 #' @param subset Vector containing a subset of types from \code{types} to be highlighted in the map. Default is \code{NULL} and all
 #' types are shown.
 #' @param samples_col Vector of colors used for highlighting all samples contained in \code{samples} in the map. Default is \code{NULL}.
-#' @param cex size of data points. Default value is 0.25.
-#' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param cex size of data points. Default value is 0.5.
+#' @param fr logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.
+#' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
 #' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
 #' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
 #' @return None
 #'
 #' @export
-plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.25, fr=FALSE, leg = TRUE, map = TRUE){
+plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5, fr=FALSE, um=FALSE, leg = TRUE, map = TRUE){
+    if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
+    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
+    if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")
+    
+    if ( fr == FALSE & um == FALSE & dim(object@tsne)[1] == 0 ){
+        if ( dim(object@fr)[1] != 0 ){
+            fr <- TRUE
+        }else if ( dim(object@umap)[1] != 0 ){
+            um <- TRUE
+        }
+    }
+    
     if ( is.null(subset) ) subset <- unique(types)
     h <- sort(unique(types)) %in% subset
     if (!is.null(subset)) {
@@ -502,8 +551,14 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.2
         samples_col <- rainbow(length(unique(types[fp])))
     }else{
         samples_col <- samples_col[h]
+    }   
+    if ( fr ){
+        d <- object@fr
+    }else if ( um ){
+        d <- object@umap
+    }else{
+        d <- object@tsne
     }
-    if ( fr | dim(object@tsne)[1] == 0 ) d <- object@fr else d <- object@tsne 
     if ( map ){
         plot(d, xlab = "", ylab = "",  axes = FALSE, cex=cex, pch=20, col="grey")
         for (i in 1:length(unique(types[fp]))) {
@@ -527,29 +582,39 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.2
 #' @param logsc logical. If \code{TRUE}, then gene expression values are log2-transformed after adding a pseudo-count of 0.1. Default is \code{FALSE}
 #' and untransformed values are shown.
 #' @param imputed logical. If \code{TRUE} and imputing was done by calling \code{compdist} with \code{knn > 0}, then imputed expression values are shown. If \code{FALSE}, then raw counts are shown. Default is \code{FALSE}.
-#' @param fr logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.
+#' @param fr logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.
+#' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
 #' @param cells Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 #' this subset.
 #' @param cex size of data points. Default value is 1.
 #' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
 #' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
+#' @param noise logical. If \code{TRUE} then display local gene expression variability instead of gene expression (requires VarID analysis)/ Default value is \code{FALSE}.
 #' @return None
 #'
 #' @export
 #' @importFrom RColorBrewer brewer.pal
-plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE ){
-    if (length(object@tsne) == 0 & length(object@fr) == 0) 
-        stop("run comptsne/compfr before plotexpmap")
+plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr = FALSE, um = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE, noise = FALSE ){
+    if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
+    if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
+    if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")  
     if (length(intersect(g, rownames(object@ndata))) < length(unique(g))) 
         stop("second argument does not correspond to set of rownames slot ndata of SCseq object")
     if (!is.numeric(logsc) & !is.logical(logsc)) 
         stop("argument logsc has to be logical (TRUE/FALSE)")
-    if (!is.logical(fr)) 
-        stop("fr has to be TRUE or FALSE")
     if (!is.null(cells)) {
         if (sum(!cells %in% colnames(object@ndata)) > 0) 
             stop("cells has to be a subset of cell ids, i.e. column names of slot ndata")
     }
+        
+    if ( fr == FALSE & um == FALSE & dim(object@tsne)[1] == 0 ){
+        if ( dim(object@fr)[1] != 0 ){
+            fr <- TRUE
+        }else if ( dim(object@umap)[1] != 0 ){
+            um <- TRUE
+        }
+    }
+    
     if (imputed & length(object@imputed) == 0) 
         stop("imputing needs to be done by running compdist with knn > 0")
     if (is.null(n)) 
@@ -557,21 +622,31 @@ plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr =
     if (is.null(cells)) 
         cells <- colnames(object@ndata)
     knn <- object@imputed$knn
-    if (length(g) == 1) {
-        l <- as.vector(object@ndata[g, ] * min(object@counts) + 
-            0.1)
-    }
-    else {
-        l <- apply(as.data.frame(as.matrix(object@ndata)[g, ]) * 
-            min(object@counts), 2, sum) + 0.1
-    }
-    if (imputed) {
-        l <- apply(rbind(object@imputed$nn, object@imputed$probs), 
-            2, function(y) {
-                ind <- y[1:(knn + 1)]
-                p <- y[(knn + 2):(2 * knn + 2)]
-                sum(l[ind] * p)
-            })
+    if ( ! noise ){
+        if (length(g) == 1) {
+            l <- as.vector(object@ndata[g, ] * min(object@counts) + 
+                           0.1)
+        }
+        else {
+            l <- apply(as.data.frame(as.matrix(object@ndata)[g, ]) * 
+                       min(object@counts), 2, sum) + 0.1
+        }
+        if (imputed) {
+            l <- apply(rbind(object@imputed$nn, object@imputed$probs), 
+                       2, function(y) {
+                           ind <- y[1:(knn + 1)]
+                           p <- y[(knn + 2):(2 * knn + 2)]
+                           sum(l[ind] * p)
+                       })
+        }
+    }else{
+        if ( is.null(object@noise) ) stop("run noise analysis first!")
+        if (length(g) == 1) {
+            l <- as.vector(object@noise[g, ] +  0.1)
+        }
+        else {
+            l <- apply(as.data.frame(as.matrix(object@noise)[g, ]), 2, sum) + 0.1
+        }
     }
     if (logsc) {
         f <- l == 0
@@ -584,9 +659,13 @@ plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr =
     ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
     ColorLevels <- seq(mi, ma, length = length(ColorRamp))
     v <- round((l - mi)/(ma - mi) * 99 + 1, 0)
-    d <- object@tsne
-    if (fr) 
+    if ( fr ){
         d <- object@fr
+    }else if ( um ){
+        d <- object@umap
+    }else{
+        d <- object@tsne
+    }
     pardefault <- par()
     layout(matrix(data = c(1, 3, 2, 4), nrow = 2, ncol = 2), 
         widths = c(5, 1, 5, 1), heights = c(5, 1, 1, 1))
@@ -632,10 +711,12 @@ getfdata <- function(object,g=NULL,n=NULL){
 #' @description This functions computes the distance matrix used for cell type inference by RaceID3.
 #' @param object \code{SCseq} class object.
 #' @param metric Distances are computed from the filtered expression matrix after optional feature selection, dimensional reduction, and/or transformation (batch correction).
-#' Possible values for \code{metric} are \code{"pearson", "spearman", "logpearson",  "euclidean"}.  Default is \code{"pearson"}. In case of the correlation based methods,
-#' the distance is computed as 1 – correlation.
-#' @param knn Positive integer number of nearest neighbours used for imputing gene expression values. Default is \code{NULL} and no imputing is done.
+#' Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, rho, phi, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
+#' the distance is computed as 1 – correlation. \code{rho} and \code{phi} are measures of proportionality computed on non-normalized counts, taken from the \pkg{propr} package.
 #' @param FSelect Logical parameter. If \code{TRUE}, then feature selection is performed prior to RaceID3 analysis. Default is \code{TRUE}.
+#' @param knn Positive integer number of nearest neighbours used for imputing gene expression values. Default is \code{NULL} and no imputing is done.
+#' @param alpha Positive real number. Relative weight of a cell versus its k nearest neigbour applied for imputing gene expression. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the wieghted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are applied for the derivation of the imputed gene expression for each cell. Default is 1. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood.
+#' @param no_cores Positive integer number. Number of cores for multithreading during imputation. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.
 #' @return \code{SCseq} object with the distance matrix in slot \code{distances}. If \code{FSelect=TRUE}, the genes used for computing the distance object are stored in
 #' slot \code{cluster$features}.
 #' @examples
@@ -644,9 +725,12 @@ getfdata <- function(object,g=NULL,n=NULL){
 #' sc <- compdist(sc)
 #' @importFrom coop pcor
 #' @importFrom quadprog solve.QP
+#' @importFrom compiler cmpfun
+#' @import parallel
+#' @importFrom propr propr
 #' @export
-compdist <- function(object,metric="pearson",FSelect=TRUE,knn=NULL){
-    if ( ! ( metric %in% c( "spearman","pearson","logpearson","euclidean") ) ) stop("metric has to be one of the following: spearman, pearson, logpearson, euclidean")
+compdist <- function(object,metric="pearson",FSelect=TRUE,knn=NULL,alpha=1,no_cores=1){
+    if ( ! ( metric %in% c( "spearman","pearson","logpearson","euclidean","rho","phi","kendall") ) ) stop("metric has to be one of the following: spearman, pearson, logpearson, euclidean, rho, phi, kendall")
     if ( ! ( is.numeric(FSelect) | is.logical(FSelect) ) ) stop( "FSelect has to be logical (TRUE/FALSE)" )
     if ( ! ( is.numeric(knn) | is.null(knn) ) ) stop( "knn has to be NULL or integer > 0" )
     if ( ! is.null(knn) ) knn <- max(knn,2)
@@ -663,38 +747,72 @@ compdist <- function(object,metric="pearson",FSelect=TRUE,knn=NULL){
         if ( metric == "logpearson" & min(x) <= 0 ) metric <- "pearson"
     }
     
-    
-    object@distances <- dist.gen(t(as.matrix(x)),method=metric)
-    
+    if ( metric %in% c("rho","phi")){
+        if ( !is.null(knn) ) warning("imputing cannot be done in combination with proportionality metric rho or phi. Setting knn to NULL...\n")
+        if ( !is.null(object@dimRed$x) ) warning("dimensional reduction cannot be done in combination with proportionality metric rho or phi. Using raw counts as input...\n")
+        z <- as.matrix(object@expdata[n,colnames(x)])
+        object@distances <- dist.gen(t(z),method=metric)
+    }else{
+        object@distances <- dist.gen(t(as.matrix(x)),method=metric)
+    }
+    cPAdjust <- cmpfun(PAdjust)
+    cQP <- cmpfun(QP)
+
     if ( !is.null(knn) ){
         nn <- apply(object@distances,1,function(x){ j <- order(x,decreasing=F); head(j,knn + 1); } )
-               
-        for ( i in 1:ncol(object@ndata) ){
-            cat("imputing cell",i,"\r")
-            fdata  <- object@expdata[n,colnames(object@ndata)[nn[,i]]]
+        expData  <- as.matrix(object@expdata)[n,colnames(object@ndata)]
+        FNData  <- as.matrix(object@ndata[n,])
+        fCoef   <- as.vector(object@background$vfit$coefficients)
+        if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
 
-            norm_fdata <- as.matrix(object@ndata[n,colnames(fdata)])
-            k <- norm_fdata[,1]
-            m <- norm_fdata[,-1]
-            weights <- round(QP(k,m,TRUE)$w,5)
-            weights <- c(1,weights)
+        no_cores <- min(no_cores,detectCores())
+        
+        localFUN <- function(x,expData,FNData,alpha,genes,cQP,cPAdjust,fCoef){
+            k <- FNData[,x][,1]
+            m <- FNData[,x][,-1]
+            weights <- round(cQP(k,m,TRUE)$w,5)
+            weights <- c(alpha,weights)
             weights <- weights/sum(weights)
-            
-            z <- t(apply(fdata,1,function(x){pr <- pnbinom(round(x,0),mu=sum(weights*x),size=lsize(sum(weights*x),lvar,object@background$vfit));apply( cbind( pr , 1 - pr ),1, min) }))
-            
-            if ( i == 1 ){
-                pm <- data.frame(apply(z,2,gm_mean))
-            }else{
-                pm <- cbind(pm, data.frame(apply(z,2,gm_mean)))
-            }
-            
+            z <- applyProb(expData[,x],fCoef,weights)
+            #p <- apply(z,2,gm_mean)
+            p <- apply(z,2,cPAdjust)
+            names(p) <- colnames(m)
+            p
         }
+    
+        if ( no_cores == 1 ){
+            pm <- apply(t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+        }else{
+            clust <- makeCluster(no_cores) 
+            pm <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+            stopCluster(clust)
+        }
+  
+        #for ( i in 1:ncol(object@ndata) ){
+        #    cat("imputing cell",i,"\r")
+        #    expData <- object@expdata[n, colnames(object@ndata)][,nn[,i]]
+        #    norm_fdata <- as.matrix(object@ndata[n, colnames(expData)])
+        #    k <- norm_fdata[,1]
+        #    m <- norm_fdata[,-1]
+        #    weights <- round(QP(k,m,TRUE)$w,5)
+        #    weights <- c(alpha,weights)
+        #    weights <- weights/sum(weights)
+            
+        #    z <- t(apply(expData,1,function(x){pr <- pnbinom(round(x,0),mu=sum(weights*x),size=lsize(sum(weights*x),lvar,object@background$vfit));apply( cbind( pr , 1 - pr ),1, min) }))
+            
+         #   if ( i == 1 ){
+         #       pm <- data.frame(apply(z,2,gm_mean))
+         #   }else{
+         #       pm <- cbind(pm, data.frame(apply(z,2,gm_mean)))
+         #   }
+            
+         #}
         probs <- t(t(pm)/apply(pm,2,sum))
         colnames(probs) <- colnames(x)
         rownames(probs) <- 1:(knn + 1)
         dd <- apply(x,1, function(x){ apply(rbind(nn,probs),2,function(y){ ind <- y[1:(knn + 1)]; p <- y[(knn + 2):(2*knn + 2)]; sum(x[ind]*p)  })  } )
 
-        cat("imputing done\n")
+        #cat("imputing done\n")
         
 
         object@imputed <- list(nn=nn,probs=probs,knn=knn)
@@ -933,10 +1051,14 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
 #'
 #' @description This functions performs the computation of a t-SNE map from the distance object in slot \code{distances} using the \pkg{Rtsne} package.
 #' @param object \code{SCseq} class object.
+#' @param dimRed logical. If \code{TRUE} then the t-SNE is computed from the feature matrix in slot \code{dimRed$x} (if not equal to \code{NULL}).
+#' Default is \code{FALSE} and the t-SNE is computed from the distance matrix stored in slot \code{distances}. If slot \code{distances} equals \code{NULL}
+#' \code{dimRed} is automatially set to \code{TRUE}.
 #' @param initial_cmd logical. If \code{TRUE}, then the t-SNE map computation is initialized with a configuration obtained by classical
 #' multidimensional scaling. Default is \code{TRUE}.
 #' @param perplexity Positive number. Perplexity of the t-SNE map. Default is \code{30}.
 #' @param rseed Integer number. Random seed to enforce reproducible t-SNE map.
+#' 
 #' @return \code{SCseq} object with t-SNE coordinates stored in slot \code{tsne}.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -947,12 +1069,17 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
 #' sc <- comptsne(sc)
 #' @importFrom Rtsne Rtsne
 #' @export
-comptsne <- function(object,initial_cmd=TRUE,perplexity=30,rseed=15555){
-    if ( length(object@cluster$kpart) == 0 ) stop("run clustexp before comptsne")
+comptsne <- function(object,dimRed=FALSE,initial_cmd=TRUE,perplexity=30,rseed=15555){
     set.seed(rseed)
-    di <- as.dist(object@distances)
-    ts <- if ( initial_cmd ) Rtsne(di,dims=2,initial_config=cmdscale(di,k=2),perplexity=perplexity,is_distance=TRUE)$Y else Rtsne(di,dims=2,perplexity=perplexity,is_distance=TRUE)$Y
+    if ( is.null(object@distances) ) dimRed <- TRUE
+    if ( dimRed & ! is.null(object@dimRed$x) ){
+        ts <- Rtsne(t(object@dimRed$x),dims=2,perplexity=perplexity)$Y
+    }else{
+        di <- as.dist(object@distances)
+        ts <- if ( initial_cmd ) Rtsne(di,dims=2,initial_config=cmdscale(di,k=2),perplexity=perplexity,is_distance=TRUE)$Y else Rtsne(di,dims=2,perplexity=perplexity,is_distance=TRUE)$Y
+    }
     object@tsne <- as.data.frame(ts)
+    rownames(object@tsne) <- colnames(object@ndata)
     return(object)
 }
 
@@ -974,18 +1101,49 @@ comptsne <- function(object,initial_cmd=TRUE,perplexity=30,rseed=15555){
 #' @import igraph
 #' @export
 compfr <- function(object,knn=10,rseed=15555){
-    if ( length(object@cluster$kpart) == 0 ) stop("run clustexp before compfr")
     if ( ! is.numeric(knn) ) stop("knn has to be a positive integer number")
     set.seed(rseed)
     knn <- max(knn,1) + 1
     
     di <-object@distances
     y <- apply(di,1,function(x){ n <- order(x,decreasing=FALSE); v <- rep(0,length(x)); v[head(n,knn)] <- 2 - x[head(n,knn)];v})
-    g <- graph_from_adjacency_matrix(t(y),mode="directed",diag=F,weighted=TRUE)
+    g <- graph_from_adjacency_matrix(t(y),mode="directed",diag=FALSE,weighted=TRUE)
     gr <- layout.fruchterman.reingold(g)
     object@fr <- as.data.frame(gr)
     rownames(object@fr) <- colnames(object@ndata)
    
+    return(object)
+}
+
+#' @title Computation of a two dimensional umap representation
+#'
+#' @description This functions performs the computation of a two-dimensional umap representation based on the distance matrix in
+#' slot \code{distances} using the \pkg{umap} package.
+#' @param object \code{SCseq} class object.
+#' @param dimRed logical. If \code{TRUE} then the umap is computed from the feature matrix in slot \code{dimRed$x} (if not equal to \code{NULL}).
+#' Default is \code{FALSE} and the umap is computed from the distance matrix stored in slot \code{distances}. If slot \code{distances} equals \code{NULL}
+#' \code{dimRed} is automatially set to \code{TRUE}.
+#' @param umap.pars umap parameters. See \pkg{umap} package, \code{umap.defaults}. Default is \code{umap.defaults}. \code{umap.pars$input} is automatically
+#' set to \code{"dist"} if \code{dimRed} is \code{FALSE}.
+#' @return \code{SCseq} object with umap coordinates stored in slot \code{umap}.
+#' @examples
+#' sc <- SCseq(intestinalDataSmall)
+#' sc <- filterdata(sc)
+#' sc <- compdist(sc)
+#' sc <- clustexp(sc)
+#' sc <- findoutliers(sc)
+#' sc <- compumap(sc)
+#' @import igraph
+#' @export
+compumap <- function(object,dimRed=FALSE,umap.pars = umap.defaults){
+    if ( is.null(object@distances) ) dimRed <- TRUE
+    if ( dimRed & ! is.null(object@dimRed$x) ){
+        object@umap <- as.data.frame( umap(t(object@dimRed$x),config=umap.pars)$layout )
+    }else{
+        umap.pars$input <- "dist"
+        object@umap  <-  as.data.frame( umap(object@distances,config=umap.pars)$layout )
+    }
+    rownames(object@umap) <- colnames(object@ndata)
     return(object)
 }
 
@@ -1095,25 +1253,32 @@ plotsilhouette <- function(object,final=FALSE){
 
 #' @title Computes Medoids from a Clustering Partition
 #'
-#' @description This functions computes cluster medoids given an \code{SCseq} object and a clustering partition.
+#' @description This functions computes cluster medoids given an \code{SCseq} object and a clustering partition. The medoids are either derived from the
+#' distance matrix or, if the slot \code{distances} is empty, from the dimensionally reduced feature matrix in slot \code{dimRed$x} using the euclidean metric.
 #' @param object \code{SCseq} class object.
 #' @param part Clustering partition. A vector of cluster numbers for (a subset of) cells (i.e. column names)
 #' of slot \code{ndata} from the \code{SCseq} object. 
 #' @return Returns a list of medoids (column names of slot \code{ndata} from the \code{SCseq} object) ordered by increasing cluster number.
-#'
+#' @importFrom cluster pam
 #' @export
 compmedoids <- function(object,part){
-  m <- c()
-  for ( i in sort(unique(part)) ){
-      f <- names(part)[part == i]
-      if ( length(f) == 1 ){
-          m <- append(m,f)
-      }else{
-          y <- apply(object@distances[f,f],2,mean)
-          m <- append(m,f[which(y == min(y))[1]])
-      }
-  }
-  m
+    m <- c()
+    
+    for ( i in sort(unique(part)) ){
+        f <- names(part)[part == i]
+        if ( length(f) == 1 ){
+            m <- append(m,f)
+        }else{
+            if ( !is.null(object@distances) ){
+                y <- apply(object@distances[f,f],2,mean)
+                m <- append(m,f[which(y == min(y))[1]])
+            }else{
+                g <- apply(as.matrix(object@dimRed$x[,part == i]) - as.vector(pam(t(object@dimRed$x[,part == i]),1)$medoids),2,sum) == 0
+                m <- append(m, names(part)[part == i][g])
+            }
+        }
+    }
+    m
 }
 
 #' @title Plotting a Heatmap of the Distance Matrix
@@ -1279,15 +1444,20 @@ rfcorrect <- function(object,rfseed=12345,nbtree=NULL,final=TRUE,nbfactor=5,...)
 #' @param samples_col Vector of colors used for highlighting all samples contained in \code{samples} in the heatmap. Default is \code{NULL}.
 #' @param zsc logical. If \code{TRUE} then a z-score transformation is applied. Default is \code{FALSE}.
 #' @param logscale logical. If \code{TRUE} then a log2 transformation is applied. Default is \code{TRUE}.
-#' @return None
+#' @param noise logical. If \code{TRUE} then display local gene expression variability instead of gene expression (requires VarID analysis)/ Default value is \code{FALSE}.
+#' @param fontsize postive real number. Font size of gene name labels. Default is 10.
+#' @return Object with clustering information for rows and columns returned by the function \code{pheatmap} from the package \pkg{pheatmap}.
 #'
 #' @export
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom pheatmap pheatmap
-plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL,order.cells=FALSE,aggr=FALSE,norm=FALSE,cap=NULL,flo=NULL,samples=NULL,cluster_cols=FALSE,cluster_rows=TRUE,cluster_set=FALSE, samples_col=NULL,zsc=FALSE,logscale=TRUE){
+plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL,order.cells=FALSE,aggr=FALSE,norm=FALSE,cap=NULL,flo=NULL,samples=NULL,cluster_cols=FALSE,cluster_rows=TRUE,cluster_set=FALSE, samples_col=NULL,zsc=FALSE,logscale=TRUE,noise=FALSE,fontsize=10){
     if ( imputed & length(object@imputed) == 0 ) stop("imputing needs to be done by running compdist with knn > 0")
     if ( !is.null(cl) ){ if (sum(! cl %in% object@cpart) > 0 )stop("cl has to be a subset of clusters in slot cpart") }
     if ( !is.null(cells) ){ if (sum(! cells %in% names(object@cpart)) > 0 )stop("cells has to be a subset of cell ids, i.e. names of slot cpart") }
+
+    metric <- "pearson"
+    if ( !is.null(object@clusterpar$metric) ) metric <- object@clusterpar$metric
     
     m <- aggregate(rep(1,length(object@cpart)),by=list(object@cpart),sum)
     pt <- object@cpart[object@cpart %in% m[m[,2] > cthr,1]]
@@ -1296,9 +1466,14 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
 
     pt <- pt[pt %in% cl]
     pt <- pt[names(pt) %in% cells]
-  
+
+    if (noise){
+        if ( is.null(object@noise) ) stop("run noise analysis first!")
+        xn <- as.matrix(object@noise)[genes,]
+    }
     x <- as.matrix(object@ndata)[genes,]
-    if ( imputed ){
+    
+    if ( imputed & ! noise){
         knn <- object@imputed$knn
         dd <- apply(x,1, function(x){ apply(rbind(object@imputed$nn,object@imputed$probs),2,function(y){ ind <- y[1:(knn + 1)]; p <- y[(knn + 2):(2*knn + 2)]; sum(x[ind]*p)  })  } )
         dd <- t(dd)
@@ -1313,8 +1488,14 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
     x <- as.data.frame(as.matrix(x)) + .1
     z <- object@ndata[object@cluster$features,names(pt)]*min(object@counts[names(pt)]) + .1
     z <- as.matrix(z)
+ 
     if ( aggr ){
-        y <- aggregate(t(x),by=list(cl=pt),mean)  
+        if (noise){
+            xn <- xn[rownames(x),colnames(x)]
+            y <- aggregate(t(xn),by=list(cl=pt),mean)
+        }else{
+            y <- aggregate(t(x),by=list(cl=pt),mean)
+        }
         z <- as.data.frame( as.matrix( t(y[,-1]) ) )
         names(z) <- as.character(y[,1])
         anc <- data.frame(cluster=paste("c",y[,1],sep=""))
@@ -1322,8 +1503,9 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         v <- object@fcol[sort(unique(y[,1]))]
         
         names(v) <- paste("c",sort(unique(y[,1])),sep="")
-        xl <- log2(z)
-        
+        if ( logscale ) xl <- log2(z) else xl <- z
+        if ( zsc ) xl <- zscore(xl)
+    
         if ( ! is.null(cap) ){
             for ( i in 1:ncol(xl) ) xl[ xl[,i] > cap, i] <- cap 
         }
@@ -1331,19 +1513,19 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
             for ( i in 1:ncol(xl) ) xl[ xl[,i] < flo, i] <- flo 
         }
         
-        pheatmap(xl,cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA)
+        pheatmap(xl[,cl],cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA,fontsize=fontsize)
     }else{
         if (length(unique(pt)) == 1 ){
             n <- names(pt)
         }else{
             y <- aggregate(t(as.matrix(z)),by=list(cl=pt),mean)  
-            k <- hclust(as.dist(dist.gen(y[,-1],method=object@clusterpar$metric)))
+            k <- hclust(as.dist(dist.gen(y[,-1],method=metric)))
             if ( cluster_set ) set <- y[k$order,1] else set <- cl
             n <- c()
             for ( i in set ){
                 p <- names(pt)[pt == i]
                 if (length(p) >= 2 ){
-                    k <- hclust(as.dist(dist.gen(as.matrix(t(z[ apply(z[,p],1,var) >= 0,p])),method=object@clusterpar$metric)))
+                    k <- hclust(as.dist(dist.gen(as.matrix(t(z[ apply(z[,p],1,var) >= 0,p])),method=metric)))
                     n <- append(n,p[k$order])
                 }else{
                     n <- append(n,p)
@@ -1359,8 +1541,13 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         rownames(anc) <- n
         v <- object@fcol[unique(pt[n])]
         names(v) <- paste("c",unique(pt[n]),sep="")
-        if ( logscale ) xl <- log2(x[,n]) else xl <- x[,n]
-        if ( zsc ) xl <- zscore(xl)
+        if ( noise ){
+            if ( logscale ) xl <- log2(xn[,n]) else xl <- xn[,n]
+            if ( zsc ) xl <- zscore(xl)
+        }else{
+            if ( logscale ) xl <- log2(x[,n]) else xl <- x[,n]
+            if ( zsc ) xl <- zscore(xl)
+        }
         if ( ! is.null(cap) ){
             for ( i in 1:ncol(xl) ) xl[ xl[,i] > cap, i] <- cap 
         }
@@ -1369,11 +1556,11 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         }
 
         if ( order.cells ){
-            #if ( ! is.null(cells) ){
-            #    g <- cells
-            #}else{
-            g <- order(colnames(xl))
-            #}
+            if ( ! is.null(cells) ){
+                g <- cells[ cells %in% colnames(xl) ]
+            }else{
+                g <- order(colnames(xl))
+            }
             xl <- xl[,g]
         }
         if ( !is.null(samples) ){
@@ -1387,10 +1574,9 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
                 saCol <- samples_col[h]
                 names(saCol) <- sort(unique(samples))
             }
-             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA)
-        }
-        else{
-             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA)
+             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
+        }else{
+             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
         }
     }
 }
@@ -1818,3 +2004,88 @@ plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bna
     if ( sum(f) > 0 ) text(log2(y$baseMean)[f],y$log2FoldChange[f],rownames(y)[f],cex=.5)
   }
 }
+
+#' @title Dotplot of gene expression across clusters or samples
+#'
+#' @description This is a plotting function for visualizing gene expression across subsets of clusters or samples. The diameter of a dot reflects the fraction of cells
+#' expressing a gene, and the color indicates the expression z-score across all clusters or samples.
+#' @param object \code{SCseq} class object.
+#' @param genes vector of valid gene names corresponding to row names of slot \code{ndata}. The expression for this genes is shown.
+#' @param cluster vector of valid cluster numbers contained in slot \code{cpart}. Default is \code{NULL}. If not given, then the \code{samples} argument is expected.
+#' If both are given, only the \code{samples} argument is considered.
+#' @param samples vector of sample names for all cells. Length and order has to correspond to \code{colnames} of slot \code{ndata}. Default is \code{NULL}.
+#' @param subset vector of unique sample names to show in the expression dotplot. Each sample names in \code{subset} has to occur in \code{samples}.
+#' Default is \code{NULL}. If not given and \code{samples} is not \code{NULL}, the subset is intialized with all sample names occuring in \code{samples}.
+#' @param zsc logical. If \code{TRUE} then a z-score transformation is applied. Default is \code{FALSE}.
+#' @param logscale logical. If \code{TRUE} then a log2 transformation is applied. Default is \code{TRUE}.
+#' @param cap real number. Upper limit for the expression, log2 expression, or z-score. Values larges then \code{cap} are replaced by \code{cap}.
+#' @param flo real number. Lower limit for the expression, log2 expression, or z-score. Values smaller then \code{flo} are replaced by \code{flo}.
+#' @return None
+#' @importFrom ggplot2 ggplot
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom stats sd
+#' @export
+fractDotPlot <- function(object, genes, cluster=NULL, samples=NULL, subset=NULL, zsc=FALSE, logscale=TRUE, cap=Inf, flo=-Inf) {
+    if ( is.null(samples) & is.null(cluster) ) stop("Either cluster or samples are required!")
+    if ( !is.null(samples) & is.null(subset) ){ subset = sort(unique(samples) ) }
+    genevec     <- c()
+    clustervec  <- c()
+    fraction    <- c()
+    scaled_mean <- c()
+
+    if ( is.null(samples) ){
+        maxit <- length(cluster)
+    }else{
+        maxit <- length(subset)
+    }
+    
+    for ( i in 1:length(genes)) {
+        repgene   <- rep(genes[i], maxit)
+        meang     <- mean(object@ndata[genes[i],])
+        sdg       <- sd(object@ndata[genes[i],])
+        repclus   <- c()
+        frac      <- c()
+        cent_mean <- c()
+        
+        for ( n in 1:maxit) {
+            if ( is.null(samples) ){
+                clus <- names(object@cpart[object@cpart == cluster[n]])
+            }else{
+                clus <- colnames(object@ndata)[samples == subset[n]]
+            }
+            leng_clus <- length(clus)
+            leng_gene_in_clus <- length(which(object@ndata[genes[i], clus] > 0))
+            frac <- c(frac, leng_gene_in_clus/leng_clus)
+            if ( is.null(samples) ){
+                repclus <- c(repclus, cluster[n])
+            }else{
+                repclus <- c(repclus, subset[n])
+            }
+            if ( zsc ){
+                cent_mean <- c(cent_mean, (mean(object@ndata[genes[i], clus]) - meang)/sdg)
+            }else{
+                cent_mean <- c(cent_mean, mean(object@ndata[genes[i], clus]*min(object@counts)))
+            }
+        }
+        if (logscale & !zsc ) cent_mean <- log2(cent_mean + .1)
+        genevec <- c(genevec, repgene) 
+        clustervec <- c(clustervec, repclus)
+        fraction <- c(fraction, frac)
+        scaled_mean <- c(scaled_mean, cent_mean)
+    }
+    if ( is.null(samples) ){
+        data <- data.frame(Gene = factor(genevec, levels = genes) , Cluster = factor(clustervec, levels = cluster), Fraction =  fraction, Expression = scaled_mean )
+    }else{
+        data <- data.frame(Gene = factor(genevec, levels = genes) , Sample = factor(clustervec, levels = subset), Fraction = fraction, Expression = scaled_mean )
+    }
+    data[which(data$Expression > cap), "Expression"] <- cap
+    data[which(data$Expression < flo), "Expression"] <- flo
+    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
+
+    if ( is.null(samples) ){
+        print(ggplot(data, aes_string(x = "Gene", y = "Cluster")) + geom_point(aes_string(size = "Fraction", color = "Expression"))  + scale_colour_gradientn(colours = ColorRamp) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + theme(axis.text.x = element_text(angle = 90, hjust = 1)))
+    }else{
+        print(ggplot(data, aes_string(x = "Gene", y = "Sample")) + geom_point(aes_string(size = "Fraction", color = "Expression"))  + scale_colour_gradientn(colours = ColorRamp) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + theme(axis.text.x = element_text(angle = 90, hjust = 1)))
+    }
+}
+  

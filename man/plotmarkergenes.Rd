@@ -8,7 +8,7 @@ plotmarkergenes(object, genes, imputed = FALSE, cthr = 0, cl = NULL,
   cells = NULL, order.cells = FALSE, aggr = FALSE, norm = FALSE,
   cap = NULL, flo = NULL, samples = NULL, cluster_cols = FALSE,
   cluster_rows = TRUE, cluster_set = FALSE, samples_col = NULL,
-  zsc = FALSE, logscale = TRUE)
+  zsc = FALSE, logscale = TRUE, noise = FALSE, fontsize = 10)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -54,9 +54,13 @@ Default is \code{NULL} and no \code{floor} is applied.}
 \item{zsc}{logical. If \code{TRUE} then a z-score transformation is applied. Default is \code{FALSE}.}
 
 \item{logscale}{logical. If \code{TRUE} then a log2 transformation is applied. Default is \code{TRUE}.}
+
+\item{noise}{logical. If \code{TRUE} then display local gene expression variability instead of gene expression (requires VarID analysis)/ Default value is \code{FALSE}.}
+
+\item{fontsize}{postive real number. Font size of gene name labels. Default is 10.}
 }
 \value{
-None
+Object with clustering information for rows and columns returned by the function \code{pheatmap} from the package \pkg{pheatmap}.
 }
 \description{
 This functions generates a heatmap of expression for  defined group of genes and can highlight the clustering partition and another sample grouping,

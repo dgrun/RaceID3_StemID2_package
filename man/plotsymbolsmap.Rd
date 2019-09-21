@@ -5,7 +5,7 @@
 \title{Plotting groups as different symbols in the t-SNE map}
 \usage{
 plotsymbolsmap(object, types, subset = NULL, samples_col = NULL,
-  cex = 0.25, fr = FALSE, leg = TRUE, map = TRUE)
+  cex = 0.5, fr = FALSE, um = FALSE, leg = TRUE, map = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -18,9 +18,11 @@ types are shown.}
 
 \item{samples_col}{Vector of colors used for highlighting all samples contained in \code{samples} in the map. Default is \code{NULL}.}
 
-\item{cex}{size of data points. Default value is 0.25.}
+\item{cex}{size of data points. Default value is 0.5.}
 
-\item{fr}{logical. If \code{TRUE} then plot t-SNE map, else plot Fruchterman-Rheingold layout.}
+\item{fr}{logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.}
+
+\item{um}{logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
 
 \item{leg}{logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.}
 
