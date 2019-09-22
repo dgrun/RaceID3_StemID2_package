@@ -5,7 +5,7 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 double myVar(double x, NumericVector v){
-  return pow(2.0, v[0] + v[1]*log(x)/log(2) + v[2]*pow(log(x)/log(2),2.0)) ;
+  return pow(2.0, v[0] + v[1]*log(x)/log(2.0) + v[2]*pow(log(x)/log(2.0),2.0)) ;
 }
 
 // [[Rcpp::export]]
