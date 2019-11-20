@@ -5,7 +5,7 @@
 \title{Inference of outlier cells and final clustering}
 \usage{
 findoutliers(object, probthr = 0.001, outminc = 5, outlg = 2,
-  outdistquant = 0.95)
+  outdistquant = 0.95, verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -19,6 +19,8 @@ background model of expression in a cluster. Default is 0.001.}
 
 \item{outdistquant}{Real number between zero and one. Outlier cells are merged to outlier clusters if their distance smaller than the outdistquant-quantile of
 the distance distribution of  pairs of cells in the orginal clusters after outlier removal. Default is 0.95.}
+
+\item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
 \value{
 \code{SCseq} object with outlier data stored in slot \code{out} and slot \code{outlierpar}. The final clustering partition is stored in

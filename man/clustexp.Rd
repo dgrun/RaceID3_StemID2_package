@@ -5,7 +5,7 @@
 \title{Clustering of single-cell transcriptome data}
 \usage{
 clustexp(object, sat = TRUE, samp = NULL, cln = NULL, clustnr = 30,
-  bootnr = 50, rseed = 17000, FUNcluster = "kmedoids")
+  bootnr = 50, rseed = 17000, FUNcluster = "kmedoids", verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -26,6 +26,8 @@ Default is 30.}
 \item{rseed}{Integer number. Random seed to enforce reproducible clustering results. Default is 17000.}
 
 \item{FUNcluster}{Clustering method used by RaceID3. One of \code{"kmedoids", "kmeans", "hclust"}. Default is \code{"kmedoids"}.}
+
+\item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
 \value{
 \code{SCseq} object with clustering data stored in slot \code{cluster} and slot \code{clusterpar}. The clustering partition is stored in

@@ -28,7 +28,7 @@ plot.err.bars.y <- function(x, y, y.err, col="black", lwd=1, lty=1, h=0.1){
   arrows(x-h,y+y.err,x+h,y+y.err,code=0, col=col, lwd=lwd, lty=lty)
 }
 
-clusGapExt <-function (x, FUNcluster, K.max, B = 100, verbose = interactive(), method="euclidean",random=TRUE,diss=FALSE,
+clusGapExt <-function (x, FUNcluster, K.max, B = 100, verbose = TRUE, method="euclidean",random=TRUE,diss=FALSE,
     ...) 
 {
      stopifnot(is.function(FUNcluster), length(dim(x)) == 2, K.max >= 
@@ -101,7 +101,7 @@ clusGapExt <-function (x, FUNcluster, K.max, B = 100, verbose = interactive(), m
 }
 
 
-clustfun <- function(diM,clustnr=20,bootnr=50,samp=NULL,sat=TRUE,cln=NULL,rseed=17000,FUNcluster="kmedoids")
+clustfun <- function(diM,clustnr=20,bootnr=50,samp=NULL,sat=TRUE,cln=NULL,rseed=17000,FUNcluster="kmedoids",verbose=TRUE)
 {
   if ( clustnr < 2) stop("Choose clustnr > 1")
   if ( is.null(cln) ) cln <- 0
@@ -112,9 +112,9 @@ clustfun <- function(diM,clustnr=20,bootnr=50,samp=NULL,sat=TRUE,cln=NULL,rseed=
     if ( sat ){
       set.seed(rseed)
       if ( !is.null(samp) ) n <- sample(1:ncol(diM),min(samp,ncol(diM))) else n <- 1:ncol(diM)
-      if ( FUNcluster =="kmedoids" ) gpr <- clusGapExt(diM[n,n], FUNcluster = function(x,k) cluster::pam(as.dist(x),k), K.max = clustnr, random=FALSE, diss=TRUE)
-      if ( FUNcluster =="kmeans" )   gpr <- clusGapExt(diM[n,n], FUNcluster = kmeans, K.max = clustnr, random=FALSE, diss=TRUE, iter.max=100)
-      if ( FUNcluster =="hclust" )   gpr <- clusGapExt(diM[n,n], FUNcluster = function(x,k){ y <- fpc::disthclustCBI(as.dist(x),k,link="single",scaling=FALSE,method="ward.D2"); y$cluster <- y$partition; y }, K.max = clustnr, random=FALSE, diss=TRUE)
+      if ( FUNcluster =="kmedoids" ) gpr <- clusGapExt(diM[n,n], FUNcluster = function(x,k) cluster::pam(as.dist(x),k), K.max = clustnr, random=FALSE, diss=TRUE,verbose=verbose)
+      if ( FUNcluster =="kmeans" )   gpr <- clusGapExt(diM[n,n], FUNcluster = kmeans, K.max = clustnr, random=FALSE, diss=TRUE, iter.max=100,verbose=verbose)
+      if ( FUNcluster =="hclust" )   gpr <- clusGapExt(diM[n,n], FUNcluster = function(x,k){ y <- fpc::disthclustCBI(as.dist(x),k,link="single",scaling=FALSE,method="ward.D2"); y$cluster <- y$partition; y }, K.max = clustnr, random=FALSE, diss=TRUE,verbose=verbose)
       g <- gpr$Tab[,1]
       y <- g[-length(g)] - g[-1]
       mm <- numeric(length(y))
@@ -131,18 +131,18 @@ clustfun <- function(diM,clustnr=20,bootnr=50,samp=NULL,sat=TRUE,cln=NULL,rseed=
       return(list(clb=clb,gpr=gpr))
     }
     if ( FUNcluster =="kmedoids" ){
-        if ( is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,bootmethod="boot",clustermethod=pamkdCBI,scaling=FALSE,distances=TRUE,k=cln,multipleboot=FALSE,bscompare=TRUE,seed=rseed)
-        if ( !is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=pamkdCBI,scaling=FALSE,distances=TRUE,k=cln,multipleboot=FALSE,bscompare=TRUE,seed=rseed)       
+        if ( is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,bootmethod="boot",clustermethod=pamkdCBI,scaling=FALSE,distances=TRUE,k=cln,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)
+        if ( !is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=pamkdCBI,scaling=FALSE,distances=TRUE,k=cln,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)       
     }
 
     if ( FUNcluster =="kmeans" ){
-        if ( is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="boot",clustermethod=fpc::kmeansCBI,krange=cln,scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed)
-        if ( !is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=fpc::kmeansCBI,krange=cln,scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed)
+        if ( is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="boot",clustermethod=fpc::kmeansCBI,krange=cln,scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)
+        if ( !is.null(samp) ) clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=fpc::kmeansCBI,krange=cln,scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)
     }
 
     if ( FUNcluster =="hclust" ){
-        if ( is.null(samp) )  clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="boot",clustermethod=fpc::disthclustCBI,method="ward.D2",k=cln,link="single",scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed)
-        if ( !is.null(samp) )  clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=fpc::disthclustCBI,method="ward.D2",k=cln,link="single",scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed)
+        if ( is.null(samp) )  clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="boot",clustermethod=fpc::disthclustCBI,method="ward.D2",k=cln,link="single",scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)
+        if ( !is.null(samp) )  clb <- fpc::clusterboot(diM,B=bootnr,distances=TRUE,bootmethod="subset",subtuning=min(ncol(diM),samp),clustermethod=fpc::disthclustCBI,method="ward.D2",k=cln,link="single",scaling=FALSE,multipleboot=FALSE,bscompare=TRUE,seed=rseed,count=verbose)
     }
     
     return(list(clb=clb,gpr=gpr))

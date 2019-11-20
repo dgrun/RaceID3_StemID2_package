@@ -94,12 +94,13 @@ setMethod("initialize",
 #' @param ccor Correlation coefficient used as a trehshold for determining genes correlated to genes in \code{CGenes}.
 #' Only genes correlating  less than \code{ccor} to all genes in \code{CGenes} are retained for analysis. Default is 0.4.
 #' @param bmode Method used for batch effect correction. Any of \code{"RaceID","scran"}. Default is \code{"RaceID"}.
+#' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return An SCseq class object with filtered and normalized expression data.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
 #' sc <- filterdata(sc)
 #' @export
-filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NULL, knn=10, CGenes=NULL, FGenes=NULL, ccor=.4,bmode="RaceID"){
+filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NULL, knn=10, CGenes=NULL, FGenes=NULL, ccor=.4,bmode="RaceID", verbose=TRUE){
     if ( ! is.numeric(mintotal) ) stop( "mintotal has to be a positive number" ) else if ( mintotal <= 0 ) stop( "mintotal has to be a positive number" )
     if ( ! is.numeric(minexpr) ) stop( "minexpr has to be a non-negative number" ) else if ( minexpr < 0 ) stop( "minexpr has to be a non-negative number" )
     if ( ! is.numeric(minnumber) ) stop( "minnumber has to be a non-negative integer number" ) else if ( round(minnumber) != minnumber | minnumber < 0 ) stop( "minnumber has to be a non-negative integer number" )
@@ -141,9 +142,9 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
         }
         n  <- LBatch[[1]]
         bl <- list()
-        cat("RaceID3 batch correction...","\n")
+        if ( verbose ) cat("RaceID3 batch correction...","\n")
         for ( i in 2:length(LBatch)){
-            cat("Adding batch: ",i,"\n")
+            if ( verbose ) cat("Adding batch: ",i,"\n")
             db1 <- apply(d[n,n],1,function(x) { n[head(order(x,decreasing=FALSE),knn)] })
             db2 <- apply(d[LBatch[[i]],LBatch[[i]]],1,function(x) { LBatch[[i]][head(order(x,decreasing=FALSE),knn)] })
             k <- apply(d[n,LBatch[[i]]],1,function(x) { mean( x[head(order(x,decreasing=FALSE),knn)] ) })
@@ -154,7 +155,7 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
             g2 <- db2[,dm[2,f]]
             z <- diffexpnb(as.matrix(x),g1,g2)
             u <- rownames(z$res)[z$res$padj < .05]
-            cat(u,"\n")
+            if ( verbose ) cat(u,"\n")
             bl[[ i - 1 ]] <- u
             bG <- append(bG,u)
             n <- append(n,LBatch[[i]])
@@ -870,6 +871,7 @@ imputeexp <- function(object,genes=NULL){
 #' @param bootnr Number of booststrapping runs for \code{clusterboot}. Default is 50.
 #' @param rseed Integer number. Random seed to enforce reproducible clustering results. Default is 17000.
 #' @param FUNcluster Clustering method used by RaceID3. One of \code{"kmedoids", "kmeans", "hclust"}. Default is \code{"kmedoids"}.
+#' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return \code{SCseq} object with clustering data stored in slot \code{cluster} and slot \code{clusterpar}. The clustering partition is stored in
 #' \code{cluster$kpart}.
 #' @examples
@@ -878,7 +880,7 @@ imputeexp <- function(object,genes=NULL){
 #' sc <- compdist(sc)
 #' sc <- clustexp(sc)
 #' @export
-clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rseed=17000,FUNcluster="kmedoids"){
+clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rseed=17000,FUNcluster="kmedoids",verbose=TRUE){
     if ( ! is.numeric(clustnr) ) stop("clustnr has to be a positive integer") else if ( round(clustnr) != clustnr | clustnr <= 0 ) stop("clustnr has to be a positive integer")
     if ( ! is.numeric(bootnr) ) stop("bootnr has to be a positive integer") else if ( round(bootnr) != bootnr | bootnr <= 0 ) stop("bootnr has to be a positive integer")
     if ( ! ( is.numeric(sat) | is.logical(sat) ) ) stop( "sat has to be logical (TRUE/FALSE)" )
@@ -891,7 +893,7 @@ clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rse
     if ( is.null(cln) ) sat <- TRUE
     
     object@clusterpar <- list(clustnr=clustnr,bootnr=bootnr,samp=samp,metric=object@clusterpar$metric,sat=sat,cln=cln,rseed=rseed,FSelect=object@clusterpar$FSelect,FUNcluster=FUNcluster)
-    y <- clustfun(object@distances,clustnr,bootnr,samp,sat,cln,rseed,FUNcluster)
+    y <- clustfun(object@distances,clustnr,bootnr,samp,sat,cln,rseed,FUNcluster,verbose)
     object@cluster <- list(kpart=y$clb$result$partition, jaccard=if ( is.null(samp) ) y$clb$bootmean else y$clb$subsetmean, gap=y$gpr, clb=y$clb, features=object@cluster$features)
     set.seed(111111)
     object@fcol <- sample(rainbow(max(y$clb$result$partition)))
@@ -908,6 +910,7 @@ clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rse
 #' @param outlg Minimum number of outlier genes required for being an outlier cell. Default is 2.
 #' @param outdistquant Real number between zero and one. Outlier cells are merged to outlier clusters if their distance smaller than the outdistquant-quantile of
 #' the distance distribution of  pairs of cells in the orginal clusters after outlier removal. Default is 0.95.
+#' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return \code{SCseq} object with outlier data stored in slot \code{out} and slot \code{outlierpar}. The final clustering partition is stored in
 #' \code{cpart}.
 #' @examples
@@ -917,7 +920,7 @@ clustexp <- function(object,sat=TRUE,samp=NULL,cln=NULL,clustnr=30,bootnr=50,rse
 #' sc <- clustexp(sc)
 #' sc <- findoutliers(sc)
 #' @export
-findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95){
+findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95,verbose=TRUE){
     if ( length(object@cluster$kpart) == 0 ) stop("run clustexp before findoutliers")
     if ( ! is.numeric(probthr) ) stop("probthr has to be a number between 0 and 1") else if (  probthr < 0 | probthr > 1 ) stop("probthr has to be a number between 0 and 1")
     if ( ! is.numeric(outminc) ) stop("outminc has to be a non-negative number") else if (  outminc <= 0 ) stop("outminc has to be a non-negative integer")
@@ -935,7 +938,7 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
     outgene <- list()
     fb      <- list()
     for ( n in 1:max(object@cluster$kpart) ){
-        cat("find outliers in cluster",n,"\r")
+        if ( verbose ) cat("find outliers in cluster",n,"\r")
         if ( sum(object@cluster$kpart == n) == 1 ){
             cprobs <- append(cprobs,.5)
             names(cprobs)[length(cprobs)] <- names(object@cluster$kpart)[object@cluster$kpart == n]
@@ -965,7 +968,7 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
         fg <- apply(z,1,min) < probthr
         outgene[[n]] <- if ( sum(fg) > 0 ) z[fg,] else 0
     }
-    cat("\n")
+    if ( verbose ) cat("\n")
     object@out <-list(out=out,stest=stest,thr=thr,cprobs=cprobs,outgene=outgene)
     
     
@@ -989,7 +992,7 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
             m <- as.data.frame(object@distances[out,out])
             
             for ( i in 1:length(out) ){
-                cat("merging outliers",i,"\r")
+                if ( verbose ) cat("merging outliers",i,"\r")
                 if ( length(n) > 1 ){
                     o   <- order(apply(cbind(m,1:dim(m)[1]),1,function(x)  min(x[1:(length(x)-1)][-x[length(x)]])),decreasing=FALSE)
                     m <- m[o,o]
@@ -1015,11 +1018,11 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
             cpart[cols %in% cadd[[i]]] <- max(cpart) + 1
         }
     }
-    cat("\n")
+    if ( verbose ) cat("\n")
     
     ## determine final clusters
     for ( i in min(cpart):max(cpart) ){
-        cat("determine final clustering partition",i,"\r")
+        if ( verbose ) cat("determine final clustering partition",i,"\r")
         if ( sum(cpart == i) == 0 ) next
         f <- cols[cpart == i]
         d <- FData[object@cluster$features,]
@@ -1034,7 +1037,7 @@ findoutliers <- function(object,probthr=1e-3,outminc=5,outlg=2,outdistquant=.95)
         if ( i == min(cpart) ) dcent <- data.frame(cent) else dcent <- cbind(dcent,cent)
         if ( i == min(cpart) ) tmp <- data.frame(object@distances[,md]) else tmp <- cbind(tmp,object@distances[,md])
     }
-    cat("\n")
+    if ( verbose ) cat("\n")
     cpart <- apply(tmp,1,function(x) order(x,decreasing=FALSE)[1])
     
     for  ( i in max(cpart):1){if (sum(cpart==i)==0) cpart[cpart>i] <- cpart[cpart>i] - 1 }

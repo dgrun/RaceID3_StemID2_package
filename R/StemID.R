@@ -220,6 +220,7 @@ projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE,um=FALSE){
 #' @param fast logical. If \code{TRUE} and \code{nmode=FALSE} cells will still be assigned to links based on maximum projections but a fast approximate background model
 #' will be used to infer significance. The function will do nothing in this case. Default is \code{FALSE}.
 #' @param rseed Integer number used as seed to ensure reproducibility of randomizations. Defaut is 17000.
+#' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return An Ltree class object with all information on randomized cell projections onto links stored in the \code{prbacka} slot.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -233,7 +234,7 @@ projcells <- function(object,cthr=5,nmode=TRUE,knn=3,fr=FALSE,um=FALSE){
 #' ltr <- projcells(ltr,nmode=FALSE)
 #' ltr <- projback(ltr,pdishuf=50)
 #' @export
-projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
+projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000,verbose=TRUE){
     if ( !is.numeric(fast) & !is.logical(fast) ) stop("argument fast has to be logical (TRUE/FALSE)")
     if ( ! is.numeric(pdishuf) ) stop( "pdishuf has to be a non-negative integer number" ) else if ( round(pdishuf) != pdishuf | pdishuf < 0 ) stop( "pdishuf has to be a non-negative integer number" )
     if ( length(object@trproj) == 0 ) stop("run projcells before projback")
@@ -243,7 +244,7 @@ projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
     if ( ! object@par$nmode & ! fast ){
         set.seed(rseed)
         for ( i in 1:pdishuf ){
-            cat("pdishuffle:",i,"\r")
+            if ( verbose ) cat("pdishuffle:",i,"\r")
             x <- compproj(pdishuffle(object@ldata$pdi,object@ldata$lp,object@ldata$cn,object@ldata$m,all=TRUE),object@ldata$lp,object@ldata$cn,object@ldata$m,d=object@trproj$d)$res
             y <- if ( i == 1 ) t(x) else cbind(y,t(x))
         }    
@@ -253,7 +254,7 @@ projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
         x <- object@prback
         x$n <- as.vector(t(matrix(rep(1:(nrow(x)/nrow(object@ldata$pdi)),nrow(object@ldata$pdi)),ncol=nrow(object@ldata$pdi))))
         object@prbacka <- aggregate(data.frame(count=rep(1,nrow(x))),by=list(n=x$n,o=x$o,l=x$l),sum)
-        cat("pdishuffle:done.\n")
+        if ( verbose) cat("pdishuffle:done.\n")
 
     }
     return( object )
@@ -263,6 +264,7 @@ projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
 #'
 #' @description This function assembles a lineage graph based on the cell projections onto inter-cluster links.
 #' @param object \code{Ltree} class object.
+#' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return An Ltree class object with lineage graph-related data stored in slots \code{ltcoord}, \code{prtree}, and \code{cdata}.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -276,7 +278,7 @@ projback <- function(object,pdishuf=500,fast=FALSE,rseed=17000){
 #' ltr <- projcells(ltr)
 #' ltr <- lineagegraph(ltr)
 #' @export
-lineagegraph <- function(object){
+lineagegraph <- function(object,verbose=TRUE){
     if ( length(object@trproj) == 0 ) stop("run projcells before lineagegraph")
     if ( max(dim(object@prback)) == 0 & ! object@par$nmode & ! object@par$fast  ) stop("run projback before lineagegraph")
     
@@ -301,7 +303,7 @@ lineagegraph <- function(object){
         }
     }
     for ( i in 1:nrow(res) ){
-        cat("Building tree: ", i,"\r")
+        if ( verbose ) cat("Building tree: ", i,"\r")
         a <- which( m == res$o[i])
         if ( sum( lp == m[a] ) == 1 ){
             k <- tcnl[,a]
@@ -346,7 +348,7 @@ lineagegraph <- function(object){
     object@ltcoord <- as.matrix(lt)
     object@prtree  <- list(n=linn,l=linl)
     object@cdata$counts <- cm
-    cat("Building tree: done. \n")
+    if ( verbose ) cat("Building tree: done. \n")
     return( object )
 }
 
@@ -652,7 +654,7 @@ plotgraph <- function(object,showCells=FALSE,showMap=TRUE,tp=.5,scthr=0,cex=1){
         if ( object@par$fr ){
             d <- object@sc@fr[f,]
         }else if ( object@par$um ){
-            d <- object@sc@um[f,]
+            d <- object@sc@umap[f,]
         }else{
             d <- object@sc@tsne[f,]
         }

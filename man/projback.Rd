@@ -4,7 +4,8 @@
 \alias{projback}
 \title{Compute Cell Projections for Randomized Background Distribution}
 \usage{
-projback(object, pdishuf = 500, fast = FALSE, rseed = 17000)
+projback(object, pdishuf = 500, fast = FALSE, rseed = 17000,
+  verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
@@ -16,6 +17,8 @@ No randomizations are needed in this mode and the function will do nothing. Defa
 will be used to infer significance. The function will do nothing in this case. Default is \code{FALSE}.}
 
 \item{rseed}{Integer number used as seed to ensure reproducibility of randomizations. Defaut is 17000.}
+
+\item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
 \value{
 An Ltree class object with all information on randomized cell projections onto links stored in the \code{prbacka} slot.

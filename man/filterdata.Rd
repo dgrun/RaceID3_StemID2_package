@@ -6,7 +6,7 @@
 \usage{
 filterdata(object, mintotal = 3000, minexpr = 5, minnumber = 5,
   LBatch = NULL, knn = 10, CGenes = NULL, FGenes = NULL, ccor = 0.4,
-  bmode = "RaceID")
+  bmode = "RaceID", verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -31,6 +31,8 @@ Default is \code{NULL}.}
 Only genes correlating  less than \code{ccor} to all genes in \code{CGenes} are retained for analysis. Default is 0.4.}
 
 \item{bmode}{Method used for batch effect correction. Any of \code{"RaceID","scran"}. Default is \code{"RaceID"}.}
+
+\item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
 \value{
 An SCseq class object with filtered and normalized expression data.

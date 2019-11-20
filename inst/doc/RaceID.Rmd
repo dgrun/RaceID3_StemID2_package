@@ -225,7 +225,7 @@ Next, the transcriptome entropy of cell needs to be calculated. This is used by 
 ltr <- compentropy(ltr)
 ```
 
-In the subsequent step, cells are projected onto inter-cluster links. Cells are assigned to a link based on minimum distance to k nearest neighbours (`nmode=TRUE`) or based on the maximum projection coordinate (`nmode=FALSE`). Only clusters with `>cthr` cells are included in the analysis. If `fr=TRUE` then the Fruchterman-Rheingold layout will be used for representation of the inferred lineage tree. Otherwise, representation will be done in t-SNE space. The computation of the lineage graph is independent of the dimensional reduction method which is only used for visualization.
+In the subsequent step, cells are projected onto inter-cluster links. Cells are assigned to a link based on minimum distance to k nearest neighbours (`nmode=TRUE`) or based on the maximum projection coordinate (`nmode=FALSE`). Only clusters with `>cthr` cells are included in the analysis. If `fr=TRUE` then the Fruchterman-Rheingold layout will be used for representation of the inferred lineage tree, and if `um=TRUE` a UMAP representation will be used. Otherwise, representation will be done in t-SNE space. The computation of the lineage graph is independent of the dimensional reduction method which is only used for visualization.
 ```{r}
 ltr <- projcells(ltr,cthr=5,nmode=FALSE,fr=TRUE)
 ```

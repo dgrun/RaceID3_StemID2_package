@@ -4,10 +4,12 @@
 \alias{lineagegraph}
 \title{Inference of a Lineage Graph}
 \usage{
-lineagegraph(object)
+lineagegraph(object, verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
+
+\item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
 \value{
 An Ltree class object with lineage graph-related data stored in slots \code{ltcoord}, \code{prtree}, and \code{cdata}.
