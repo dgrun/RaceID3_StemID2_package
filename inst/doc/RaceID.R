@@ -293,29 +293,35 @@ plotexpression(fs,y,"Clca4",n$f,col=fcol,cluster=FALSE,alpha=.5,types=NULL)
 ## ------------------------------------------------------------------------
 plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=sub("\\_\\d+","",n$f))
 
+## ----eval=FALSE----------------------------------------------------------
+#  sc <- SCseq(intestinalData)
+#  sc <- filterdata(sc)
+#  sc <- compdist(sc)
+
+## ----eval=FALSE----------------------------------------------------------
+#  d <- getExpData(sc)
+
+## ----eval=FALSE----------------------------------------------------------
+#  distM <- sc@distances
+
+## ----eval=FALSE----------------------------------------------------------
+#  res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+
 ## ------------------------------------------------------------------------
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc)
-sc <- compdist(sc)
-
-## ------------------------------------------------------------------------
 d <- getExpData(sc)
-
-## ------------------------------------------------------------------------
-distM <- sc@distances
-
-## ------------------------------------------------------------------------
-res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
 
 ## ------------------------------------------------------------------------
 plotBackVar(res)
 
-## ------------------------------------------------------------------------
-bg <- fitBackVar(d)
-plotBackVar(bg)
+## ----eval=FALSE----------------------------------------------------------
+#  bg <- fitBackVar(d)
+#  plotBackVar(bg)
 
-## ------------------------------------------------------------------------
-y <- createKnnMatrix(res,pvalue=0.01)
+## ----eval=FALSE----------------------------------------------------------
+#  y <- createKnnMatrix(res,pvalue=0.01)
 
 ## ------------------------------------------------------------------------
 cl <- graphCluster(res,pvalue=0.01)
@@ -330,6 +336,10 @@ plotmap(sc,fr=TRUE)
 sc <- comptsne(sc)
 plotmap(sc)
 
+## ----eval=FALSE----------------------------------------------------------
+#  sc <- compumap(sc)
+#  plotmap(sc,um=TRUE)
+
 ## ------------------------------------------------------------------------
 probs <-transitionProbs(res,cl,pvalue=0.01) 
 
@@ -346,6 +356,9 @@ plotRegNB(d,noise,par.nb="beta")
 plotPearsonRes(noise,log=TRUE)
 
 ## ------------------------------------------------------------------------
+noise <- compNoise(d,res,regNB=FALSE,pvalue=0.01,genes = NULL,no_cores=1)
+
+## ------------------------------------------------------------------------
 plotNoiseModel(noise)
 plotNoiseModel(noise,corrected=TRUE)
 
@@ -353,7 +366,9 @@ plotNoiseModel(noise,corrected=TRUE)
 sc <- updateSC(sc,noise=noise,flo=.1)
 
 ## ------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=FALSE)
+plotexpmap(sc,"Lgr5",logsc=TRUE)
+
+## ------------------------------------------------------------------------
 plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE)
 
 ## ------------------------------------------------------------------------
@@ -362,12 +377,12 @@ ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 ## ------------------------------------------------------------------------
-ngenes <- diffNoisyGenes(noise,cl,set=c(2,8),no_cores=1)
+ngenes <- diffNoisyGenes(noise,cl,set=c(5,6),no_cores=1)
 head(ngenes)
 
 ## ------------------------------------------------------------------------
 genes <- head(rownames(ngenes),50)
-plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=FALSE,zsc=TRUE)
+ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=FALSE,zsc=TRUE)
 
 ## ------------------------------------------------------------------------
 ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=TRUE)
@@ -376,87 +391,29 @@ ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=T
 plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
 
 ## ------------------------------------------------------------------------
-mgenes <- maxNoisyGenes(noise,cl=c(4,8))
+mgenes <- maxNoisyGenes(noise,cl=cl,set=3)
 head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 
-## ------------------------------------------------------------------------
-sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-d <- getExpData(sc)
+## ----eval=FALSE----------------------------------------------------------
+#  sc <- SCseq(intestinalData)
+#  sc <- filterdata(sc)
+#  d <- getExpData(sc)
+#  batch <- sub("_.+","",colnames(d))
+#  names(batch) <- colnames(d)
+#  head(batch)
 
-## ------------------------------------------------------------------------
-res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
+## ----eval=FALSE----------------------------------------------------------
+#  res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
+#  cl <- graphCluster(res,pvalue=0.01)
 
-## ------------------------------------------------------------------------
-plotBackVar(res)
+## ----eval=FALSE----------------------------------------------------------
+#  sc <- updateSC(sc,res=res,cl=cl)
 
-## ------------------------------------------------------------------------
-cl <- graphCluster(res,pvalue=0.01)
+## ----eval=FALSE----------------------------------------------------------
+#  sc <- compumap(sc)
+#  plotsymbolsmap(sc,batch)
 
-## ------------------------------------------------------------------------
-sc <- updateSC(sc,res=res,cl=cl)
-
-## ------------------------------------------------------------------------
-plotmap(sc,fr=TRUE)
-
-## ------------------------------------------------------------------------
-sc <- comptsne(sc,dimRed = TRUE)
-plotmap(sc)
-
-## ------------------------------------------------------------------------
-probs <-transitionProbs(res,cl,pvalue=0.01) 
-
-## ------------------------------------------------------------------------
-plotTrProbs(sc,probs,tp=.5,prthr=0,cthr=0)
-
-## ------------------------------------------------------------------------
-noise <- compNoise(d,res,regNB=TRUE,pvalue=0.01,genes = NULL,no_cores=1)
-
-## ------------------------------------------------------------------------
-plotRegNB(d,noise,par.nb="beta")
-
-## ------------------------------------------------------------------------
-plotPearsonRes(noise,log=TRUE)
-
-## ------------------------------------------------------------------------
-plotNoiseModel(noise)
-plotNoiseModel(noise,corrected=TRUE)
-
-## ------------------------------------------------------------------------
-sc <- updateSC(sc,noise=noise,flo=.1)
-
-## ------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=FALSE)
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE)
-
-## ------------------------------------------------------------------------
-ngenes <- diffNoisyGenes(noise,cl,set=3,no_cores=1)
-head(ngenes)
-
-## ------------------------------------------------------------------------
-genes <- head(rownames(ngenes),50)
-plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=FALSE,zsc=TRUE)
-
-## ------------------------------------------------------------------------
-sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-d <- getExpData(sc)
-batch <- sub("_.+","",colnames(d))
-names(batch) <- colnames(d)
-head(batch)
-
-## ------------------------------------------------------------------------
-res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
-cl <- graphCluster(res,pvalue=0.01)
-
-## ------------------------------------------------------------------------
-sc <- updateSC(sc,res=res,cl=cl)
-
-## ------------------------------------------------------------------------
-sc <- compumap(sc,dimRed = TRUE)
-plotsymbolsmap(sc,batch)
-
-## ------------------------------------------------------------------------
+## ----eval=TRUE-----------------------------------------------------------
 noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
 
