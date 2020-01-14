@@ -2,7 +2,6 @@
 #' @import pheatmap
 #' @import Matrix
 
-
 nbRegr <- function(x,modelFormula,regData,regNames){
     regData[,"x"] <- x
     fitTheta <- FALSE
@@ -56,16 +55,46 @@ getRegData <- function(k,b=NULL,regVar=NULL){
     regData
 }
   
-smoothPar <- function(rd,n,mx,span=.75,logsc=FALSE){
-    x <- rd[,n]
-    ml <- mx[rownames(rd)]
-    f <- !is.na(x) & ml > 0
-    y <- x[f]
+zsc_med <- function(x) {
+  return((x - median(x)) / (stats::mad(x) + .Machine$double.eps))
+}
+
+binOutlier <- function(x,y,thr=5,bincount=100){
+    f <- !is.na(y)
+    x <- x[f]
+    y <- y[f]
+    bincount <- 100
+    o <- order(x)
+    breaks    <- x[o][ seq(from = 1, to = length(x), by = bincount) ]
+    breaks[1] <- breaks[1] - .Machine$double.eps*10
+    breaks    <- append(breaks,max(x))
+    bins <- cut(x = x[o], breaks = breaks, ordered_result = TRUE)
+    tmp  <- aggregate(x = y[o], by = list(bin=bins), FUN = zsc_med)
+    score <- unlist(tmp$x)
+    names(score) <- names(x[o])
+    out <- names(score)[abs(score) > 5]
+    return(out)
+}
+
+smoothPar <- function(rd,n,mx,span=.75,logsc=FALSE,degree=1){
+    y <- rd[,n]
+    x <- mx[rownames(rd)]
+    f <- !is.na(y) & x > 0
+    y <- y[f]
+    x <- x[f]
+
     if ( logsc ) y <- log(y)
-    fit_x <- loess( y ~ log(ml[f]),span = span)
-    xf                  <- predict(fit_x,log(mx)         )
-    xf[mx < min(ml[f])] <- predict(fit_x,log(min(ml[f])) ) 
-    xf[mx > max(ml[f])] <- predict(fit_x,log(max(ml[f])) )
+
+    out <- binOutlier(x,y)
+    f   <- ! names(x) %in% out
+    y <- y[f]
+    x <- x[f]
+    
+   
+    fit_x <- loess( y ~ log(x),span = span,degree=degree)
+    xf              <- predict(fit_x,log(mx)      )
+    xf[mx < min(x)] <- predict(fit_x,log(min(x)) ) 
+    xf[mx > max(x)] <- predict(fit_x,log(max(x)) )
     if ( logsc ) xf <- exp(xf)
     xf
 }
@@ -114,10 +143,11 @@ compResiduals <- function(expData,batch=NULL,regVar=NULL,span=.75,no_cores=1,nge
     }else{
         for ( n in colnames(rd) ){
             logsc <-  if ( n == "theta" ) TRUE else FALSE 
-            rdS[,n] <- smoothPar(rd,n,mx,span=span,logsc=FALSE)
+            rdS[,n] <- smoothPar(rd,n,mx,span=span,logsc=logsc)
         }
     }
     rownames(rdS) <- rownames(expData)
+    rdS[,"theta"][rdS[,"theta"] <= 0] <- min(rdS[,"theta"][rdS[,"theta"] > 0])
     
     mu <- exp(tcrossprod(rdS[,colnames(rdS) != "theta"],  model.matrix(as.formula(sub("^x","",modelFormula)), regData)))
     pearsonRes <- suppressWarnings( as.matrix( (expData - mu)/sqrt(mu + mu^2/rdS[,"theta"]) ) )

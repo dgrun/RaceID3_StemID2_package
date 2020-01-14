@@ -611,7 +611,8 @@ The `genes` argument allows to limit the analysis to a subset of genes, `knn` de
 This function internally fits a background model of gene expression variability, which can be inspected:
 ```{r}
 plotBackVar(res)
-```     
+```
+
 This model can also be computed separately:
 ```{r eval=FALSE}
 bg <- fitBackVar(d)
@@ -738,7 +739,7 @@ plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 With the clustering derived by `graphCluster` and the object returned from the `compNoise` function, genes with elevated noise levels in a cluster (or a set of clusters) can be inferred:
 ```{r}
-ngenes <- diffNoisyGenes(noise,cl,set=c(5,6),no_cores=1)
+ngenes <- diffNoisyGenes(noise,cl,set=c(1,4),no_cores=1)
 head(ngenes)
 ```
 
@@ -788,9 +789,15 @@ res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=1
 cl <- graphCluster(res,pvalue=0.01)
 ```
 
+The corrected noise estimate can be computed for the local neighbourhoods of all cells:
+```{r eval=TRUE}
+noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
+```
+Here, the pearson residuals from the regression are used if `regNB` equals `TRUE`. If the regression has been computed by `pruneKnn` and the slot `res$regData` is not `NULL`, the pearson residuals from this step are used and the calculation is not repeated. However, it is also possible to determine neighborhoods with a given distance matrix and apply the regression only at this step for the noise inference.
+
 To visualize the clustering with the help of RaceID, one can update the `Scseq` object with the results:
 ```{r eval=FALSE}
-sc <- updateSC(sc,res=res,cl=cl)
+sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 ```
 
 After computing a t-SNE map or, similarly, a umap, the clustering can be also be visualized in these maps:
@@ -798,12 +805,6 @@ After computing a t-SNE map or, similarly, a umap, the clustering can be also be
 sc <- compumap(sc)
 plotsymbolsmap(sc,batch)
 ```
-
-The corrected noise estimate can be computed for the local neighbourhoods of all cells:
-```{r eval=TRUE}
-noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
-```
-Here, the pearson residuals from the regression are used if `regNB` equals `TRUE`. If the regression has been computed by `pruneKnn` and the slot `res$regData` is not `NULL`, the pearson residuals from this step are used and the calculation is not repeated. However, it is also possible to determine neighborhoods with a given distance matrix and apply the regression only at this step for the noise inference.
 
 See previous paragraph for more advice on how to explore the output data.
 

@@ -377,7 +377,7 @@ ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 ## ------------------------------------------------------------------------
-ngenes <- diffNoisyGenes(noise,cl,set=c(5,6),no_cores=1)
+ngenes <- diffNoisyGenes(noise,cl,set=c(1,4),no_cores=1)
 head(ngenes)
 
 ## ------------------------------------------------------------------------
@@ -407,13 +407,13 @@ plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 #  res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
 #  cl <- graphCluster(res,pvalue=0.01)
 
+## ----eval=TRUE-----------------------------------------------------------
+noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
+
 ## ----eval=FALSE----------------------------------------------------------
-#  sc <- updateSC(sc,res=res,cl=cl)
+#  sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  sc <- compumap(sc)
 #  plotsymbolsmap(sc,batch)
-
-## ----eval=TRUE-----------------------------------------------------------
-noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
 
