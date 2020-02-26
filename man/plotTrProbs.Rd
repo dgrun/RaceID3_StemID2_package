@@ -4,8 +4,16 @@
 \alias{plotTrProbs}
 \title{Function for plotting transition probabilities between clusters}
 \usage{
-plotTrProbs(object, probs, tp = 0.5, prthr = 0, cthr = 0, fr = FALSE,
-  um = FALSE, cex = 1)
+plotTrProbs(
+  object,
+  probs,
+  tp = 0.5,
+  prthr = 0,
+  cthr = 0,
+  fr = FALSE,
+  um = FALSE,
+  cex = 1
+)
 }
 \arguments{
 \item{object}{\pkg{RaceID} \code{SCseq} object, updated with the \code{updateSC} function.}

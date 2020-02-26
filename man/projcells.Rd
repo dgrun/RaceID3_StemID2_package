@@ -4,8 +4,7 @@
 \alias{projcells}
 \title{Compute transcriptome entropy of each cell}
 \usage{
-projcells(object, cthr = 5, nmode = TRUE, knn = 3, fr = FALSE,
-  um = FALSE)
+projcells(object, cthr = 5, nmode = TRUE, knn = 3, fr = FALSE, um = FALSE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}

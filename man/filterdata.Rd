@@ -4,9 +4,19 @@
 \alias{filterdata}
 \title{Data filtering}
 \usage{
-filterdata(object, mintotal = 3000, minexpr = 5, minnumber = 5,
-  LBatch = NULL, knn = 10, CGenes = NULL, FGenes = NULL, ccor = 0.4,
-  bmode = "RaceID", verbose = TRUE)
+filterdata(
+  object,
+  mintotal = 3000,
+  minexpr = 5,
+  minnumber = 5,
+  LBatch = NULL,
+  knn = 10,
+  CGenes = NULL,
+  FGenes = NULL,
+  ccor = 0.4,
+  bmode = "RaceID",
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -30,7 +40,8 @@ Default is \code{NULL}.}
 \item{ccor}{Correlation coefficient used as a trehshold for determining genes correlated to genes in \code{CGenes}.
 Only genes correlating  less than \code{ccor} to all genes in \code{CGenes} are retained for analysis. Default is 0.4.}
 
-\item{bmode}{Method used for batch effect correction. Any of \code{"RaceID","scran"}. Default is \code{"RaceID"}.}
+\item{bmode}{Method used for batch effect correction. Any of \code{"RaceID","mnnCorrect"}. If \code{mnnCorrect} from the
+\pkg{batchelor} package is desired, this package needs to be installed from bioconductor. Default is \code{"RaceID"}.}
 
 \item{verbose}{logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.}
 }
@@ -39,7 +50,7 @@ An SCseq class object with filtered and normalized expression data.
 }
 \description{
 This function allows filtering of genes and cells to be used in the RaceID3 analysis.
-It also can perform batch effect correction using an internal method or a recently published alternative \code{mnnCorrect} from the \pkg{scran} package.
+It also can perform batch effect correction using an internal method or a recently published alternative \code{mnnCorrect} from the \pkg{batchelor} package.
 }
 \examples{
 sc <- SCseq(intestinalDataSmall)

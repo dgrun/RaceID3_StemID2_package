@@ -4,8 +4,13 @@
 \alias{comptsne}
 \title{Computation of a two dimensional t-SNE representation}
 \usage{
-comptsne(object, dimRed = FALSE, initial_cmd = TRUE, perplexity = 30,
-  rseed = 15555)
+comptsne(
+  object,
+  dimRed = FALSE,
+  initial_cmd = TRUE,
+  perplexity = 30,
+  rseed = 15555
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

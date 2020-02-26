@@ -4,8 +4,14 @@
 \alias{rfcorrect}
 \title{Random Forests-based Reclassification}
 \usage{
-rfcorrect(object, rfseed = 12345, nbtree = NULL, final = TRUE,
-  nbfactor = 5, ...)
+rfcorrect(
+  object,
+  rfseed = 12345,
+  nbtree = NULL,
+  final = TRUE,
+  nbfactor = 5,
+  ...
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

@@ -4,9 +4,20 @@
 \alias{plotexpmap}
 \title{Highlighting gene expression in the t-SNE map}
 \usage{
-plotexpmap(object, g, n = NULL, logsc = FALSE, imputed = FALSE,
-  fr = FALSE, um = FALSE, cells = NULL, cex = 1, map = TRUE,
-  leg = TRUE, noise = FALSE)
+plotexpmap(
+  object,
+  g,
+  n = NULL,
+  logsc = FALSE,
+  imputed = FALSE,
+  fr = FALSE,
+  um = FALSE,
+  cells = NULL,
+  cex = 1,
+  map = TRUE,
+  leg = TRUE,
+  noise = FALSE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

@@ -57,9 +57,9 @@ setValidity("SCseq",
                 msg <- c(msg, "input data must have more than one row")
               }else if ( ncol(object@expdata) < 2 ){
                 msg <- c(msg, "input data must have more than one column")
-              }else if (sum( apply( is.na(object@expdata),1,sum ) ) > 0 ){
+              }else if ( is.na( min( object@expdata ) )  ){
                 msg <- c(msg, "NAs are not allowed in input data")
-              }else if (sum( apply( object@expdata,1,min ) ) < 0 ){
+              }else if ( min( object@expdata ) < 0 ){
                 msg <- c(msg, "negative values are not allowed in input data")
               }
               if (is.null(msg)) TRUE
@@ -71,16 +71,20 @@ setValidity("SCseq",
 setMethod("initialize",
           signature = "SCseq",
           definition = function(.Object, expdata ){
-            .Object@expdata <- Matrix(as.matrix(expdata),sparse=TRUE)
-            validObject(.Object)
-            return(.Object)
+              if ( is.data.frame(expdata) ){
+                  .Object@expdata <- Matrix(as.matrix(expdata),sparse=TRUE)
+              }else{
+                  .Object@expdata <- expdata
+              }
+              validObject(.Object)
+              return(.Object)
           }
           )
 
 #' @title Data filtering
 #'
 #' @description This function allows filtering of genes and cells to be used in the RaceID3 analysis.
-#' It also can perform batch effect correction using an internal method or a recently published alternative \code{mnnCorrect} from the \pkg{scran} package.
+#' It also can perform batch effect correction using an internal method or a recently published alternative \code{mnnCorrect} from the \pkg{batchelor} package.
 #' @param object \code{SCseq} class object.
 #' @param mintotal minimum total transcript number required. Cells with less than \code{mintotal} transcripts are filtered out. Default is 3000.
 #' @param minexpr minimum required transcript count of a gene in at least \code{minnumber} cells. All other genes are filtered out. Default is 5.
@@ -93,7 +97,8 @@ setMethod("initialize",
 #' @param FGenes List of gene names to be filtered out for cell type inference. Default is \code{NULL}.
 #' @param ccor Correlation coefficient used as a trehshold for determining genes correlated to genes in \code{CGenes}.
 #' Only genes correlating  less than \code{ccor} to all genes in \code{CGenes} are retained for analysis. Default is 0.4.
-#' @param bmode Method used for batch effect correction. Any of \code{"RaceID","scran"}. Default is \code{"RaceID"}.
+#' @param bmode Method used for batch effect correction. Any of \code{"RaceID","mnnCorrect"}. If \code{mnnCorrect} from the
+#' \pkg{batchelor} package is desired, this package needs to be installed from bioconductor. Default is \code{"RaceID"}.
 #' @param verbose logical. If \code{FALSE} then status output messages are disabled. Default is \code{TRUE}.
 #' @return An SCseq class object with filtered and normalized expression data.
 #' @examples
@@ -107,7 +112,7 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
     if ( ! is.numeric(ccor) ) stop( "ccor has to be a non-negative number between 0 and 1" ) else if ( ccor < 0 | ccor > 1 ) stop( "ccor has to be a non-negative number between 0 and 1 " )
    
               
-    if ( ! bmode %in% c("RaceID","scran")  ) stop( "bmode has to be one of RaceID, scran" )
+    if ( ! bmode %in% c("RaceID","mnnCorrect")  ) stop( "bmode has to be one of RaceID, mnnCorrect" )
 
     object@dimRed <- list()
 
@@ -118,14 +123,14 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
     f <- counts >= mintotal
     object@counts <- counts[f]
 
-    # filterings of genes
+    # filterings of genes and normalization
     g <- apply(object@expdata[,f]>=minexpr,1,sum,na.rm=TRUE) >= minnumber
     object@ndata <- t(t(object@expdata[,f])/counts[f])
     genes <- rownames(object@ndata)[g]
     genes <- genes[! genes %in% FGenes ]
     
     # normalization
-    object@ndata <- t(t(object@expdata[,f])/counts[f])
+    # object@ndata <- t(t(object@expdata[,f])/counts[f])
     
 
     # batch effect correction by discarding batch signature genes
@@ -194,8 +199,8 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
     bg <- fitbackground(getfdata(object))
     object@cluster$features <- bg$n
 
-    # Batch correction by scran::mnnCorrect after filtering
-    if ( !is.null(LBatch) & length(LBatch) > 1 & bmode == "scran"){
+    # Batch correction by batchelor::mnnCorrect after filtering
+    if ( !is.null(LBatch) & length(LBatch) > 1 & bmode == "mnnCorrect"){
         x <- as.matrix(object@expdata[genes,colnames(object@ndata)])
         bd <- list()
         n <- c()
@@ -213,12 +218,20 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
         str <- paste(str,collapse=",")
         y <- list()
         knnL <- min(knn,ncol(bd[[i]]))
-        eval(parse(text=paste(c("y <- scran::mnnCorrect(",str,",k=",knnL,",subset.row=bg$n)"),collapse="")))
-        xc <- y$corrected[[1]]
-        for ( i in 2:length(y$corrected) ){
-            xc <- cbind(xc,y$corrected[[i]])
-        }
-        colnames(xc) <- n
+        eval(parse(text = paste(c("y <- batchelor::mnnCorrect(", 
+                              str, ",k=", knnL, ",subset.row=bg$n)"), collapse = "")))
+        xc <- SummarizedExperiment::assay(y)
+        colnames(xc) <- colnames(y)
+        rownames(xc) <- rownames(y)
+        
+   
+        #eval(parse(text=paste(c("y <- scran::mnnCorrect(",str,",k=",knnL,",subset.row=bg$n)"),collapse="")))
+        #xc <- y$corrected[[1]]
+        #for ( i in 2:length(y$corrected) ){
+        #    xc <- cbind(xc,y$corrected[[i]])
+        #}
+        #colnames(xc) <- n
+
         xc <- xc[,colnames(x)]
         # Batch-corrected feature matrix stored in dimRed slot
         object@dimRed$x <- xc
@@ -704,7 +717,8 @@ plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr =
 getfdata <- function(object,g=NULL,n=NULL){
   fgenes <- if ( is.null(g) ) object@genes else rownames(object@ndata)[rownames(object@ndata) %in% g]
   n <- if ( is.null(n) ) names(object@counts) else names(object@counts)[names(object@counts) %in% n]
-  as.matrix(object@ndata*min(object@counts[n]))[fgenes,n] + .1
+  #as.matrix(object@ndata*min(object@counts[n]))[fgenes,n] + .1
+  (object@ndata*min(object@counts[n]))[fgenes,n] + .1
 }
 
 #' @title Computing a distance matrix for cell type inference
@@ -1865,7 +1879,7 @@ plotdimsat <- function(object,change=TRUE,lim=NULL){
 #' @param x expression data frame with genes as rows and cells as columns. Gene IDs should be given as row names and cell IDs should be given as column names. This can be a reduced expression table only including the features (genes) to be used in the analysis. This input has to be provided if \code{g} (see below) is given and corresponds to a valid gene ID, i. e. one of the rownames of \code{x}. The default value is \code{NULL}. In this case, cluster identities are highlighted in the plot.
 #' @param A vector of cell IDs corresponding column names of \code{x}. Differential expression in set \code{A} versus set \code{B} will be evaluated.
 #' @param B vector of cell IDs corresponding column names of \code{x}. Differential expression in set \code{A} versus set \code{B} will be evaluated.
-#' @param DESeq logical value. If \code{TRUE}, then \pkg{DESeq2} is used for the inference of differentially expressed genes. In this case, it is recommended to provide non-normalized input data \code{x}. Default value is \code{FALSE}
+#' @param DESeq logical value. If \code{TRUE}, then \pkg{DESeq2} is used for the inference of differentially expressed genes. In this case, it is recommended to provide non-normalized input data \code{x}. The \pkg{DESeq2} package needs to be installed from bioconductor. Default value is \code{FALSE}.
 #' @param method either "per-condition" or "pooled". If DESeq is not used, this parameter determines, if the noise model is fitted for each set separately ("per-condition") or for the pooled set comprising all cells in \code{A} and \code{B}. Default value is "pooled".
 #' @param norm logical value. If \code{TRUE} then the total transcript count in each cell is normalized to the minimum number of transcripts across all cells in set \code{A} and \code{B}. Default value is \code{FALSE}.
 #' @param vfit function describing the background noise model. Inference of differentially expressed genes can be performed with a user-specified noise model describing the expression variance as a function of the mean expression. Default value is \code{NULL}.
@@ -2070,7 +2084,7 @@ fractDotPlot <- function(object, genes, cluster=NULL, samples=NULL, subset=NULL,
                 cent_mean <- c(cent_mean, mean(object@ndata[genes[i], clus]*min(object@counts)))
             }
         }
-        if (logscale & !zsc ) cent_mean <- log2(cent_mean + .1)
+        if (logscale & !zsc ){ cent_mean <- log2(cent_mean + .1) }
         genevec <- c(genevec, repgene) 
         clustervec <- c(clustervec, repclus)
         fraction <- c(fraction, frac)

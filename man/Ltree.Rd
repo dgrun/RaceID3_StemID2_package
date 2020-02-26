@@ -4,7 +4,6 @@
 \name{Ltree-class}
 \alias{Ltree-class}
 \alias{Ltree}
-\alias{Ltree}
 \title{The Ltree Class}
 \arguments{
 \item{object}{An Ltree object.}
@@ -12,8 +11,6 @@
 \description{
 The Ltree class is the central object storing all information generated during lineage tree inference by the StemID algorithm.
 It comprises a number of slots for a variety of objects.
-
-validity function for Ltree
 }
 \section{Slots}{
 

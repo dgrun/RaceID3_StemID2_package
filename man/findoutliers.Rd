@@ -4,8 +4,14 @@
 \alias{findoutliers}
 \title{Inference of outlier cells and final clustering}
 \usage{
-findoutliers(object, probthr = 0.001, outminc = 5, outlg = 2,
-  outdistquant = 0.95, verbose = TRUE)
+findoutliers(
+  object,
+  probthr = 0.001,
+  outminc = 5,
+  outlg = 2,
+  outdistquant = 0.95,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

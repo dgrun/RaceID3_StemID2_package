@@ -4,7 +4,6 @@
 \name{SCseq}
 \alias{SCseq}
 \alias{SCseq-class}
-\alias{SCseq}
 \title{The SCseq Class}
 \arguments{
 \item{object}{An SCseq object.}
@@ -12,8 +11,6 @@
 \description{
 The SCseq class is the central object storing all information generated during cell type identification with the RaceID3 algorithm.
 It comprises a number of slots for a variety of objects.
-
-validity function for SCceq
 }
 \section{Slots}{
 

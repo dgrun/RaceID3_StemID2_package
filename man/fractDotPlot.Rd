@@ -4,8 +4,17 @@
 \alias{fractDotPlot}
 \title{Dotplot of gene expression across clusters or samples}
 \usage{
-fractDotPlot(object, genes, cluster = NULL, samples = NULL, subset = NULL,
-  zsc = FALSE, logscale = TRUE, cap = Inf, flo = -Inf)
+fractDotPlot(
+  object,
+  genes,
+  cluster = NULL,
+  samples = NULL,
+  subset = NULL,
+  zsc = FALSE,
+  logscale = TRUE,
+  cap = Inf,
+  flo = -Inf
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

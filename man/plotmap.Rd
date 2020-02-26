@@ -4,8 +4,7 @@
 \alias{plotmap}
 \title{Plotting a t-SNE map}
 \usage{
-plotmap(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE,
-  cex = 0.5)
+plotmap(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE, cex = 0.5)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

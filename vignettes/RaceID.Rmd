@@ -325,14 +325,14 @@ x <- compscore(ltr)
 
 # RaceID Options: 
 ## Batch effect removal
-RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `scran` package [@mnnCorrect]. The `scran` package needs to be separately installed from bioconductor if this mode is desired.
+RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `batchelor` package [@mnnCorrect]. The `batchelor` package needs to be separately installed from bioconductor if this mode is desired.
 In order to apply batch effect removal, a list with a vector of cell ids for each batch needs to be defined, e.g.:
 ```{r}
 n <- colnames(intestinalData)
 b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
 ```
 
-This list is provided as input to the `filterdata` function, and the `bmode` argument is initialized with the desired method, i.e. `scran` or `RaceID`. The latter method simply compares the local neigbourhood, i.e. the set of k nearest neighbours, for each cell between two batches and identifies the neighbourhood of the two batches with the smallest average distance. A differential gene expression analysis between the closest neighbourhoods of two batches yields batch associated genes. The next batch is then compared in the same way to the merged dataset of the previous batches. Batches are compared and successively merged according to the order they are provided in `b`. An additional input parameter `knn` controls the number of nearest neighbours, i.e. the size of the neighbourhood.
+This list is provided as input to the `filterdata` function, and the `bmode` argument is initialized with the desired method, i.e. `mnnCorrect` or `RaceID`. The latter method simply compares the local neigbourhood, i.e. the set of k nearest neighbours, for each cell between two batches and identifies the neighbourhood of the two batches with the smallest average distance. A differential gene expression analysis between the closest neighbourhoods of two batches yields batch associated genes. The next batch is then compared in the same way to the merged dataset of the previous batches. Batches are compared and successively merged according to the order they are provided in `b`. An additional input parameter `knn` controls the number of nearest neighbours, i.e. the size of the neighbourhood.
 ```{r}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
@@ -567,13 +567,15 @@ Although VarID analysis can be performed independently of the RaceID data object
 
 The VarID method requires unique molecular identifier (UMI) counts, which have been shown to follow a negative binomial distribution, a property also crucial for the RaceID analysis.
 
-Given such a UMI matrix with cells as columns and genes as rows, we could first initialize a RaceID object, and perform cell and gene filtering to retain only expressed genes and high quality cells. This is followed by the computation of a distance matrix, which is also needed for the VarID analysis. 
+Given such a UMI matrix with cells as columns and genes as rows, we could first initialize a RaceID object, and perform cell and gene filtering to retain only expressed genes and high quality cells. This is followed by the computation of a distance matrix, which can be used for the VarID analysis. 
+
 ```{r eval=FALSE}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc)
+# calculate distance matrix
 sc <- compdist(sc)
 ```
-
+However, the preferred mode of running VarID does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space (see below). For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells.
 If the `metric` argument of the `compdist` function is not initialized otherwise, the distance matrix is calculated as 1 - Pearson's correlation of the transcriptomes.
 
 The filtered, unnormalized, and otherwise unprocessed raw UMI count matrix can then be retrieved by
@@ -596,8 +598,8 @@ res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alp
 
 In principle, only `d` is required as input data for the VarID analysis and the distance matrix can be computed internally if the `distM` argument is omitted. In this case, the `metric` argument defines the metric utilized for the distance matrix calculation. 
 
-The VarID analysis can also be performed without computing a distance matrix, since computation and storage of distance matrices  is not feasible for very large datasets (>30k cells) on a conventional work station due to memory limitations. As an alternative, the `pruneKnn` function can be executed with the `large` argument set to `TRUE` (which is the default setting). In this case, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression. The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (top 100 principle components by default). This reduced feature matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances, i.e. a correlation-based metric can no longer be used. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
-In general, it is recommended to run VarID with `large=TRUE`.
+The VarID analysis can also be performed without computing a distance matrix, since computation and storage of distance matricesis not feasible for very large datasets (>30k cells) on a conventional work station due to memory limitations. As an alternative, the `pruneKnn` function can be executed with the `large` argument set to `TRUE`, which is the default setting and usually shows better performance. In this case, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression. The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (top 100 principle components by default). This reduced feature matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances, i.e., a correlation-based metric can no longer be used. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
+In general, it is recommended to run VarID with `large=TRUE` and `regNB=TRUE`.
 A RaceID object can be utilized to facilitate the analysis, but in this mode the `compdist` function does not need to be executed:
 ```{r}
 sc <- SCseq(intestinalData)
@@ -810,6 +812,55 @@ See previous paragraph for more advice on how to explore the output data.
 
 
 For bug reports and any questions related to RaceID and StemID please email directly to [link](mailto:dominic.gruen@gmail.com). 
+
+# FAQ
+
+1. How can I perform RaceID/VarID analysis on 10x Genomics Chromium Single Cell RNA-Seq data?
+
+Processed count data from the Cell Ranger pipeline (or equivalent formats) can be read from the working directory (or any other path) and transformed into a sparse count matrix, which can be loaded into an `SCseq` object. This requires the `Matrix` package which is installed as a dependency together with `RaceID`. The following chunk of code can be used:
+
+```{r eval=FALSE}
+require(Matrix)
+require(RaceID)
+x <- readMM("matrix.mtx")
+f <- read.csv("features.tsv",sep="\t",header=FALSE)
+b <- read.csv("barcodes.tsv",sep="\t",header=FALSE)
+rownames(x) <- f[,1]
+colnames(x) <- b[,1]
+
+sc <- SCseq(x)
+```
+
+2. How should I analyze large datasets (>25k cells)?
+
+Datasets with >25k cells should be analyzed with VarID instead of RaceID, which is more suitable for large datasets and does not require a distance matrix. The memory requirement of a distance matrix scales with N^2 as a function of the number of cells N. VarID should be run with with parameters `large=TRUE` and `regNB=TRUE` of the `pruneKnn` function in order to achieve optimal performance (default parameters). To increase processing speed VarID can be run with multiple cores. However, each core requires additional memory, and with too many cores VarID will run out of memory. To reduce computation time, the number of genes used for the negative binomial regression of total UMI count pe cell can be limited to, e.g., 2000 by setting the `ngenes` parameter.
+
+Example for mouse data, including filtering of mitochondrial genes, ribosomal genes, and Gm* genes:
+```{r eval=FALSE}
+require(Matrix)
+require(RaceID)
+x <- readMM("matrix.mtx")
+f <- read.csv("features.tsv",sep="\t",header=FALSE)
+b <- read.csv("barcodes.tsv",sep="\t",header=FALSE)
+rownames(x) <- f[,1]
+colnames(x) <- b[,1]
+
+sc <- SCseq(x)
+sc <- filterdata(sc,mintotal=1000,CGenes=rownames(x)[grep("^(mt|Rp(l|s)|Gm\\d)",rownames(x))])
+expData <- getExpData(sc)
+res   <- pruneKnn(expData,large=TRUE,regNB=TRUE,no_cores=2,ngenes=2000)
+cl    <- graphCluster(res,pvalue=0.01)
+probs <- transitionProbs(res,cl)
+
+## compute noise from corrected variance (if desired)
+#noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=2)
+#sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
+
+sc <- updateSC(sc,res=res,cl=cl)
+sc <- comptsne(sc)
+sc <- compumap(sc)
+
+```
 
 # References
 

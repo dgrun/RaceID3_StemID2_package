@@ -4,8 +4,17 @@
 \alias{diffexpnb}
 \title{Function for differential expression analysis}
 \usage{
-diffexpnb(x, A, B, DESeq = FALSE, method = "pooled", norm = FALSE,
-  vfit = NULL, locreg = FALSE, ...)
+diffexpnb(
+  x,
+  A,
+  B,
+  DESeq = FALSE,
+  method = "pooled",
+  norm = FALSE,
+  vfit = NULL,
+  locreg = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{expression data frame with genes as rows and cells as columns. Gene IDs should be given as row names and cell IDs should be given as column names. This can be a reduced expression table only including the features (genes) to be used in the analysis. This input has to be provided if \code{g} (see below) is given and corresponds to a valid gene ID, i. e. one of the rownames of \code{x}. The default value is \code{NULL}. In this case, cluster identities are highlighted in the plot.}
@@ -14,7 +23,7 @@ diffexpnb(x, A, B, DESeq = FALSE, method = "pooled", norm = FALSE,
 
 \item{B}{vector of cell IDs corresponding column names of \code{x}. Differential expression in set \code{A} versus set \code{B} will be evaluated.}
 
-\item{DESeq}{logical value. If \code{TRUE}, then \pkg{DESeq2} is used for the inference of differentially expressed genes. In this case, it is recommended to provide non-normalized input data \code{x}. Default value is \code{FALSE}}
+\item{DESeq}{logical value. If \code{TRUE}, then \pkg{DESeq2} is used for the inference of differentially expressed genes. In this case, it is recommended to provide non-normalized input data \code{x}. The \pkg{DESeq2} package needs to be installed from bioconductor. Default value is \code{FALSE}.}
 
 \item{method}{either "per-condition" or "pooled". If DESeq is not used, this parameter determines, if the noise model is fitted for each set separately ("per-condition") or for the pooled set comprising all cells in \code{A} and \code{B}. Default value is "pooled".}
 

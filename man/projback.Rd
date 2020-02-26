@@ -4,8 +4,7 @@
 \alias{projback}
 \title{Compute Cell Projections for Randomized Background Distribution}
 \usage{
-projback(object, pdishuf = 500, fast = FALSE, rseed = 17000,
-  verbose = TRUE)
+projback(object, pdishuf = 500, fast = FALSE, rseed = 17000, verbose = TRUE)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}

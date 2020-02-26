@@ -4,9 +4,19 @@
 \alias{CCcorrect}
 \title{Dimensional Reduction by PCA or ICA}
 \usage{
-CCcorrect(object, vset = NULL, CGenes = NULL, ccor = 0.4, pvalue = 0.01,
-  quant = 0.01, nComp = NULL, dimR = FALSE, mode = "pca",
-  logscale = FALSE, FSelect = TRUE)
+CCcorrect(
+  object,
+  vset = NULL,
+  CGenes = NULL,
+  ccor = 0.4,
+  pvalue = 0.01,
+  quant = 0.01,
+  nComp = NULL,
+  dimR = FALSE,
+  mode = "pca",
+  logscale = FALSE,
+  FSelect = TRUE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

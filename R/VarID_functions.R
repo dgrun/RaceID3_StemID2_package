@@ -274,7 +274,7 @@ plotBackVar <- function(x){
 #' @importFrom stats coefficients glm loess predict model.matrix rpois density approx
 #' @export
 pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=NULL,ngenes=NULL,span=.75,pcaComp=100,algorithm="kd_tree",metric="pearson",genes=NULL,knn=10,alpha=10,no_cores=NULL,FSelect=FALSE,seed=12345){
-    expData <- as.matrix(expData)
+    #expData <- as.matrix(expData)
 
     if ( is.null(genes) ) genes <- rownames(expData)
     bg <- fitBackVar(expData[genes,])
@@ -282,14 +282,14 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
     
     expData  <- expData[genes,]
     colS     <- apply(expData,2,sum)
-    FNData   <- t(t(expData)/colS*min(colS))
+    #FNData   <- t(t(expData)/colS*min(colS))
 
     if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
     no_cores <- min(no_cores,detectCores())
 
     if ( large ){
         distM <- NULL
-        pcaComp <- min( pcaComp, ncol(FNData) )
+        pcaComp <- min( pcaComp, ncol(expData) )
         #Xpca <- irlba(A = t( scale(FNData, center = TRUE, scale = TRUE)), nv = pcaComp)
         #Xpca <- irlba(A = t( scale(log2(FNData + .1), center = TRUE, scale = TRUE)), nv = pcaComp)
         if ( regNB ){
@@ -297,12 +297,12 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
             z <- regData$pearsonRes
         }else{
             regData <- NULL
-            z <- FNData
+            z <- t(t(expData)/colS*min(colS))
         }
         if ( FSelect ){
             genes <- bg$genes
             expData <- expData[genes,]
-            FNData  <- FNData[genes,]
+            #FNData  <- FNData[genes,]
         }
         z <- z[genes,]
         f <- apply(is.na(z),1,sum) == 0
@@ -311,7 +311,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
         Xpca <- irlba(A = t(z), nv = pcaComp)
         dimRed <- Xpca$u%*%diag(Xpca$d)
         nn   <- get.knn(dimRed, k=knn, algorithm=algorithm)
-        nn   <- t( cbind( 1:ncol(FNData),nn$nn.index) )
+        nn   <- t( cbind( 1:ncol(expData),nn$nn.index) )
         colnames(nn) <- colnames(expData)
         dimRed <- t(dimRed)
         colnames(dimRed) <- colnames(expData)
@@ -319,7 +319,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
         if ( FSelect ){
             genes <- bg$genes
             expData <- expData[genes,]
-            FNData  <- FNData[genes,]
+            #FNData  <- FNData[genes,]
         }
         dimRed=NULL
         if ( is.null(distM) ) distM <- dist.gen(t(as.matrix(expData[genes,])), method = metric)
@@ -332,26 +332,42 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
     cQP      <- cmpfun(QP)
     cPAdjust <- cmpfun(PAdjust)
     fCoef    <- as.vector(backModel$coefficients)
-
-        
-    localFUN <- function(x,expData,FNData,alpha,cQP,cPAdjust,fCoef){
-        k <- FNData[,x][,1]
-        m <- FNData[,x][,-1]
+    
+    localFUN <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef){
+        FNData <- t(t(expData[,x])/colS[x]*min(colS))
+        k <- FNData[,1]
+        m <- FNData[,-1]
         weights <- round(cQP(k,m,TRUE)$w,5)
         weights <- c(alpha,weights)
         weights <- weights/sum(weights)
-        z <- applyProb(as.matrix(expData[,x]),fCoef,weights)
+        z <- applyProb(expData[,x],fCoef,weights)
         
         p <- apply(z,2,cPAdjust)[-1]
         names(p) <- colnames(m)
         p
     }
-    
+#    localFUN <- function(x,expData,FNData,alpha,cQP,cPAdjust,fCoef){
+#        k <- FNData[,x][,1]
+#        m <- FNData[,x][,-1]
+#        weights <- round(cQP(k,m,TRUE)$w,5)
+#        weights <- c(alpha,weights)
+#        weights <- weights/sum(weights)
+#        #z <- applyProb(as.matrix(expData[,x]),fCoef,weights)
+#        z <- applyProb(expData[,x],fCoef,weights)
+        
+#        p <- apply(z,2,cPAdjust)[-1]
+#        names(p) <- colnames(m)
+#        p
+#    }
+    expData <- as.matrix(expData)
+#    FNData <- as.matrix(FNData)
     if ( no_cores == 1 ){
-        pvM <- apply(t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+#        pvM <- apply(t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+        pvM <- apply(t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
     }else{
         clust <- makeCluster(no_cores) 
-        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+#        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
         stopCluster(clust)
     }
 
@@ -617,7 +633,7 @@ plotNoiseModel <- function(x,corrected=FALSE){
 #' @export
 updateSC <- function(object,res=NULL, cl=NULL,noise=NULL,flo=NULL){
     if ( ! is.null(res) ){
-        object@dimRed$x <- res$dimRed
+        object@dimRed$x <- as.matrix(res$dimRed)
         object@distances <- res$distM
     }
     if ( ! is.null(cl) & ! is.null(res) ){

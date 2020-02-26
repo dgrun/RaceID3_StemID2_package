@@ -4,8 +4,17 @@
 \alias{plotsymbolsmap}
 \title{Plotting groups as different symbols in the t-SNE map}
 \usage{
-plotsymbolsmap(object, types, subset = NULL, samples_col = NULL,
-  cex = 0.5, fr = FALSE, um = FALSE, leg = TRUE, map = TRUE)
+plotsymbolsmap(
+  object,
+  types,
+  subset = NULL,
+  samples_col = NULL,
+  cex = 0.5,
+  fr = FALSE,
+  um = FALSE,
+  leg = TRUE,
+  map = TRUE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

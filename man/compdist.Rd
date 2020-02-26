@@ -4,8 +4,14 @@
 \alias{compdist}
 \title{Computing a distance matrix for cell type inference}
 \usage{
-compdist(object, metric = "pearson", FSelect = TRUE, knn = NULL,
-  alpha = 1, no_cores = 1)
+compdist(
+  object,
+  metric = "pearson",
+  FSelect = TRUE,
+  knn = NULL,
+  alpha = 1,
+  no_cores = 1
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

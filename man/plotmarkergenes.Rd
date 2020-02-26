@@ -4,11 +4,28 @@
 \alias{plotmarkergenes}
 \title{Plotting a Heatmap of Marker Gene Expression}
 \usage{
-plotmarkergenes(object, genes, imputed = FALSE, cthr = 0, cl = NULL,
-  cells = NULL, order.cells = FALSE, aggr = FALSE, norm = FALSE,
-  cap = NULL, flo = NULL, samples = NULL, cluster_cols = FALSE,
-  cluster_rows = TRUE, cluster_set = FALSE, samples_col = NULL,
-  zsc = FALSE, logscale = TRUE, noise = FALSE, fontsize = 10)
+plotmarkergenes(
+  object,
+  genes,
+  imputed = FALSE,
+  cthr = 0,
+  cl = NULL,
+  cells = NULL,
+  order.cells = FALSE,
+  aggr = FALSE,
+  norm = FALSE,
+  cap = NULL,
+  flo = NULL,
+  samples = NULL,
+  cluster_cols = FALSE,
+  cluster_rows = TRUE,
+  cluster_set = FALSE,
+  samples_col = NULL,
+  zsc = FALSE,
+  logscale = TRUE,
+  noise = FALSE,
+  fontsize = 10
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

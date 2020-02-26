@@ -4,8 +4,17 @@
 \alias{clustexp}
 \title{Clustering of single-cell transcriptome data}
 \usage{
-clustexp(object, sat = TRUE, samp = NULL, cln = NULL, clustnr = 30,
-  bootnr = 50, rseed = 17000, FUNcluster = "kmedoids", verbose = TRUE)
+clustexp(
+  object,
+  sat = TRUE,
+  samp = NULL,
+  cln = NULL,
+  clustnr = 30,
+  bootnr = 50,
+  rseed = 17000,
+  FUNcluster = "kmedoids",
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}

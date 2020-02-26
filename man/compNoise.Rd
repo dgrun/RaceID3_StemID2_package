@@ -4,9 +4,21 @@
 \alias{compNoise}
 \title{Function for computing local gene expression variability}
 \usage{
-compNoise(x, res, pvalue = 0.01, genes = NULL, regNB = FALSE,
-  batch = NULL, ngenes = NULL, regVar = NULL, span = 0.75,
-  step = 0.01, thr = 0.05, no_cores = NULL, seed = 12345)
+compNoise(
+  x,
+  res,
+  pvalue = 0.01,
+  genes = NULL,
+  regNB = FALSE,
+  batch = NULL,
+  ngenes = NULL,
+  regVar = NULL,
+  span = 0.75,
+  step = 0.01,
+  thr = 0.05,
+  no_cores = NULL,
+  seed = 12345
+)
 }
 \arguments{
 \item{x}{Matrix of gene expression values with genes as rows and cells as columns. The matrix need to contain the same cell IDs as columns like the input matrix used to derive the pruned k nearest neighbours with the \code{pruneKnn} function. However, it may contain a different set of genes.}

@@ -4,11 +4,25 @@
 \alias{pruneKnn}
 \title{Function inferring a pruned knn matrix}
 \usage{
-pruneKnn(expData, distM = NULL, large = TRUE, regNB = TRUE,
-  batch = NULL, regVar = NULL, ngenes = NULL, span = 0.75,
-  pcaComp = 100, algorithm = "kd_tree", metric = "pearson",
-  genes = NULL, knn = 10, alpha = 10, no_cores = NULL,
-  FSelect = FALSE, seed = 12345)
+pruneKnn(
+  expData,
+  distM = NULL,
+  large = TRUE,
+  regNB = TRUE,
+  batch = NULL,
+  regVar = NULL,
+  ngenes = NULL,
+  span = 0.75,
+  pcaComp = 100,
+  algorithm = "kd_tree",
+  metric = "pearson",
+  genes = NULL,
+  knn = 10,
+  alpha = 10,
+  no_cores = NULL,
+  FSelect = FALSE,
+  seed = 12345
+)
 }
 \arguments{
 \item{expData}{Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts.}

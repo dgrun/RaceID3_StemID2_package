@@ -4,8 +4,14 @@
 \alias{plotgraph}
 \title{StemID2 Lineage Graph}
 \usage{
-plotgraph(object, showCells = FALSE, showMap = TRUE, tp = 0.5,
-  scthr = 0, cex = 1)
+plotgraph(
+  object,
+  showCells = FALSE,
+  showMap = TRUE,
+  tp = 0.5,
+  scthr = 0,
+  cex = 1
+)
 }
 \arguments{
 \item{object}{\code{Ltree} class object.}
