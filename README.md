@@ -12,13 +12,13 @@ incorporating unique molecular identifiers. It requires a gene-by-cell
 expression matrix as input and produces a clustering partition
 representing cell types. StemID2 assembles these cell types into a
 lineage tree.
-The RaceID package (>= v0.1.4)  also contains functions for a VarID
+The RaceID package (>= v0.1.4) also contains functions for a VarID
 analysis. VarID comprises a sensitive clustering method utilizing pruned
 k-nearest neighbor networks, connecting only cells with links
 supported by a background model of gene expression. These pruned
 k-nearest neighbor networks further enable the definition of homogenous
 neighborhoods for the quantification of local gene expression
-variabiity in cell state space.
+variability in cell state space.
 
 
 ## Installing
