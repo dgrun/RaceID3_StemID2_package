@@ -11,17 +11,18 @@ pruneKnn(
   regNB = TRUE,
   batch = NULL,
   regVar = NULL,
-  ngenes = NULL,
+  ngenes = 2000,
   span = 0.75,
   pcaComp = 100,
   algorithm = "kd_tree",
   metric = "pearson",
   genes = NULL,
   knn = 10,
-  alpha = 10,
+  alpha = NULL,
   no_cores = NULL,
   FSelect = FALSE,
-  seed = 12345
+  seed = 12345,
+  res = NULL
 )
 }
 \arguments{
@@ -43,7 +44,7 @@ is initialized it will be ignored if \code{large} equals \code{TRUE}.}
 
 \item{regVar}{data.frame with additional variables to be regressed out simultaneously with the log10 UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log10 UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.}
 
-\item{ngenes}{Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is \code{NULL} and all genes are used.}
+\item{ngenes}{Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is 2000.}
 
 \item{span}{Positive real number. Parameter for loess-regression (see \code{large}) controlling the degree of smoothing. Default is 0.75.}
 
@@ -60,13 +61,15 @@ the distance is computed as 1 – correlation.}
 
 \item{knn}{Positive integer number. Number of nearest neighbours considered for each cell. Default is 10.}
 
-\item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the wieghted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are used for the derivation of of link probabilities. Default is 10. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood.}
+\item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the weighted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are used for the derivation of of link probabilities. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is NULL. In this case, \code{alpha} is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression).}
 
 \item{no_cores}{Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.}
 
 \item{FSelect}{Logical parameter. If \code{TRUE}, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is \code{FALSE}.}
 
 \item{seed}{Integer number. Random number to initialize stochastic routines. Default is 12345.}
+
+\item{res}{Output object from \code{pruneKnn}. The rownames (genes) and colnames (cells) of the parameter \code{expData} have to be subsets on the input data used to produce this output. For example, the batch effects could have been corrected on the global dataset using the \code{pruneKnn} function, and using the output from the global run permits using regression parameters from the global analysis on specific subsets if \code{expData} contain a subset of genes and cells.}
 }
 \value{
 List object of six components:

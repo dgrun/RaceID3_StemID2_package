@@ -26,7 +26,7 @@ The `RaceID` package comes with sample data `intestinalData` for murine intestin
 RaceID and StemID functions have various input and output parameters, which are explained in detail on the `help` pages. Here, we mostly use default parameters, which represent a good choice for common datasets.
 
 To start the analysis, a RaceID single-cell sequencing (`SCseq`) object is initialized with a count matrix.
-```{r}
+```{r results='hide', message=FALSE}
 library(RaceID)
 sc <- SCseq(intestinalData)
 ```
@@ -444,7 +444,7 @@ sc <- compdist(sc)
 
 Preferentially, clustering should be done by `FUNcluster="kmedoids"` but `"hclust"` often gives similar results and is significantly faster. 
 ```{r results='hide', message=FALSE, eval=FALSE}
-sc <- clustexp(sc,samp=100,FUNcluster="hclust")
+sc <- clustexp(sc,samp=1000,FUNcluster="hclust")
 ```
 
 For the determination of the cluster number and the inference of Jaccard's similarity, sub-sampling should be applied by setting the subset size `samp` to an integer number. A good choice could be 10-25% of the total number of cells. For large datasets this should be sufficient to discriminate the most abundant cluster, and additional smaller clusters will automatically be identified in the next step using the `findoutliers` function. It is important that the `clustnr` argument is much larger then the expected number of clusters. If stability analysis is not wanted, one can set `bootnr=1`. If clustering is re-run with a specific cluster number, e.g. `cln=12`, then the saturation criterion should be disabled by setting `sat=FALSE`.
@@ -559,8 +559,8 @@ plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=s
 # VarID
 
 VarID is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities measured by a distance matrix with an arbitrary metric. The key idea is the inference of local neighbourhoods of cells in the same state, i.e. all k nearest neighbours follow the same transcript count distribution as the cell to which they are nearest neighbours.
-The computation starts with k nearest neighbours and infers a negative binomial distribtion for the transcript counts of each gene, derived from the mean-variance dpendendence computed the same way as for the RaceID background model. The mean expression is derived from a weighted average across the k nearest neighbours, where the weights are inferred from quadratic programming, representing the cell as a linear combination of its neighbours. The contribution of the "central" cell itself can be controlled by a given scale parameter `alpha`.
-With this distribution the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the minimum probability across all genes serves as a proxy for the probability of neighbour being in the same state. If this probability falls below a user-defined threshold, the neighbour is discarded. After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
+The computation starts with k nearest neighbours and infers a negative binomial distribtion for the transcript counts of each gene, derived from the mean-variance dependence computed the same way as for the RaceID background model. The mean expression is derived from a weighted average across the k nearest neighbours, where the weights are inferred using quadratic programming, representing the cell as a linear combination of its neighbours. The contribution of the "central" cell itself can be controlled by a given scale parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10. The default value is `NULL`. In this case, `alpha` is inferred by an optimization, i.e., `alpha` is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression).
+With the negative binomial distribution inferred from the local means and the global mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the minimum probability across all genes serves as a proxy for the probability of neighbours being in the same state. If this probability falls below a user-defined threshold, the neighbour is discarded. After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
 These local neighbourhoods can be used to compute local properties such as gene expression variability, which in turn can be correlated to cell state or predicted fate, derived, e.g., from RaceID or FateID analysis, respectively.
 
 Although VarID analysis can be performed independently of the RaceID data object, an integration with a RaceID analysis permits convenient visualization of the results. For this reason, we here demonstrate an integrated pipeline, but explain at each step, how computation can be performed given minimal input data, i.e. an expression matrix only.
@@ -593,7 +593,7 @@ No distance matrix input is required for the `distM` argument of `pruneKnn`. In 
 
 With this input the derivation and pruning of a k nearest neighbour graph can be performed:
 ```{r eval=FALSE}
-res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=NULL,no_cores=1,FSelect=FALSE)
 ```
 
 In principle, only `d` is required as input data for the VarID analysis and the distance matrix can be computed internally if the `distM` argument is omitted. In this case, the `metric` argument defines the metric utilized for the distance matrix calculation. 

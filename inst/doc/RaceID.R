@@ -1,7 +1,7 @@
 ## ----echo=FALSE---------------------------------------------------------------
 knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg') 
 
-## -----------------------------------------------------------------------------
+## ----results='hide', message=FALSE--------------------------------------------
 library(RaceID)
 sc <- SCseq(intestinalData)
 
@@ -236,7 +236,7 @@ k <- imputeexp(sc)
 #  sc <- compdist(sc)
 
 ## ----results='hide', message=FALSE, eval=FALSE--------------------------------
-#  sc <- clustexp(sc,samp=100,FUNcluster="hclust")
+#  sc <- clustexp(sc,samp=1000,FUNcluster="hclust")
 
 ## ----results='hide', message=FALSE, eval=FALSE--------------------------------
 #  sc <- findoutliers(sc,probthr=1e-4)
@@ -306,7 +306,7 @@ plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=s
 #  distM <- sc@distances
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#  res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=NULL,no_cores=1,FSelect=FALSE)
 
 ## -----------------------------------------------------------------------------
 sc <- SCseq(intestinalData)

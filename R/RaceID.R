@@ -1635,7 +1635,7 @@ varRegression <- function(object,vars=NULL,logscale=FALSE,Batch=FALSE){
         for ( i in 1:length(object@filterpar$BGenes) ){
             y <- object@filterpar$BGenes[[i]]
             if ( length(y) > 1 ){
-                k <- if ( length(y) > 1 ) apply(z[y,],2,mean) else if ( length(y) == 1 ) t(z[y,])
+                k <- if ( length(y) > 1 ) apply(z[y,],2,mean) else if ( length(y) == 1 ) z[y,]
                 if (flag){
                     varsB <- data.frame(row.names=colnames(z),k)
                     flag  <- 0

@@ -67,7 +67,7 @@ binOutlier <- function(x,y,thr=5,bincount=100){
     o <- order(x)
     breaks    <- x[o][ seq(from = 1, to = length(x), by = bincount) ]
     breaks[1] <- breaks[1] - .Machine$double.eps*10
-    breaks    <- append(breaks,max(x))
+    if ( max(x) > breaks[length(breaks)] ) breaks <- append(breaks,max(x))
     bins <- cut(x = x[o], breaks = breaks, ordered_result = TRUE)
     tmp  <- aggregate(x = y[o], by = list(bin=bins), FUN = zsc_med)
     score <- unlist(tmp$x)
@@ -117,7 +117,9 @@ compResiduals <- function(expData,batch=NULL,regVar=NULL,span=.75,no_cores=1,nge
         meanExp = log10( mx )
         meanDens <- density(x = meanExp, bw = 'nrd', adjust = 1)
         prob <- 1 / (approx(x = meanDens$x, y = meanDens$y, xout = meanExp)$y + .Machine$double.eps)
-        genes <- sample(x = rownames(expData), size = ngenes, prob = prob)
+        lsize <- ngenes
+        if ( lsize > nrow(expData) ) lsize <- nrow(expData)
+        genes <- sample(x = rownames(expData), size = lsize, prob = prob)
     }
     if ( no_cores == 1 ){
         rd <- t( apply(round(expData[genes,],0),1,nbRegr,modelFormula=modelFormula,regData=regData,regNames=regNames) )
@@ -242,7 +244,7 @@ plotBackVar <- function(x){
 #' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log10 UMI count per cell.An interaction term is included for the log10 UMI count with the batch variable. Default value is \code{NULL}.
 #' @param regVar data.frame with additional variables to be regressed out simultaneously with the log10 UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log10 UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.
 #' @param span Positive real number. Parameter for loess-regression (see \code{large}) controlling the degree of smoothing. Default is 0.75.
-#' @param ngenes Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is \code{NULL} and all genes are used.
+#' @param ngenes Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is 2000.
 #' @param pcaComp Positive integer number. Number of princple components to be included if \code{large} is \code{TRUE}. Default is 100.
 #' @param algorithm Algorithm for fast k nearest neighbour inference, using the \code{get.knn} function from the \pkg{FNN} package.
 #' See \code{help(get.knn)}. Deafult is "kd_tree".
@@ -251,10 +253,11 @@ plotBackVar <- function(x){
 #' the distance is computed as 1 – correlation.
 #' @param genes Vector of gene names corresponding to a subset of rownames of \code{x}. Only these genes are used for the computation of a distance matrix and for the computation of joint probabilities of nearest neighbours. Default is \code{NULL} and all genes are used.
 #' @param knn Positive integer number. Number of nearest neighbours considered for each cell. Default is 10.
-#' @param alpha Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the wieghted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are used for the derivation of of link probabilities. Default is 10. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood.
+#' @param alpha Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the weighted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are used for the derivation of of link probabilities. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is NULL. In this case, \code{alpha} is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression).
 #' @param no_cores Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.
 #' @param FSelect Logical parameter. If \code{TRUE}, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is \code{FALSE}.
 #' @param seed Integer number. Random number to initialize stochastic routines. Default is 12345.
+#' @param res Output object from \code{pruneKnn}. The rownames (genes) and colnames (cells) of the parameter \code{expData} have to be subsets on the input data used to produce this output. For example, the batch effects could have been corrected on the global dataset using the \code{pruneKnn} function, and using the output from the global run permits using regression parameters from the global analysis on specific subsets if \code{expData} contain a subset of genes and cells.
 #' @return List object of six components:
 #' \item{distM}{Distance matrix.}
 #' \item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or
@@ -268,14 +271,18 @@ plotBackVar <- function(x){
 #' @importFrom compiler cmpfun
 #' @import parallel
 #' @import Matrix
+#' @importFrom quadprog solve.QP
 #' @importFrom irlba irlba
 #' @importFrom FNN get.knn
 #' @importFrom MASS glm.nb theta.ml
 #' @importFrom stats coefficients glm loess predict model.matrix rpois density approx
 #' @export
-pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=NULL,ngenes=NULL,span=.75,pcaComp=100,algorithm="kd_tree",metric="pearson",genes=NULL,knn=10,alpha=10,no_cores=NULL,FSelect=FALSE,seed=12345){
+pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=NULL,ngenes=2000,span=.75,pcaComp=100,algorithm="kd_tree",metric="pearson",genes=NULL,knn=10,alpha=NULL,no_cores=NULL,FSelect=FALSE,seed=12345, res=NULL){
     #expData <- as.matrix(expData)
-
+    rs <- rowSums(expData > 0)
+    cs <- colSums(expData)
+    expData <- expData[rs>0,cs>0]
+    
     if ( is.null(genes) ) genes <- rownames(expData)
     bg <- fitBackVar(expData[genes,])
     backModel <- bg$fit
@@ -289,11 +296,50 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
 
     if ( large ){
         distM <- NULL
-        pcaComp <- min( pcaComp, ncol(expData) )
+        pcaComp <- min( pcaComp, ncol(expData) - 1)
+        pcaComp <- min( pcaComp, nrow(expData) - 1)
+
         #Xpca <- irlba(A = t( scale(FNData, center = TRUE, scale = TRUE)), nv = pcaComp)
         #Xpca <- irlba(A = t( scale(log2(FNData + .1), center = TRUE, scale = TRUE)), nv = pcaComp)
         if ( regNB ){
-            regData <- compResiduals(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed)
+            if ( !is.null(res) ){
+                regData <- res$regData
+                rd      <- res$regData$nbRegr[intersect( rownames(res$regData$nbRegr), genes),]
+                rdS     <- matrix(, nrow = nrow(expData), ncol = ncol(rd))
+                colnames(rdS) <- colnames(rd)
+                mx    <- apply(expData,1,mean)
+               
+                if ( ! is.null(batch) ){
+                    rdS[,"theta"] <- smoothPar(rd,"theta",mx,span=span,logsc=TRUE)
+                    batchNames <- unique(batch)
+                    for ( b in batchNames ){
+                        bn <- paste0("b",unique(b))
+                        batchCols <- c(bn, grep(paste0(":",bn,"$"),colnames(rdS),value=TRUE))
+                        mb <- apply(expData[,batch == b],1,mean)
+                        for ( n in batchCols ){
+                            rdS[,n] <- smoothPar(rd,n,mb,span=span,logsc=FALSE)   
+                        }
+                    }
+                }else{
+                    for ( n in colnames(rd) ){
+                        logsc <-  if ( n == "theta" ) TRUE else FALSE 
+                        rdS[,n] <- smoothPar(rd,n,mx,span=span,logsc=logsc)
+                    }
+                }
+                rownames(rdS) <- rownames(expData)
+                rdS[,"theta"][rdS[,"theta"] <= 0] <- min(rdS[,"theta"][rdS[,"theta"] > 0])
+  
+                
+                modelFormula <- getFormula(batch,regVar)
+                k <- log10(apply(expData,2,sum))
+                d <- getRegData(k,batch,regVar)
+                mu <- exp(tcrossprod(rdS[,colnames(rdS) != "theta"],  model.matrix(as.formula(sub("^x","",modelFormula)), d)))
+                regData$pearsonRes   <- suppressWarnings( as.matrix( (expData - mu)/sqrt(mu + mu^2/rdS[,"theta"]) ) )
+                regData$log10_umi    <- k
+                regData$nbRegrSmooth <- rdS
+            }else{
+                regData <- compResiduals(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed)
+            }
             z <- regData$pearsonRes
         }else{
             regData <- NULL
@@ -333,11 +379,80 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
     cPAdjust <- cmpfun(PAdjust)
     fCoef    <- as.vector(backModel$coefficients)
     
-    localFUN <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef){
+   # localFUNalpha <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef){
+   #     FNData <- t(t(expData[,x])/colS[x]*min(colS))
+   #     k <- FNData[,1]
+   #     m <- FNData[,-1]
+   #     weights <- round(cQP(k,m,TRUE)$w,5)
+   #     weights <- c(alpha,weights)
+   #     weights <- weights/sum(weights)
+   #     z <- applyProb(expData[,x],fCoef,weights)
+   #     
+   #     p <- apply(z,2,cPAdjust)[-1]
+   #     names(p) <- colnames(m)
+   #     p
+   # }
+
+    
+    localFUN <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef,backModel){
         FNData <- t(t(expData[,x])/colS[x]*min(colS))
         k <- FNData[,1]
         m <- FNData[,-1]
-        weights <- round(cQP(k,m,TRUE)$w,5)
+        k0 <- as.vector(expData[,x][,1])
+        m0 <- expData[,x][,-1]
+        weights <- tryCatch(round(cQP(k,m,TRUE)$w,5), error = function(err){ rep(1/ncol(m),ncol(m)) } )
+                    
+        if ( is.null(alpha) ){
+            u <- apply(expData[,x[-1]],1,function(x,w){sum(x * w)},w = weights)
+            v <- sqrt( uvar(expData[,x[1]] + .1,backModel) )
+            W <- sum(weights)
+            b1 <- max( (  u - ( expData[,x[1]] + v ) * W )/v, na.rm=TRUE)
+            b2 <- max( ( -u + ( expData[,x[1]] - v ) * W )/v, na.rm=TRUE)
+            lb <- 0  
+            Dmat <- matrix(1)
+            dvec <- 0
+            Amat <- matrix( c(1,1,1), nrow=1)
+            bvec <- c( b1, b2, lb)
+
+            suppressWarnings( opt <- tryCatch( {
+                rs <- solve.QP(Dmat = Dmat, dvec = dvec, Amat = Amat, bvec = bvec, meq = 0, factorized=FALSE )
+                TRUE
+            }, error = function(err){ FALSE } ))
+            
+            if ( opt ) alpha <- rs$solution else alpha <- 1
+
+            
+#            eval_f <- function( alphaP ) {
+#                return(alphaP)
+#            }
+#            
+#            eval_g_ineq <- function( alphaP ) {   
+#                cn <- alphaP + sum(weights)
+#                z  <- alphaP/cn*k0 + apply(m0,1,function(x,w){sum(x * w)},w = weights)/cn
+                #std <- sqrt(lvar(z,backModel))
+#                std <- sqrt(lvar(k0,backModel))
+#                y <- abs(z-k0)/std
+#                constr <- max( y - 1, na.rm=TRUE)
+#                return( list(c=constr) )
+#            }
+#            
+#            x0 <- 1
+#            lb <- 0
+#            ub <- 10
+#            
+#            suppressWarnings( opt <- tryCatch( {
+#                rs <- solnl( X=x0,
+#                            objfun=eval_f,
+#                            confun=eval_g_ineq,
+#                            lb=lb,
+#                            ub=ub,
+#                            tolX = 1e-02, tolFun = 1e-02, tolCon = 1e-02, maxnFun = 1e+03, maxIter = 100
+#                            )
+#                TRUE
+#            }, error = function(err){ FALSE } ))
+            
+#            if ( opt ) alpha <- rs$par else alpha <- 1
+        }
         weights <- c(alpha,weights)
         weights <- weights/sum(weights)
         z <- applyProb(expData[,x],fCoef,weights)
@@ -346,28 +461,13 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
         names(p) <- colnames(m)
         p
     }
-#    localFUN <- function(x,expData,FNData,alpha,cQP,cPAdjust,fCoef){
-#        k <- FNData[,x][,1]
-#        m <- FNData[,x][,-1]
-#        weights <- round(cQP(k,m,TRUE)$w,5)
-#        weights <- c(alpha,weights)
-#        weights <- weights/sum(weights)
-#        #z <- applyProb(as.matrix(expData[,x]),fCoef,weights)
-#        z <- applyProb(expData[,x],fCoef,weights)
-        
-#        p <- apply(z,2,cPAdjust)[-1]
-#        names(p) <- colnames(m)
-#        p
-#    }
+
     expData <- as.matrix(expData)
-#    FNData <- as.matrix(FNData)
     if ( no_cores == 1 ){
-#        pvM <- apply(t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
-        pvM <- apply(t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+        pvM <- apply(t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef,backModel=backModel)
     }else{
         clust <- makeCluster(no_cores) 
-#        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,FNData=FNData,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
-        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef)
+        pvM <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,cQP=cQP,cPAdjust=cPAdjust,fCoef=fCoef,backModel=backModel)
         stopCluster(clust)
     }
 
