@@ -598,8 +598,8 @@ res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alp
 
 In principle, only `d` is required as input data for the VarID analysis and the distance matrix can be computed internally if the `distM` argument is omitted. In this case, the `metric` argument defines the metric utilized for the distance matrix calculation. 
 
-The VarID analysis can also be performed without computing a distance matrix, since computation and storage of distance matricesis not feasible for very large datasets (>30k cells) on a conventional work station due to memory limitations. As an alternative, the `pruneKnn` function can be executed with the `large` argument set to `TRUE`, which is the default setting and usually shows better performance. In this case, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression. The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (top 100 principle components by default). This reduced feature matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances, i.e., a correlation-based metric can no longer be used. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
-In general, it is recommended to run VarID with `large=TRUE` and `regNB=TRUE`.
+The VarID analysis can also be performed without computing a distance matrix, since computation and storage of distance matrices is not feasible for very large datasets (>30k cells) on a conventional work station due to memory limitations. As an alternative, the `pruneKnn` function can be executed with the `large` argument set to `TRUE`, which is the default setting and usually shows better performance. In this case, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (top 100 principle components by default). This reduced feature matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances, i.e., a correlation-based metric can no longer be used. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
+In general, it is recommended to run VarID with `large=TRUE` and `regNB=TRUE` (default settings).
 A RaceID object can be utilized to facilitate the analysis, but in this mode the `compdist` function does not need to be executed:
 ```{r}
 sc <- SCseq(intestinalData)
@@ -623,7 +623,7 @@ plotBackVar(bg)
 
 The function returns a list with the used distance matrix, a matrix with the indices of the k nearest neighbours for each cell, and a matrix with the corresponding probabilities. Finally, the background model is also returned.
 
-From this object, a sparse distance matrix can be created with non-zero entries only for k nearest neighbours with probabilities larger or equal than `pvalue`:
+From this object, a sparse distance matrix can optionally be created with non-zero entries only for k nearest neighbours with probabilities larger or equal than `pvalue`:
 ```{r eval=FALSE}
 y <- createKnnMatrix(res,pvalue=0.01)
 ```
@@ -635,6 +635,10 @@ cl <- graphCluster(res,pvalue=0.01)
 ```
 
 The function returns a list of three components: a graph object `graph`,  an object `louvain` containing informarmation on the clustering, and a data.frame `fr` containing a Fruchterman-Rheingold layout computed from the pruned k nearest neighbour graph, all derived using the `igraph` package.
+
+By setting the `use.weights` argument of `graphCluster` to `TRUE` (default), clustering can be performed on the pruned knn graph with weighted links, where weights correspond to the link probabilities. This may lead to the emergence of too many clusters (which could happen, e.g., due to variability in the link probabilities when integrating different experimental batches). In this case, the `use.weights` parameter can be set to `FALSE`, and Louvain clustering is performed on a pruned knn graph with equal weights for all links.
+
+The `pvalue` parameter determines the probability cutoff for link pruning, i.e., links with probabilities lower than `pvalue` are removed.
 
 To visualize the clustering with the help of RaceID, one can update the `Scseq` object with the results:
 ```{r}
@@ -833,9 +837,9 @@ sc <- SCseq(x)
 
 2. How should I analyze large datasets (>25k cells)?
 
-Datasets with >25k cells should be analyzed with VarID instead of RaceID, which is more suitable for large datasets and does not require a distance matrix. The memory requirement of a distance matrix scales with N^2 as a function of the number of cells N. VarID should be run with with parameters `large=TRUE` and `regNB=TRUE` of the `pruneKnn` function in order to achieve optimal performance (default parameters). To increase processing speed VarID can be run with multiple cores. However, each core requires additional memory, and with too many cores VarID will run out of memory. To reduce computation time, the number of genes used for the negative binomial regression of total UMI count pe cell can be limited to, e.g., 2000 by setting the `ngenes` parameter.
+Datasets with >25k cells should be analyzed with VarID instead of RaceID, which is more suitable for large datasets and does not require a distance matrix. The memory requirement of a distance matrix scales with N^2 as a function of the number of cells N. VarID should be run with with parameters `large=TRUE` and `regNB=TRUE` of the `pruneKnn` function in order to achieve optimal performance (default parameters). To increase processing speed VarID can be run with multiple cores. However, each core requires additional memory, and with too many cores VarID will run out of memory. To reduce computation time, the number of genes used for the negative binomial regression of total UMI count per cell can be limited to, e.g., 2000 by setting the `ngenes` parameter.
 
-Example for mouse data, including filtering of mitochondrial genes, ribosomal genes, and Gm* genes:
+Example for mouse data, including filtering of mitochondrial genes, ribosomal genes, and Gm* genes (and genes correlating to these groups):
 ```{r eval=FALSE}
 require(Matrix)
 require(RaceID)
@@ -848,19 +852,24 @@ colnames(x) <- b[,1]
 sc <- SCseq(x)
 sc <- filterdata(sc,mintotal=1000,CGenes=rownames(x)[grep("^(mt|Rp(l|s)|Gm\\d)",rownames(x))])
 expData <- getExpData(sc)
-res   <- pruneKnn(expData,large=TRUE,regNB=TRUE,no_cores=2,ngenes=2000)
+res   <- pruneKnn(expData,no_cores=5)
 cl    <- graphCluster(res,pvalue=0.01)
 probs <- transitionProbs(res,cl)
 
-## compute noise from corrected variance (if desired)
-#noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=2)
-#sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
+## compute noise from corrected variance
+noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=5)
+sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
 
 sc <- updateSC(sc,res=res,cl=cl)
 sc <- comptsne(sc)
 sc <- compumap(sc)
 
 ```
+
+
+3. What can I do if too many clusters were detected in my dataset?
+
+This could be a consequence of technical noise, e.g., if experimental batches with strong differences in total UMI counts were co-analyzed. In such cases the background models of RaceID or VarID could indicate the presence of many spurious outliers. In RaceID, the number of outliers can be reduced by setting the the `probthr` parameter of the `findoutliers` function to values closer to zero. This is the probability threshold for outlier detection. In VarID the `pvalue` parameter of the `graphCluster` function can be set to lower values. This is the probability threshold for pruning links of the knn network. In the extreme case that no outliers (or pruning) are desired, `probthr` (or `pvalue`) should be set to zero. Moreover, the `use.weights` parameter of the `graphCluster` function can be set to `FALSE`; in this case, Louvain clustering is performed on a (pruned) knn-network with equal weights for all links. By default, links are weighted by the link probability, and if strong technical differences lead to low link probabilities, this could be the reason for the emergence of too many clusters.
 
 # References
 

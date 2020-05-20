@@ -441,13 +441,13 @@ noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_core
 #  sc <- SCseq(x)
 #  sc <- filterdata(sc,mintotal=1000,CGenes=rownames(x)[grep("^(mt|Rp(l|s)|Gm\\d)",rownames(x))])
 #  expData <- getExpData(sc)
-#  res   <- pruneKnn(expData,large=TRUE,regNB=TRUE,no_cores=2,ngenes=2000)
+#  res   <- pruneKnn(expData,no_cores=5)
 #  cl    <- graphCluster(res,pvalue=0.01)
 #  probs <- transitionProbs(res,cl)
 #  
-#  ## compute noise from corrected variance (if desired)
-#  #noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=2)
-#  #sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
+#  ## compute noise from corrected variance
+#  noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=5)
+#  sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
 #  
 #  sc <- updateSC(sc,res=res,cl=cl)
 #  sc <- comptsne(sc)

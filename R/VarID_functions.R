@@ -535,6 +535,7 @@ noiseBaseFit <- function(x,step=.01,thr=.05){
 #' A Fruchterman-Rheingold graph layout is also derived from the pruned nearest neighbours.
 #' @param res List object with k nearest neighbour information returned by \code{pruneKnn} function.
 #' @param pvalue Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.
+#' @param use.weights logical. If TRUE, then nearest-neighbor link probabilities are used to build a graph as input for Louvain clustering. If FALSE, then all links have equal weight. Default is TRUE.
 #' @param rseed Integer number. Random seed to enforce reproducible clustering results. Default is 12345.
 #' @return List object of three components:
 #' \item{graph}{graph derived from the pruned adjacency matrix computed with the \pkg{igraph} package.}
@@ -544,12 +545,16 @@ noiseBaseFit <- function(x,step=.01,thr=.05){
 #' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' @export
-graphCluster <- function(res,pvalue=0.01,rseed=12345){
+graphCluster <- function(res,pvalue=0.01,use.weights=TRUE,rseed=12345){
     nn <- t(res$NN)
     from <- as.vector(sapply(nn[,1],function(x) rep(x,ncol(nn) - 1 )))
     to <- as.vector(t(nn[,-1]))
     p <- t(res$pvM)
-    p <- p * ( 1 * ( p > pvalue ) )
+    if ( use.weights ){
+        p <- p * ( 1 * ( p > pvalue ) )
+    }else{
+        p <- 1 * ( p > pvalue )
+    }
     weight <- as.vector(t(p))
     links <- data.frame(from=rownames(nn)[from],to=rownames(nn)[to],weight=weight)
     #f <- weights != 0

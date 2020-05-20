@@ -4,12 +4,14 @@
 \alias{graphCluster}
 \title{Function for infering Louvain clustering of the pruned k nearest neighbour graph}
 \usage{
-graphCluster(res, pvalue = 0.01, rseed = 12345)
+graphCluster(res, pvalue = 0.01, use.weights = TRUE, rseed = 12345)
 }
 \arguments{
 \item{res}{List object with k nearest neighbour information returned by \code{pruneKnn} function.}
 
 \item{pvalue}{Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.}
+
+\item{use.weights}{logical. If TRUE, then nearest-neighbor link probabilities are used to build a graph as input for Louvain clustering. If FALSE, then all links have equal weight. Default is TRUE.}
 
 \item{rseed}{Integer number. Random seed to enforce reproducible clustering results. Default is 12345.}
 }

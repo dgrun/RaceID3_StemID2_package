@@ -9,7 +9,7 @@
 dist.gen <- function(x,method="euclidean", ...){
   if ( method == "spearman" ) 1 - cor(t(x),method=method,...)
   else if ( method == "pearson" ) 1 - cor(t(x), method = method)
-  else if ( method == "logpearson" )  1 - cor(log2(t(x)), method = method)
+  else if ( method == "logpearson" )  1 - cor(log2(t(x)), method = "pearson")
   else if ( method == "rho") { yy <- propr(t(x), metric = "rho", alpha = 0.1);  1 - yy@matrix }
   else if ( method == "phi") { yy <- propr(t(x), metric = "phi", alpha = 0.1, symmetrize = T);  yy@matrix }
    else if ( method == "kendall") 1 - cor(t(x), method=method) 
