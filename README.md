@@ -61,7 +61,7 @@ vignette("RaceID")
 
 ## Reference:
 
-Grün D (2019) Revealing Dynamics of Gene Expression Variability in Cell State Space. Nature Methods 17(1):45-49.  doi: 10.1038/s41592-019-0632-3
+Grün D (2020) Revealing Dynamics of Gene Expression Variability in Cell State Space. Nature Methods 17(1):45-49.  doi: 10.1038/s41592-019-0632-3
 
 Herman JS, Sagar, Grün D. (2018) FateID infers cell fate bias in multipotent progenitors from single-cell RNA-seq data. Nat Methods. 2018 May;15(5):379-386. doi: 10.1038/nmeth.4662.
 

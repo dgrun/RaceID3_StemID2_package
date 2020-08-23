@@ -420,7 +420,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
             }, error = function(err){ FALSE } ))
             
             if ( opt ) alpha <- rs$solution else alpha <- 1
-
+            if ( alpha == Inf ) alpha <- 1 
             
 #            eval_f <- function( alphaP ) {
 #                return(alphaP)
@@ -738,7 +738,7 @@ plotNoiseModel <- function(x,corrected=FALSE){
 #' @export
 updateSC <- function(object,res=NULL, cl=NULL,noise=NULL,flo=NULL){
     if ( ! is.null(res) ){
-        object@dimRed$x <- as.matrix(res$dimRed)
+        if ( !is.null(res$dimRed) ) object@dimRed$x <- as.matrix(res$dimRed)
         object@distances <- res$distM
     }
     if ( ! is.null(cl) & ! is.null(res) ){
