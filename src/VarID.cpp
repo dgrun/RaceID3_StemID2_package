@@ -72,3 +72,35 @@ NumericVector applyNoiseReg(IntegerMatrix x,NumericVector z,NumericVector co,dou
   }
   return output;
 }
+
+// [[Rcpp::export]]
+NumericVector applyMean(IntegerMatrix x,NumericVector z,double pv, NumericMatrix pvM){
+  NumericVector output(x.ncol());
+  for(int i=0;i<x.ncol();i++){
+    IntegerVector ind = x(_,i) - 1;
+    NumericVector pval = pvM(_,i);
+    pval.push_front( 1 );
+    ind = ind[pval > pv];
+
+    NumericVector k = z[ind];
+    double m = mean(k);
+    output(i) = m;
+  }
+  return output;
+}
+
+// [[Rcpp::export]]
+NumericVector applyMeanReg(IntegerMatrix x,NumericVector z,double pv, NumericMatrix pvM){
+  NumericVector output(x.ncol());
+  for(int i=0;i<x.ncol();i++){
+    IntegerVector ind = x(_,i) - 1;
+    NumericVector pval = pvM(_,i);
+    pval.push_front( 1 );
+    ind = ind[pval > pv];
+
+    NumericVector k = z[ind];
+    double m = mean(k);
+    output(i) = m;
+  }
+  return output;
+}

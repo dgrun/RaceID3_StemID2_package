@@ -282,6 +282,8 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
     rs <- rowSums(expData > 0)
     cs <- colSums(expData)
     expData <- expData[rs>0,cs>0]
+
+    if (!is.null(batch) ) batch <- batch[colnames(expData)]
     
     if ( is.null(genes) ) genes <- rownames(expData)
     bg <- fitBackVar(expData[genes,])
@@ -379,21 +381,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
     cPAdjust <- cmpfun(PAdjust)
     fCoef    <- as.vector(backModel$coefficients)
     
-   # localFUNalpha <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef){
-   #     FNData <- t(t(expData[,x])/colS[x]*min(colS))
-   #     k <- FNData[,1]
-   #     m <- FNData[,-1]
-   #     weights <- round(cQP(k,m,TRUE)$w,5)
-   #     weights <- c(alpha,weights)
-   #     weights <- weights/sum(weights)
-   #     z <- applyProb(expData[,x],fCoef,weights)
-   #     
-   #     p <- apply(z,2,cPAdjust)[-1]
-   #     names(p) <- colnames(m)
-   #     p
-   # }
-
-    
+     
     localFUN <- function(x,expData,colS,alpha,cQP,cPAdjust,fCoef,backModel){
         FNData <- t(t(expData[,x])/colS[x]*min(colS))
         k <- FNData[,1]
@@ -404,7 +392,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
                     
         if ( is.null(alpha) ){
             u <- apply(expData[,x[-1]],1,function(x,w){sum(x * w)},w = weights)
-            v <- sqrt( uvar(expData[,x[1]] + .1,backModel) )
+            v <- sqrt( uvar(expData[,x[1]] + 1/knn,backModel) )
             W <- sum(weights)
             b1 <- max( (  u - ( expData[,x[1]] + v ) * W )/v, na.rm=TRUE)
             b2 <- max( ( -u + ( expData[,x[1]] - v ) * W )/v, na.rm=TRUE)
@@ -421,41 +409,10 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,batch=NULL,regVar=
             
             if ( opt ) alpha <- rs$solution else alpha <- 1
             if ( alpha == Inf ) alpha <- 1 
-            
-#            eval_f <- function( alphaP ) {
-#                return(alphaP)
-#            }
-#            
-#            eval_g_ineq <- function( alphaP ) {   
-#                cn <- alphaP + sum(weights)
-#                z  <- alphaP/cn*k0 + apply(m0,1,function(x,w){sum(x * w)},w = weights)/cn
-                #std <- sqrt(lvar(z,backModel))
-#                std <- sqrt(lvar(k0,backModel))
-#                y <- abs(z-k0)/std
-#                constr <- max( y - 1, na.rm=TRUE)
-#                return( list(c=constr) )
-#            }
-#            
-#            x0 <- 1
-#            lb <- 0
-#            ub <- 10
-#            
-#            suppressWarnings( opt <- tryCatch( {
-#                rs <- solnl( X=x0,
-#                            objfun=eval_f,
-#                            confun=eval_g_ineq,
-#                            lb=lb,
-#                            ub=ub,
-#                            tolX = 1e-02, tolFun = 1e-02, tolCon = 1e-02, maxnFun = 1e+03, maxIter = 100
-#                            )
-#                TRUE
-#            }, error = function(err){ FALSE } ))
-            
-#            if ( opt ) alpha <- rs$par else alpha <- 1
         }
         weights <- c(alpha,weights)
         weights <- weights/sum(weights)
-        z <- applyProb(expData[,x],fCoef,weights)
+        z <- applyProb(expData[,x] + 1/knn,fCoef,weights)
         
         p <- apply(z,2,cPAdjust)[-1]
         names(p) <- colnames(m)
@@ -582,13 +539,13 @@ graphCluster <- function(res,pvalue=0.01,use.weights=TRUE,rseed=12345){
 
 
 #' @title Function for computing local gene expression variability
-#' @description This function performs computation of the local gene expression variability across the pruned k nearest neighbours at given link probability cutoff. The estimated variance is corrected for the mean dependence utilizing  the baseline model of gene expression variance
+#' @description This function performs computation of the local gene expression variability across the pruned k nearest neighbours at given link probability cutoff. The estimated variance is corrected for the mean dependence utilizing the baseline model of gene expression variance.
 #' @param x Matrix of gene expression values with genes as rows and cells as columns. The matrix need to contain the same cell IDs as columns like the input matrix used to derive the pruned k nearest neighbours with the \code{pruneKnn} function. However, it may contain a different set of genes.
 #' @param res List object with k nearest neighbour information returned by \code{pruneKnn} function.
 #' @param pvalue Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.
 #' @param genes Vector of gene names corresponding to a subset of rownames of \code{x}. Only for these genes local gene expression variability is computed. Default is \code{NULL} and values for all genes are returned.
 #' @param regNB logical. If \code{TRUE} then gene expression variability is derived from the pearson residuals obtained from a negative binomial regression to eliminate the dependence of the expression variance on the mean. If \code{FALSE} then the mean dependence is regressed out from the raw variance using the baseline variance estimate. Default is \code{FALSE}.
-#' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log10 UMI count per cell.An interaction term is included for the log10 UMI count with the batch variable. Default value is \code{NULL}.
+#' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log10 UMI count per cell. An interaction term is included for the log10 UMI count with the batch variable. Default value is \code{NULL}.
 #' @param regVar data.frame with additional variables to be regressed out simultaneously with the log10 UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log10 UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.
 #' @param ngenes Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is \code{NULL} and all genes are used.
 #' @param span Positive real number. Parameter for loess-regression (see \code{regNB}) controlling the degree of smoothing. Default is 0.75.
@@ -626,7 +583,7 @@ compNoise <- function(x,res,pvalue=0.01,genes=NULL,regNB=FALSE,batch=NULL,ngenes
         x <- fdata
     }
     
-    localFUN <- function(z,nn,lvar,nfCoef,pvalue,pvM,regNB){
+    localFUN <- function(z,nn,nfCoef,pvalue,pvM,regNB){
         n <- colnames(nn)
         if ( regNB ){
             d <- applyNoiseReg(nn,z,nfCoef,pvalue,pvM)
@@ -634,33 +591,86 @@ compNoise <- function(x,res,pvalue=0.01,genes=NULL,regNB=FALSE,batch=NULL,ngenes
             d <- applyNoise(nn,z,nfCoef,pvalue,pvM)
         }
         f <- is.na(d) | is.nan(d) | d == -Inf | d == Inf | d == 0
-        ##d[f]  <- min(d[!f])
         d[f]  <- 0
         d
     }
     
     if ( no_cores == 1 ){
-        nData <- t( apply(x,1,localFUN,nn=res$NN,lvar=lvar,nfCoef=nfCoef,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
+        nData <- t( apply(x,1,localFUN,nn=res$NN,nfCoef=nfCoef,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
     }else{
         clust <- makeCluster(no_cores) 
-        nData <- t( parApply(cl=clust,x,1,localFUN,nn=res$NN,lvar=lvar,nfCoef=nfCoef,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
+        nData <- t( parApply(cl=clust,x,1,localFUN,nn=res$NN,nfCoef=nfCoef,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
         stopCluster(clust)
     }
 
-    #clust <- parallel::makeCluster(no_cores) 
-    #nData <- t( parApply(cl=clust,fdata,1,function(z,nn,lvar,nfit,pvalue=pvalue,pvM=res$pvM){
-    #    n <- colnames(nn)
-    #    d <- apply(nn,2,function(x){ x <- x[!is.na(x)]; k <- z[x]; lm <- mean(k); lv <- var(k) ; log2(lv) - log2(lvar(lm,nfit))} )
-
-    #    d[is.na(d)]  <- min(d[!is.na(d)])
-    #    d[d == -Inf] <- min(d[d != -Inf])
-    #    d
-    #},nn=res$NN,lvar=lvar,nfit=noiseModel$nfit) )
-    #stopCluster(clust)
-    
     colnames(nData)    <- colnames(fdata)
 
     return( list(model=noiseModel, data=nData, regData=regData) )
+}
+
+#' @title Function for computing local gene expression averages
+#' @description This function performs computation of locally averaged gene expression across the pruned k nearest neighbours at given link probability cutoff. 
+#' @param x Matrix of gene expression values with genes as rows and cells as columns. The matrix need to contain the same cell IDs as columns like the input matrix used to derive the pruned k nearest neighbours with the \code{pruneKnn} function. However, it may contain a different set of genes.
+#' @param res List object with k nearest neighbour information returned by \code{pruneKnn} function.
+#' @param pvalue Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.
+#' @param genes Vector of gene names corresponding to a subset of rownames of \code{x}. Only for these genes local gene expression averages are computed. Default is \code{NULL} and values for all genes are returned.
+#' @param regNB logical. If \code{TRUE} then gene expression averages are computed from the pearson residuals obtained from a negative binomial regression to eliminate the dependence of the expression variance on the mean. If \code{FALSE} then averages are computed from raw UMI counts. Default is \code{FALSE}.
+#' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log10 UMI count per cell.An interaction term is included for the log10 UMI count with the batch variable. Default value is \code{NULL}.
+#' @param regVar data.frame with additional variables to be regressed out simultaneously with the log10 UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log10 UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.
+#' @param ngenes Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is \code{NULL} and all genes are used.
+#' @param span Positive real number. Parameter for loess-regression (see \code{regNB}) controlling the degree of smoothing. Default is 0.75.
+#' @param no_cores Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.
+#' @param seed Integer number. Random number to initialize stochastic routines. Default is 12345.
+#' @return List object of three components:
+#' \item{mean}{matrix with local gene expression averages, computed from Pearson residuals (if \code{regNB=TRUE}) or normalized UMI counts (if \code{regNB=FALSE}). In the latter case, the average UMI count for a local neighbourhood is normalized to one and rescaled by the median UMI count across neighborhoods.}
+#' \item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log10_umi} is a vector with the total log10 UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log10 UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
+#' @examples
+#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' mexp <- compMean(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
+#' @importFrom MASS glm.nb theta.ml theta.md
+#' @importFrom stats coefficients glm loess predict model.matrix df.residual density approx
+#' @import parallel
+#' @export
+compMean <- function(x,res,pvalue=0.01,genes=NULL,regNB=FALSE,batch=NULL,ngenes=NULL,regVar=NULL,span=.75,no_cores=NULL,seed=12345){
+
+    if ( is.null(genes) ) genes <- rownames(x)
+    fdata <- x[genes,]
+        
+    if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
+
+    regData <- NULL
+    if ( regNB ){
+        regData <- res$regData
+        if (is.null(res$regData) ) regData <- compResiduals(fdata,batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed)
+        x <- regData$pearsonRes[genes[genes %in% rownames(regData$pearsonRes)],]
+    }else{
+        x <- fdata
+    }
+    
+    localFUN <- function(z,nn,pvalue,pvM,regNB){
+        n <- colnames(nn)
+        if ( regNB ){
+            d <- applyMeanReg(nn,z,pvalue,pvM)
+        }else{
+            d <- applyMean(nn,z,pvalue,pvM)
+        }
+        f <- is.na(d) | is.nan(d) | d == -Inf | d == Inf | d == 0
+        d[f]  <- 0
+        d
+    }
+    
+    if ( no_cores == 1 ){
+        nData <- t( apply(x,1,localFUN,nn=res$NN,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
+    }else{
+        clust <- makeCluster(no_cores) 
+        nData <- t( parApply(cl=clust,x,1,localFUN,nn=res$NN,pvalue=pvalue,pvM=res$pvM,regNB=regNB) )
+        stopCluster(clust)
+    }
+    
+    colnames(nData) <- colnames(fdata)
+    k <- apply(nData,2,sum)
+    nData <- t(t(nData)/k)*median(k)
+    return( list( mean=nData, regData=regData) )
 }
 
 #' @title Baseline gene expression variability
@@ -1015,7 +1025,7 @@ diffNoisyGenes <- function(noise,cl,set,bgr=NULL,no_cores=1){
 #' @description This function extracts genes with maximal variability in a cluster or in the entire data set.
 #' @param noise List object with the background noise model and a variability matrix, returned by the \code{compNoise} function.
 #' @param cl List object with Louvain clustering information, returned by the \code{graphCluster} function. Default is \code{NULL}.
-#' @param set Postive integer number or vector of integers corresponding to valid cluster numbers. Default is \code{NULL}
+#' @param set Postive integer number or vector of integers corresponding to valid cluster numbers. Noise levels are computed across all cells in this subset of clusters. Default is \code{NULL} and noise levels are computed across all cells.
 #' @return Vector with average gene expression variability in decreasing order, computed across all cells or only cells in a set of clusters (if \code{cl} and
 #' \code{set} are given.
 #' @examples

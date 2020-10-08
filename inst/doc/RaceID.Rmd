@@ -745,7 +745,7 @@ plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 With the clustering derived by `graphCluster` and the object returned from the `compNoise` function, genes with elevated noise levels in a cluster (or a set of clusters) can be inferred:
 ```{r}
-ngenes <- diffNoisyGenes(noise,cl,set=c(1,4),no_cores=1)
+ngenes <- diffNoisyGenes(noise,cl,set=c(5),no_cores=1)
 head(ngenes)
 ```
 
@@ -769,7 +769,7 @@ plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cel
 
 It is also possible to order genes by their noise levels across a (set of) cluster or the entire dataset, if the `cl` argument is omitted:
 ```{r}
-mgenes <- maxNoisyGenes(noise,cl=cl,set=3)
+mgenes <- maxNoisyGenes(noise,cl=cl,set=5)
 head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 ```

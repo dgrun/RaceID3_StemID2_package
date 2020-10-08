@@ -85,6 +85,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// applyMean
+NumericVector applyMean(IntegerMatrix x, NumericVector z, double pv, NumericMatrix pvM);
+RcppExport SEXP _RaceID_applyMean(SEXP xSEXP, SEXP zSEXP, SEXP pvSEXP, SEXP pvMSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type z(zSEXP);
+    Rcpp::traits::input_parameter< double >::type pv(pvSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pvM(pvMSEXP);
+    rcpp_result_gen = Rcpp::wrap(applyMean(x, z, pv, pvM));
+    return rcpp_result_gen;
+END_RCPP
+}
+// applyMeanReg
+NumericVector applyMeanReg(IntegerMatrix x, NumericVector z, double pv, NumericMatrix pvM);
+RcppExport SEXP _RaceID_applyMeanReg(SEXP xSEXP, SEXP zSEXP, SEXP pvSEXP, SEXP pvMSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type z(zSEXP);
+    Rcpp::traits::input_parameter< double >::type pv(pvSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pvM(pvMSEXP);
+    rcpp_result_gen = Rcpp::wrap(applyMeanReg(x, z, pv, pvM));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_hello_world
 List rcpp_hello_world();
 RcppExport SEXP _RaceID_rcpp_hello_world() {
@@ -103,6 +131,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_RaceID_applyProb", (DL_FUNC) &_RaceID_applyProb, 3},
     {"_RaceID_applyNoise", (DL_FUNC) &_RaceID_applyNoise, 5},
     {"_RaceID_applyNoiseReg", (DL_FUNC) &_RaceID_applyNoiseReg, 5},
+    {"_RaceID_applyMean", (DL_FUNC) &_RaceID_applyMean, 4},
+    {"_RaceID_applyMeanReg", (DL_FUNC) &_RaceID_applyMeanReg, 4},
     {"_RaceID_rcpp_hello_world", (DL_FUNC) &_RaceID_rcpp_hello_world, 0},
     {NULL, NULL, 0}
 };

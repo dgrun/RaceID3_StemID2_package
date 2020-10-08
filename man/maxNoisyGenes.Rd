@@ -11,7 +11,7 @@ maxNoisyGenes(noise, cl = NULL, set = NULL)
 
 \item{cl}{List object with Louvain clustering information, returned by the \code{graphCluster} function. Default is \code{NULL}.}
 
-\item{set}{Postive integer number or vector of integers corresponding to valid cluster numbers. Default is \code{NULL}}
+\item{set}{Postive integer number or vector of integers corresponding to valid cluster numbers. Noise levels are computed across all cells in this subset of clusters. Default is \code{NULL} and noise levels are computed across all cells.}
 }
 \value{
 Vector with average gene expression variability in decreasing order, computed across all cells or only cells in a set of clusters (if \code{cl} and

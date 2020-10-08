@@ -25,6 +25,14 @@ applyNoiseReg <- function(x, z, co, pv, pvM) {
     .Call(`_RaceID_applyNoiseReg`, x, z, co, pv, pvM)
 }
 
+applyMean <- function(x, z, pv, pvM) {
+    .Call(`_RaceID_applyMean`, x, z, pv, pvM)
+}
+
+applyMeanReg <- function(x, z, pv, pvM) {
+    .Call(`_RaceID_applyMeanReg`, x, z, pv, pvM)
+}
+
 rcpp_hello_world <- function() {
     .Call(`_RaceID_rcpp_hello_world`)
 }

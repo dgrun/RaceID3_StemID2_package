@@ -378,7 +378,7 @@ ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 ## -----------------------------------------------------------------------------
-ngenes <- diffNoisyGenes(noise,cl,set=c(1,4),no_cores=1)
+ngenes <- diffNoisyGenes(noise,cl,set=c(5),no_cores=1)
 head(ngenes)
 
 ## -----------------------------------------------------------------------------
@@ -392,7 +392,7 @@ ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=T
 plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
 
 ## -----------------------------------------------------------------------------
-mgenes <- maxNoisyGenes(noise,cl=cl,set=3)
+mgenes <- maxNoisyGenes(noise,cl=cl,set=5)
 head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 
