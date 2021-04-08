@@ -55,8 +55,8 @@ Default is \code{FALSE}.}
 \item{cap}{Numeric. Upper bound for gene expression. All values larger then \code{cap} are replaced by \code{cap}.
 Default is \code{NULL} and no \code{cap} is applied.}
 
-\item{flo}{Numeric. Lower bound for gene expression. All values smaller then \code{floor} are replaced by \code{floor}.
-Default is \code{NULL} and no \code{floor} is applied.}
+\item{flo}{Numeric. Lower bound for gene expression. All values smaller then \code{flo} are replaced by \code{flo}.
+Default is \code{NULL} and no \code{flo} is applied.}
 
 \item{samples}{A vector with a group of sample names for each cell in the same order as the column names of the \code{ndata} slot of the \code{SCseq} object.}
 

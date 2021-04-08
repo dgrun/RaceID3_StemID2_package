@@ -12,7 +12,8 @@ plotdiffgenesnb(
   mthr = -Inf,
   Aname = NULL,
   Bname = NULL,
-  show_names = TRUE
+  show_names = TRUE,
+  ...
 )
 }
 \arguments{
@@ -31,12 +32,14 @@ plotdiffgenesnb(
 \item{Bname}{name of expression set \code{B}, which was used as input to \code{diffexpnb}. If provided, this name is used in the axis labels. Default value is \code{NULL}.}
 
 \item{show_names}{logical value. If \code{TRUE} then gene names displayed for differentially expressed genes. Default value is \code{FALSE}.}
+
+\item{...}{Additional arguments for function \code{plot}.}
 }
 \value{
 None
 }
 \description{
-This is a plotting function for visualizing the output of the \code{diffexpnb} function.
+This is a plotting function for visualizing the output of the \code{diffexpnb} or \code{clustdiffgenes} function as MA plot.
 }
 \examples{
 sc <- SCseq(intestinalDataSmall)

@@ -169,7 +169,8 @@ To inspect clusters in more detail, differentially expressed genes can be inferr
 
 For instance, to obtain differentially expressed genes within cluster 9 compared to all other cells:
 ```{r}
-dg <- clustdiffgenes(sc,4,pvalue=.01)
+d  <- clustdiffgenes(sc,4,pvalue=.01)
+dg <- d$dg
 head(dg,25)
 ```
 

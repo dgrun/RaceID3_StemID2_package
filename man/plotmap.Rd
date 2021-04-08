@@ -2,7 +2,7 @@
 % Please edit documentation in R/RaceID.R
 \name{plotmap}
 \alias{plotmap}
-\title{Plotting a t-SNE map}
+\title{Plotting a dimensional reduction representation}
 \usage{
 plotmap(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE, cex = 0.5)
 }
@@ -24,6 +24,6 @@ clusters prior to outlier identification. Default is \code{TRUE}.}
 None
 }
 \description{
-This functions plots a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+This functions plots a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 of the singe-cell transcriptome data.
 }

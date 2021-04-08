@@ -3,6 +3,7 @@
 #' @import methods
 #' @import umap
 #' @import ggplot2
+#' @import matrixStats
 #' @importFrom graphics abline arrows axis barplot box hist layout legend lines par plot points rect text
 #' @importFrom grDevices colorRamp rgb
 #' @importFrom stats aggregate as.dist as.formula binom.test cmdscale cor dist fisher.test hclust kmeans median pnbinom quantile residuals runif
@@ -117,14 +118,14 @@ filterdata <- function(object, mintotal=3000, minexpr=5, minnumber=5, LBatch=NUL
     object@dimRed <- list()
 
     # total transcript counts
-    counts <- apply(object@expdata,2,sum,na.rm=TRUE)
+    counts <- colSums(object@expdata,na.rm=TRUE)
 
     # filtering of cells
     f <- counts >= mintotal
     object@counts <- counts[f]
 
     # filterings of genes and normalization
-    g <- apply(object@expdata[,f]>=minexpr,1,sum,na.rm=TRUE) >= minnumber
+    g <- rowSums(object@expdata[,f]>=minexpr,na.rm=TRUE) >= minnumber
     object@ndata <- t(t(object@expdata[,f])/counts[f])
     genes <- rownames(object@ndata)[g]
     genes <- genes[! genes %in% FGenes ]
@@ -418,9 +419,9 @@ plotdiffgenes <- function(z,gene){
   abline(v=length(x) + .5)
 }
 
-#' @title Plotting a t-SNE map
+#' @title Plotting a dimensional reduction representation
 #'
-#' @description This functions plots a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+#' @description This functions plots a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 #' of the singe-cell transcriptome data.
 #' @param object \code{SCseq} class object.
 #' @param final logical. If \code{TRUE}, then highlight final clusters after outlier identification. If \code{FALSE}, then highlight initial
@@ -486,9 +487,9 @@ plotmap <- function(object, final = TRUE, tp = 1, fr = FALSE, um = FALSE, cex = 
     }
 }
 
-#' @title Plot labels in the t-SNE map
+#' @title Plot labels in a dimensional reduction representation
 #'
-#' @description This functions plots cell labels into a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+#' @description This functions plots cell labels into a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 #' of the singe-cell transcriptome data.
 #' @param object \code{SCseq} class object.
 #' @param labels Vector of labels for all cells to be highlighted in the t-SNE map. The order has to be the same as for the
@@ -524,9 +525,9 @@ plotlabelsmap <- function(object,labels=NULL,fr=FALSE,um=FALSE,cex=.5){
     text(d[,1],d[,2],labels,cex=cex)
 }
 
-#' @title Plotting groups as different symbols in the t-SNE map
+#' @title Plotting groups as different symbols in a dimensional reduction representation
 #'
-#' @description This functions highlights groups of cells by different symbols in a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+#' @description This functions highlights groups of cells by different symbols in a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 #' of the singe-cell transcriptome data.
 #' @param object \code{SCseq} class object.
 #' @param types Vector assigning each cell to a type to be highlighted in the t-SNE map. The order has to be the same as for the
@@ -585,9 +586,9 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5
     if ( leg ) legend("topleft", legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex=.75, bty="n")
 }
 
-#' @title Highlighting gene expression in the t-SNE map
+#' @title Highlighting gene expression in a dimensional reduction representation
 #'
-#' @description This functions highlights gene expression in a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+#' @description This functions highlights gene expression in a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 #' of the singe-cell transcriptome data.
 #' @param object \code{SCseq} class object.
 #' @param g Individual gene name or vector with a group of gene names corresponding to a subset of valid row names of the \code{ndata} slot
@@ -600,7 +601,7 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5
 #' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
 #' @param cells Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 #' this subset.
-#' @param cex size of data points. Default value is 1.
+#' @param cex size of data points. Default value is 0.5.
 #' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
 #' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
 #' @param noise logical. If \code{TRUE} then display local gene expression variability instead of gene expression (requires VarID analysis)/ Default value is \code{FALSE}.
@@ -608,7 +609,7 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5
 #'
 #' @export
 #' @importFrom RColorBrewer brewer.pal
-plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr = FALSE, um = FALSE, cells = NULL, cex = 1, map = TRUE, leg = TRUE, noise = FALSE ){
+plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr = FALSE, um = FALSE, cells = NULL, cex = .5, map = TRUE, leg = TRUE, noise = FALSE ){
     if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
     if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
     if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")  
@@ -671,6 +672,9 @@ plotexpmap <- function(object, g, n = NULL, logsc = FALSE, imputed = FALSE, fr =
     mi <- min(l, na.rm = TRUE)
     ma <- max(l, na.rm = TRUE)
     ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
+    #colorPalette = c("grey", "tan1", "red", "#7a0f09", "black")
+    #ColorRamp <- colorRampPalette(colorPalette)(100)
+
     ColorLevels <- seq(mi, ma, length = length(ColorRamp))
     v <- round((l - mi)/(ma - mi) * 99 + 1, 0)
     if ( fr ){
@@ -1140,8 +1144,12 @@ compfr <- function(object,knn=10,rseed=15555){
 #' @param dimRed logical. If \code{TRUE} then the umap is computed from the feature matrix in slot \code{dimRed$x} (if not equal to \code{NULL}).
 #' Default is \code{FALSE} and the umap is computed from the distance matrix stored in slot \code{distances}. If slot \code{distances} equals \code{NULL}
 #' \code{dimRed} is automatially set to \code{TRUE}.
-#' @param umap.pars umap parameters. See \pkg{umap} package, \code{umap.defaults}. Default is \code{umap.defaults}. \code{umap.pars$input} is automatically
-#' set to \code{"dist"} if \code{dimRed} is \code{FALSE}.
+#' @param n_neighbors Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 15.
+#' @param metric Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is "euclidean".
+#' @param n_epochs  Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 200.
+#' @param min_dist Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 0.1.
+#' @param local_connectivity Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 1.
+#' @param spread Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 1.
 #' @return \code{SCseq} object with umap coordinates stored in slot \code{umap}.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -1152,7 +1160,16 @@ compfr <- function(object,knn=10,rseed=15555){
 #' sc <- compumap(sc)
 #' @import igraph
 #' @export
-compumap <- function(object,dimRed=FALSE,umap.pars = umap.defaults){
+compumap <- function(object,dimRed=FALSE, n_neighbors = 15, metric = "euclidean", n_epochs = 200, min_dist = 0.1, local_connectivity = 1, spread = 1){
+    umap.pars <- umap.defaults
+    umap.pars["min_dist"] <- min_dist
+    umap.pars["n_neighbors"] <- n_neighbors
+    umap.pars["metric"] <- metric
+    umap.pars["n_epochs"] <- n_epochs
+    umap.pars["min_dist"] <- min_dist
+    umap.pars["local_connectivity"] <- local_connectivity
+    umap.pars["spread"] <- spread    
+        
     if ( is.null(object@distances) ) dimRed <- TRUE
     if ( dimRed & ! is.null(object@dimRed$x) ){
         object@umap <- as.data.frame( umap(t(object@dimRed$x),config=umap.pars)$layout )
@@ -1166,17 +1183,19 @@ compumap <- function(object,dimRed=FALSE,umap.pars = umap.defaults){
 
 #' @title Inference of differentially expressed genes in a cluster
 #'
-#' @description This functions computes differentially expressed genes in a cluster by comparing to all remaining cells outside of the cluster based on a negative binomial
+#' @description This functions computes differentially expressed genes in a (set of) cluster(s) by comparing to all remaining cells outside of the cluster (or a given background set of clusters) based on a negative binomial
 #' model of gene expression
 #' @param object \code{SCseq} class object.
-#' @param cl A valid cluster number from the final cluster partition stored in the \code{cpart} slot of the \code{SCseq} object.
+#' @param cl A valid set of cluster numbers from the final cluster partition stored in the \code{cpart} slot of the \code{SCseq} object.
+#' @param bgr Ordered vector of cluster numbers to be used as background set. If \code{NULL} then all clusters not in \code{cl} are used as background set.
 #' @param pvalue Positive real number smaller than one. This is the p-value cutoff for the inference of differential gene expression. Default is 0.01.
-#' @return A data.frame of differentially expressed genes ordered by p-value in increasing order, with four columns:
+#' @return A list of two components. The first component \code{dg} contains a a data.frame of differentially expressed genes ordered by p-value in increasing order, with four columns:
 #'   \item{mean.ncl}{mean expression across cells outside of cluster \code{cl}.}
 #'   \item{mean.cl}{mean expression across cells within cluster \code{cl}.}
 #'   \item{fc}{fold-change of mean expression in cluster \code{cl} versus the remaining cells.}
 #'   \item{pv}{inferred p-value for differential expression.}
 #'   \item{padj}{Benjamini-Hochberg corrected FDR.}
+#' The second component \code{de} contains the conventional output of \code{diffexpnb}, where set B corresponds to all clusters in \code{cl} and B to the background set (all clusters in \code{bgr} or not in \code{cl}). This component can be used for plotting by \code{plotdiffgenesnb}.
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
 #' sc <- filterdata(sc)
@@ -1184,26 +1203,31 @@ compumap <- function(object,dimRed=FALSE,umap.pars = umap.defaults){
 #' sc <- clustexp(sc)
 #' sc <- findoutliers(sc)
 #' x <- clustdiffgenes(sc,1)
-#' head(x[x$fc>1,])
+#' head(x$dg[x$dg$fc>1,])
 #' @export
-clustdiffgenes <- function(object,cl,pvalue=.01){
+clustdiffgenes <- function(object,cl,bgr=NULL,pvalue=.01){
     if ( length(object@cpart) == 0 ) stop("run findoutliers before clustdiffgenes")
     if ( ! is.numeric(pvalue) ) stop("pvalue has to be a number between 0 and 1") else if (  pvalue < 0 | pvalue > 1 ) stop("pvalue has to be a number between 0 and 1")
-    if ( ! cl %in% unique(object@cpart) ) stop("cl has to be a valid cluster number")
+    if ( length(intersect(cl,unique(object@cpart))) < length(cl) ) stop("cl has to be a valid cluster number")
     cdiff <- list()
     part  <- object@cpart
-    fdata <- getfdata(object)
-    bg <- fitbackground(fdata)
-    
-    B <- names(part)[part == cl]
-    A <- names(part)[part != cl]
-    de <- diffexpnb(fdata, A=A, B=B, method="pooled",norm=FALSE, DESeq=FALSE,locreg=FALSE,vfit=bg$fit)
-    d <- data.frame(mean.ncl=de$res$baseMeanA,mean.cl=de$res$baseMeanB,fc=de$res$foldChange,pv=de$res$pv,padj=de$res$padj)
+     
+    B <- names(part)[  part %in% cl]
+    if ( is.null(bgr) ){
+        A <- names(part)[! part %in% cl]
+    }else{
+        A <- names(part)[ part %in% bgr ]
+    }
+    fdata <- getfdata(object,n=unique(c(A,B)))
+    bg    <- fitbackground(fdata)
+    edata <- object@expdata[object@genes,unique(c(A,B))]
+    de <- diffexpnb(edata, A=A, B=B, method="pooled",norm=TRUE, DESeq=FALSE,locreg=FALSE,vfit=bg$fit)
+    d  <- data.frame(mean.ncl=de$res$baseMeanA,mean.cl=de$res$baseMeanB,fc=de$res$foldChange,pv=de$res$pv,padj=de$res$padj)
     rownames(d) <- rownames(de$res)
-    d <- d[order(d$pv,decreasing=FALSE),]
+    d  <- d[order(d$pv,decreasing=FALSE),]
     
     
-    return(d[d$pv < pvalue,])
+    return(list( dg=d[d$pv < pvalue,], de=de ))
 }
 
 #' @title Plot Saturation of Within-Cluster Dispersion
@@ -1344,6 +1368,8 @@ clustheatmap <- function(object,final=TRUE,hmethod="single"){
     ma  <- max(di,na.rm=TRUE)
     layout(matrix(data=c(1,3,2,4), nrow=2, ncol=2), widths=c(5,1,5,1), heights=c(5,1,1,1))
     ColorRamp   <- colorRampPalette(brewer.pal(n = 7,name = "RdYlBu"))(100)
+    #colorPalette = c("grey", "tan1", "red", "#7a0f09", "black")
+    #ColorRamp <- colorRampPalette(colorPalette)(100)
     ColorLevels <- seq(mi, ma, length=length(ColorRamp))
     if ( mi == ma ){
         ColorLevels <- seq(0.99*mi, 1.01*ma, length=length(ColorRamp))
@@ -1452,8 +1478,8 @@ rfcorrect <- function(object,rfseed=12345,nbtree=NULL,final=TRUE,nbfactor=5,...)
 #' Default is \code{FALSE}.
 #' @param cap Numeric. Upper bound for gene expression. All values larger then \code{cap} are replaced by \code{cap}.
 #' Default is \code{NULL} and no \code{cap} is applied.
-#' @param flo Numeric. Lower bound for gene expression. All values smaller then \code{floor} are replaced by \code{floor}.
-#' Default is \code{NULL} and no \code{floor} is applied.
+#' @param flo Numeric. Lower bound for gene expression. All values smaller then \code{flo} are replaced by \code{flo}.
+#' Default is \code{NULL} and no \code{flo} is applied.
 #' @param samples A vector with a group of sample names for each cell in the same order as the column names of the \code{ndata} slot of the \code{SCseq} object.
 #' @param cluster_cols logical. If \code{TRUE}, then columns are clustered. Default is \code{FALSE}.
 #' @param cluster_rows logical. If \code{TRUE}, then rows are clustered. Default is \code{TRUE}.
@@ -1472,6 +1498,15 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
     if ( imputed & length(object@imputed) == 0 ) stop("imputing needs to be done by running compdist with knn > 0")
     if ( !is.null(cl) ){ if (sum(! cl %in% object@cpart) > 0 )stop("cl has to be a subset of clusters in slot cpart") }
     if ( !is.null(cells) ){ if (sum(! cells %in% names(object@cpart)) > 0 )stop("cells has to be a subset of cell ids, i.e. names of slot cpart") }
+
+    #if ( zsc ){
+    #    colorPalette = c("darkblue","lightblue","grey", "tan1", "red")
+    #}else{
+    #    colorPalette = c("grey", "tan1", "red", "#7a0f09", "black")
+    #}
+    #ColorRamp <- colorRampPalette(colorPalette)(100)
+    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
+
 
     metric <- "pearson"
     if ( !is.null(object@clusterpar$metric) ) metric <- object@clusterpar$metric
@@ -1530,7 +1565,7 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
             for ( i in 1:ncol(xl) ) xl[ xl[,i] < flo, i] <- flo 
         }
         
-        pheatmap(xl[,cl],cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA,fontsize=fontsize)
+        pheatmap(xl[,cl],color=ColorRamp,cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA,fontsize=fontsize)
     }else{
         if (length(unique(pt)) == 1 ){
             n <- names(pt)
@@ -1559,7 +1594,12 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
         v <- object@fcol[unique(pt[n])]
         names(v) <- paste("c",unique(pt[n]),sep="")
         if ( noise ){
-            if ( logscale ) xl <- log2(xn[,n]) else xl <- xn[,n]
+            xn[is.na(xn)] <- 0
+            if ( logscale ){
+                xl <- log2(xn[,n] + .1)
+            }else{
+                xl <- xn[,n]
+            }
             if ( zsc ) xl <- zscore(xl)
         }else{
             if ( logscale ) xl <- log2(x[,n]) else xl <- x[,n]
@@ -1591,9 +1631,9 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
                 saCol <- samples_col[h]
                 names(saCol) <- sort(unique(samples))
             }
-             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
+             pheatmap(xl,color=ColorRamp,annotation_col=anc,annotation_colors=list(cluster=v,samples=saCol),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
         }else{
-             pheatmap(xl,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
+             pheatmap(xl,color=ColorRamp,annotation_col=anc,annotation_colors=list(cluster=v),cluster_cols=cluster_cols,cluster_rows=cluster_rows,show_colnames=FALSE,border_color=NA,fontsize=fontsize)
         }
     }
 }
@@ -1906,7 +1946,8 @@ plotdimsat <- function(object,change=TRUE,lim=NULL){
 #' @export
 diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,locreg=FALSE,...){
   if ( ! method %in% c("per-condition","pooled") ) stop("invalid method: choose pooled or per-condition")
-  x <- x[,c(A,B)]
+  x <- as.matrix(x[,c(A,B)])
+  x <- x[rowVars(x) > 0,]
   if ( DESeq ){
     # run on object@expdata
     des <- data.frame( row.names = colnames(x), condition = factor(c( rep(1,length(A)), rep(2,length(B)) )), libType = rep("single-end", dim(x)[2]))
@@ -1915,17 +1956,18 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
     res <- DESeq2::results(cds)
     list(des=des,cds=cds,res=res)
   }else{
-    if (norm) x <- as.data.frame( t(t(x)/apply(x,2,sum))*min(apply(x,2,sum,na.rm=TRUE)) )
-    fit <- list()
-    m   <- list()
-    v   <- list()
-    for ( i in 1:2 ){
-      g <- if ( i == 1 ) A else B
-      m[[i]] <- if ( length(g) > 1 ) apply(x[,g],1,mean) else x[,g]
-      v[[i]] <- if ( length(g) > 1 ) apply(x[,g],1,var)  else apply(x,1,var)
+      colS <- colSums(x)
+      if (norm) x <- t(t(x)/colS)*min(colS)
+      fit <- list()
+      m   <- list()
+      v   <- list()
+      for ( i in 1:2 ){
+          g <- if ( i == 1 ) A else B
+          m[[i]] <- if ( length(g) > 1 ) rowMeans(x[,g]) else x[,g]
+          v[[i]] <- if ( length(g) > 1 ) rowVars(x[,g])  else x[,g]
       if ( method == "pooled"){
-        mg <- apply(x,1,mean)
-        vg <- apply(x,1,var)
+        mg <- rowMeans(x)
+        vg <- rowVars(x)
         vl <- log2(vg)
         ml <- log2(mg)
       }else{
@@ -1982,7 +2024,7 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
 
 #' @title Function for plotting differentially expressed genes
 #'
-#' @description This is a plotting function for visualizing the output of the \code{diffexpnb} function.
+#' @description This is a plotting function for visualizing the output of the \code{diffexpnb} or \code{clustdiffgenes} function as MA plot.
 #' @param x output of the function \code{diffexpnb}.
 #' @param pthr real number between 0 and 1. This number represents the p-value cutoff applied for displaying differentially expressed genes. Default value is 0.05. The parameter \code{padj} (see below) determines if this cutoff is applied to the uncorrected p-value or to the Benjamini-Hochberg corrected false discovery rate.
 #' @param padj logical value. If \code{TRUE}, then genes with a Benjamini-Hochberg corrected false discovery rate lower than \code{pthr} are displayed. If \code{FALSE}, then genes with a p-value lower than \code{pthr} are displayed.
@@ -1991,6 +2033,7 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
 #' @param Aname name of expression set \code{A}, which was used as input to \code{diffexpnb}. If provided, this name is used in the axis labels. Default value is \code{NULL}.
 #' @param Bname name of expression set \code{B}, which was used as input to \code{diffexpnb}. If provided, this name is used in the axis labels. Default value is \code{NULL}.
 #' @param show_names logical value. If \code{TRUE} then gene names displayed for differentially expressed genes. Default value is \code{FALSE}.
+#' @param ... Additional arguments for function \code{plot}.
 #' @return None
 #' @examples
 #' sc <- SCseq(intestinalDataSmall)
@@ -2004,24 +2047,25 @@ diffexpnb <- function(x,A,B,DESeq=FALSE,method="pooled",norm=FALSE,vfit=NULL,loc
 #' plotdiffgenesnb(y)
 #' @importFrom grDevices rainbow colorRampPalette adjustcolor
 #' @export
-plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bname=NULL,show_names=TRUE){
-  y <- as.data.frame(x$res)
-  if ( is.null(Aname) ) Aname <- "baseMeanA"
-  if ( is.null(Bname) ) Bname <- "baseMeanB"
+plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bname=NULL,show_names=TRUE,...){
+  y <- if ( sum( names(x) == "de" ) > 0 ) as.data.frame(x$de$res) else as.data.frame(x$res)
+  if ( is.null(Aname) ) Aname <- "A"
+  if ( is.null(Bname) ) Bname <- "B"
 
-  plot(log2(y$baseMean),y$log2FoldChange,pch=20,xlab=paste("log2 ( ( #mRNA[",Aname,"] + #mRNA[",Bname,"] )/2 )",sep=""),ylab=paste("log2 #mRNA[",Bname,"] - log2 #mRNA[",Aname,"]",sep=""),col="grey")
-  abline(0,0)
+  plot(log2(y$baseMean),y$log2FoldChange,pch=20,xlab=paste("log2 ( ( mean[",Aname,"] + mean[",Bname,"] )/2 )",sep=""),ylab=paste("log2 mean[",Bname,"] - log2 mean[",Aname,"]",sep=""),col="grey",...)
   if ( ! is.null(pthr) ){
-    if ( padj ) f <- y$padj < pthr else f <- y$pval < pthr
-    points(log2(y$baseMean)[f],y$log2FoldChange[f],col="red",pch=20)
-  }
-  if ( !is.null(lthr) ) f <- f & abs( y$log2FoldChange ) > lthr
-  if ( !is.null(mthr) ) f <- f & log2(y$baseMean) > mthr
-  if ( show_names ){
-    if ( sum(f) > 0 ) text(log2(y$baseMean)[f],y$log2FoldChange[f],rownames(y)[f],cex=.5)
-  }
-}
+      if ( padj ) f <- y$padj < pthr else f <- y$pval < pthr
+      if ( !is.null(lthr) ) f <- f & abs( y$log2FoldChange ) > lthr
+      if ( !is.null(mthr) ) f <- f & log2(y$baseMean) > mthr
 
+      f <- f & !is.na(f)
+      points(log2(y$baseMean)[f],y$log2FoldChange[f],col="red",pch=20)
+      if ( show_names ){
+          if ( sum(f) > 0 ) text(log2(y$baseMean)[f],y$log2FoldChange[f],rownames(y)[f],cex=.5)
+      }
+  }
+  abline(0,0)
+}
 #' @title Dotplot of gene expression across clusters or samples
 #'
 #' @description This is a plotting function for visualizing gene expression across subsets of clusters or samples. The diameter of a dot reflects the fraction of cells
@@ -2029,7 +2073,7 @@ plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bna
 #' @param object \code{SCseq} class object.
 #' @param genes vector of valid gene names corresponding to row names of slot \code{ndata}. The expression for this genes is shown.
 #' @param cluster vector of valid cluster numbers contained in slot \code{cpart}. Default is \code{NULL}. If not given, then the \code{samples} argument is expected.
-#' If both are given, only the \code{samples} argument is considered.
+#' If both are given, only the \code{samples} argument is considered. If both are \code{NULL}, then \code{cluster} is initialized with all clusters.
 #' @param samples vector of sample names for all cells. Length and order has to correspond to \code{colnames} of slot \code{ndata}. Default is \code{NULL}.
 #' @param subset vector of unique sample names to show in the expression dotplot. Each sample names in \code{subset} has to occur in \code{samples}.
 #' Default is \code{NULL}. If not given and \code{samples} is not \code{NULL}, the subset is intialized with all sample names occuring in \code{samples}.
@@ -2043,8 +2087,8 @@ plotdiffgenesnb <- function(x,pthr=.05,padj=TRUE,lthr=0,mthr=-Inf,Aname=NULL,Bna
 #' @importFrom stats sd
 #' @export
 fractDotPlot <- function(object, genes, cluster=NULL, samples=NULL, subset=NULL, zsc=FALSE, logscale=TRUE, cap=Inf, flo=-Inf) {
-    if ( is.null(samples) & is.null(cluster) ) stop("Either cluster or samples are required!")
-    if ( !is.null(samples) & is.null(subset) ){ subset = sort(unique(samples) ) }
+    if ( is.null(samples) & is.null(cluster) ){ cluster <- sort(unique(object@cpart)) }
+    if ( !is.null(samples) & is.null(subset) ){ subset <- sort(unique(samples) ) }
     genevec     <- c()
     clustervec  <- c()
     fraction    <- c()
@@ -2097,7 +2141,19 @@ fractDotPlot <- function(object, genes, cluster=NULL, samples=NULL, subset=NULL,
     }
     data[which(data$Expression > cap), "Expression"] <- cap
     data[which(data$Expression < flo), "Expression"] <- flo
-    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
+
+    #if ( zsc ){
+    #    colorPalette = c("darkblue","lightblue","grey", "tan1", "red")
+    #}else{
+    #    colorPalette = c("grey", "tan1", "red", "#7a0f09", "black")
+    #}
+    #ColorRamp <- colorRampPalette(colorPalette)(100)
+
+    colorPalette = c("darkblue","blue","grey", "red","darkred")
+    ColorRamp <- colorRampPalette(colorPalette)(100)
+ 
+
+    #ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
 
     if ( is.null(samples) ){
         print(ggplot(data, aes_string(x = "Gene", y = "Cluster")) + geom_point(aes_string(size = "Fraction", color = "Expression"))  + scale_colour_gradientn(colours = ColorRamp) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + theme(axis.text.x = element_text(angle = 90, hjust = 1)))

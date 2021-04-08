@@ -150,29 +150,30 @@ clustfun <- function(diM,clustnr=20,bootnr=50,samp=NULL,sat=TRUE,cln=NULL,rseed=
 }
 
 fitbackground <- function(x,mthr=-1){
-  m <- apply(x,1,mean)
-  v <- apply(x,1,var )
+    x <- as.matrix(x)
+    m <- rowMeans(x)
+    v <- rowVars(x)
   
-  ml <- log2(m)
-  vl <- log2(v)
-  f <- ml > -Inf & vl > -Inf
-  ml <- ml[f]
-  vl <- vl[f]
-  mm <- -8
-  repeat{
-    fit <- lm(vl ~ ml + I(ml^2)) 
-    if( coef(fit)[3] >= 0 | mm >= mthr){
-      break
-    }
-    mm <- mm + .5
-    f <- ml > mm
+    ml <- log2(m)
+    vl <- log2(v)
+    f <- ml > -Inf & vl > -Inf
     ml <- ml[f]
     vl <- vl[f]
-  }
-
-  vln <- log2(v)  - log2(sapply(m,FUN=uvar,fit=fit))
-  n <- names(vln)[vln>0]
-  return(list(fit=fit,n=n))
+    mm <- -8
+    repeat{
+        fit <- lm(vl ~ ml + I(ml^2)) 
+        if( coef(fit)[3] >= 0 | mm >= mthr){
+            break
+        }
+        mm <- mm + .5
+        f <- ml > mm
+        ml <- ml[f]
+        vl <- vl[f]
+    }
+    
+    vln <- log2(v)  - log2(sapply(m,FUN=uvar,fit=fit))
+    n <- names(m)[vln>0]
+    return(list(fit=fit,n=n))
 }
 
 
@@ -285,8 +286,12 @@ gm_mean = function(x, na.rm=TRUE){
 }
 
 
-zscore <- function(x) ( x - apply(x,1,mean) )/sqrt(apply(x,1,var))
+zscore <- function(x){
+    m <- rowMeans(x)
+    v <- sqrt(apply(x,1,var))         
+    z <- ( x - m )/v
+    z[v == 0,] <- 0
+    z
+}
 
 PAdjust <- function(x){min(p.adjust(x,method="bonferroni"),na.rm=TRUE)}
-
-      

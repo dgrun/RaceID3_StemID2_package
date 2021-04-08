@@ -4,7 +4,16 @@
 \alias{compumap}
 \title{Computation of a two dimensional umap representation}
 \usage{
-compumap(object, dimRed = FALSE, umap.pars = umap.defaults)
+compumap(
+  object,
+  dimRed = FALSE,
+  n_neighbors = 15,
+  metric = "euclidean",
+  n_epochs = 200,
+  min_dist = 0.1,
+  local_connectivity = 1,
+  spread = 1
+)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
@@ -13,8 +22,17 @@ compumap(object, dimRed = FALSE, umap.pars = umap.defaults)
 Default is \code{FALSE} and the umap is computed from the distance matrix stored in slot \code{distances}. If slot \code{distances} equals \code{NULL}
 \code{dimRed} is automatially set to \code{TRUE}.}
 
-\item{umap.pars}{umap parameters. See \pkg{umap} package, \code{umap.defaults}. Default is \code{umap.defaults}. \code{umap.pars$input} is automatically
-set to \code{"dist"} if \code{dimRed} is \code{FALSE}.}
+\item{n_neighbors}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 15.}
+
+\item{metric}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is "euclidean".}
+
+\item{n_epochs}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 200.}
+
+\item{min_dist}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 0.1.}
+
+\item{local_connectivity}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 1.}
+
+\item{spread}{Umap parameter. See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 1.}
 }
 \value{
 \code{SCseq} object with umap coordinates stored in slot \code{umap}.

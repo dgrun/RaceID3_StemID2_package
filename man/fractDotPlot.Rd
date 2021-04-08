@@ -22,7 +22,7 @@ fractDotPlot(
 \item{genes}{vector of valid gene names corresponding to row names of slot \code{ndata}. The expression for this genes is shown.}
 
 \item{cluster}{vector of valid cluster numbers contained in slot \code{cpart}. Default is \code{NULL}. If not given, then the \code{samples} argument is expected.
-If both are given, only the \code{samples} argument is considered.}
+If both are given, only the \code{samples} argument is considered. If both are \code{NULL}, then \code{cluster} is initialized with all clusters.}
 
 \item{samples}{vector of sample names for all cells. Length and order has to correspond to \code{colnames} of slot \code{ndata}. Default is \code{NULL}.}
 

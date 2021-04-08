@@ -2,7 +2,7 @@
 % Please edit documentation in R/RaceID.R
 \name{plotsymbolsmap}
 \alias{plotsymbolsmap}
-\title{Plotting groups as different symbols in the t-SNE map}
+\title{Plotting groups as different symbols in a dimensional reduction representation}
 \usage{
 plotsymbolsmap(
   object,
@@ -41,6 +41,6 @@ types are shown.}
 None
 }
 \description{
-This functions highlights groups of cells by different symbols in a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+This functions highlights groups of cells by different symbols in a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 of the singe-cell transcriptome data.
 }

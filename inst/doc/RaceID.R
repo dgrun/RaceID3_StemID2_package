@@ -77,7 +77,8 @@ sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
 plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE)
 
 ## -----------------------------------------------------------------------------
-dg <- clustdiffgenes(sc,4,pvalue=.01)
+d  <- clustdiffgenes(sc,4,pvalue=.01)
+dg <- d$dg
 head(dg,25)
 
 ## -----------------------------------------------------------------------------

@@ -33,6 +33,14 @@ applyMeanReg <- function(x, z, pv, pvM) {
     .Call(`_RaceID_applyMeanReg`, x, z, pv, pvM)
 }
 
+applyRowVar <- function(x) {
+    .Call(`_RaceID_applyRowVar`, x)
+}
+
+applyColVar <- function(x) {
+    .Call(`_RaceID_applyColVar`, x)
+}
+
 rcpp_hello_world <- function() {
     .Call(`_RaceID_rcpp_hello_world`)
 }

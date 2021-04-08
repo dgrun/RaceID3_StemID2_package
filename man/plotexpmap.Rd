@@ -2,7 +2,7 @@
 % Please edit documentation in R/RaceID.R
 \name{plotexpmap}
 \alias{plotexpmap}
-\title{Highlighting gene expression in the t-SNE map}
+\title{Highlighting gene expression in a dimensional reduction representation}
 \usage{
 plotexpmap(
   object,
@@ -13,7 +13,7 @@ plotexpmap(
   fr = FALSE,
   um = FALSE,
   cells = NULL,
-  cex = 1,
+  cex = 0.5,
   map = TRUE,
   leg = TRUE,
   noise = FALSE
@@ -39,7 +39,7 @@ and untransformed values are shown.}
 \item{cells}{Vector of valid cell names corresponding to column names of slot \code{ndata} of the \code{SCseq} object. Gene expression is ony shown for
 this subset.}
 
-\item{cex}{size of data points. Default value is 1.}
+\item{cex}{size of data points. Default value is 0.5.}
 
 \item{map}{logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.}
 
@@ -51,6 +51,6 @@ this subset.}
 None
 }
 \description{
-This functions highlights gene expression in a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+This functions highlights gene expression in a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 of the singe-cell transcriptome data.
 }

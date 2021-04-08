@@ -113,6 +113,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// applyRowVar
+NumericVector applyRowVar(NumericMatrix x);
+RcppExport SEXP _RaceID_applyRowVar(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(applyRowVar(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// applyColVar
+NumericVector applyColVar(NumericMatrix x);
+RcppExport SEXP _RaceID_applyColVar(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(applyColVar(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_hello_world
 List rcpp_hello_world();
 RcppExport SEXP _RaceID_rcpp_hello_world() {
@@ -133,6 +155,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_RaceID_applyNoiseReg", (DL_FUNC) &_RaceID_applyNoiseReg, 5},
     {"_RaceID_applyMean", (DL_FUNC) &_RaceID_applyMean, 4},
     {"_RaceID_applyMeanReg", (DL_FUNC) &_RaceID_applyMeanReg, 4},
+    {"_RaceID_applyRowVar", (DL_FUNC) &_RaceID_applyRowVar, 1},
+    {"_RaceID_applyColVar", (DL_FUNC) &_RaceID_applyColVar, 1},
     {"_RaceID_rcpp_hello_world", (DL_FUNC) &_RaceID_rcpp_hello_world, 0},
     {NULL, NULL, 0}
 };

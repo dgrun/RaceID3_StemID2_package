@@ -4,25 +4,28 @@
 \alias{clustdiffgenes}
 \title{Inference of differentially expressed genes in a cluster}
 \usage{
-clustdiffgenes(object, cl, pvalue = 0.01)
+clustdiffgenes(object, cl, bgr = NULL, pvalue = 0.01)
 }
 \arguments{
 \item{object}{\code{SCseq} class object.}
 
-\item{cl}{A valid cluster number from the final cluster partition stored in the \code{cpart} slot of the \code{SCseq} object.}
+\item{cl}{A valid set of cluster numbers from the final cluster partition stored in the \code{cpart} slot of the \code{SCseq} object.}
+
+\item{bgr}{Ordered vector of cluster numbers to be used as background set. If \code{NULL} then all clusters not in \code{cl} are used as background set.}
 
 \item{pvalue}{Positive real number smaller than one. This is the p-value cutoff for the inference of differential gene expression. Default is 0.01.}
 }
 \value{
-A data.frame of differentially expressed genes ordered by p-value in increasing order, with four columns:
+A list of two components. The first component \code{dg} contains a a data.frame of differentially expressed genes ordered by p-value in increasing order, with four columns:
   \item{mean.ncl}{mean expression across cells outside of cluster \code{cl}.}
   \item{mean.cl}{mean expression across cells within cluster \code{cl}.}
   \item{fc}{fold-change of mean expression in cluster \code{cl} versus the remaining cells.}
   \item{pv}{inferred p-value for differential expression.}
   \item{padj}{Benjamini-Hochberg corrected FDR.}
+The second component \code{de} contains the conventional output of \code{diffexpnb}, where set B corresponds to all clusters in \code{cl} and B to the background set (all clusters in \code{bgr} or not in \code{cl}). This component can be used for plotting by \code{plotdiffgenesnb}.
 }
 \description{
-This functions computes differentially expressed genes in a cluster by comparing to all remaining cells outside of the cluster based on a negative binomial
+This functions computes differentially expressed genes in a (set of) cluster(s) by comparing to all remaining cells outside of the cluster (or a given background set of clusters) based on a negative binomial
 model of gene expression
 }
 \examples{
@@ -32,5 +35,5 @@ sc <- compdist(sc)
 sc <- clustexp(sc)
 sc <- findoutliers(sc)
 x <- clustdiffgenes(sc,1)
-head(x[x$fc>1,])
+head(x$dg[x$dg$fc>1,])
 }

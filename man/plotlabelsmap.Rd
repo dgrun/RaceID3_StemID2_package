@@ -2,7 +2,7 @@
 % Please edit documentation in R/RaceID.R
 \name{plotlabelsmap}
 \alias{plotlabelsmap}
-\title{Plot labels in the t-SNE map}
+\title{Plot labels in a dimensional reduction representation}
 \usage{
 plotlabelsmap(object, labels = NULL, fr = FALSE, um = FALSE, cex = 0.5)
 }
@@ -22,6 +22,6 @@ columns in slot \code{ndata} of the \code{SCseq} object. Default is \code{NULL} 
 None
 }
 \description{
-This functions plots cell labels into a two-dimensional t-SNE map or a Fruchterman-Rheingold graph layout
+This functions plots cell labels into a two-dimensional t-SNE map, UMAP, or a Fruchterman-Rheingold graph layout
 of the singe-cell transcriptome data.
 }

@@ -104,3 +104,24 @@ NumericVector applyMeanReg(IntegerMatrix x,NumericVector z,double pv, NumericMat
   }
   return output;
 }
+
+
+// [[Rcpp::export]]
+NumericVector applyRowVar(NumericMatrix x){
+  NumericVector output(x.nrow());
+  for(int i=0;i<x.nrow();i++){
+    double m = var(x(i,_));
+    output(i) = m;
+  }
+  return output;
+}
+
+// [[Rcpp::export]]
+NumericVector applyColVar(NumericMatrix x){
+  NumericVector output(x.ncol());
+  for(int i=0;i<x.ncol();i++){
+    double m = var(x(_,i));
+    output(i) = m;
+  }
+  return output;
+}
