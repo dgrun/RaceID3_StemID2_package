@@ -512,7 +512,7 @@ graphCluster <- function(res,pvalue=0.01,use.weights=TRUE,rseed=12345){
     }else{
         p <- 1 * ( p > pvalue )
     }
-    weight <- as.vector(t(p))
+    weight <- as.vector(t(p)) + 1e-10
     links <- data.frame(from=rownames(nn)[from],to=rownames(nn)[to],weight=weight)
     #f <- weights != 0
     #links <- links[f,]
