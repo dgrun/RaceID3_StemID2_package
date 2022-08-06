@@ -9,7 +9,7 @@ diffNoisyGenes(noise, cl, set, bgr = NULL, no_cores = 1)
 \arguments{
 \item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} function.}
 
-\item{cl}{List object with Louvain clustering information, returned by the \code{graphCluster} function.}
+\item{cl}{List object with clustering information, returned by the \code{graphCluster} function.}
 
 \item{set}{Postive integer number or vector of integers corresponding to valid cluster numbers. The function reports genes with elevated variability in all
 clusters contained in \code{set}.}
@@ -18,7 +18,7 @@ clusters contained in \code{set}.}
 with elevated variability in all clusters contained in \code{set} compared to clusters in \code{bgr}. Default is \code{NULL} and the comparison is against all
 clusters not in \code{set}.}
 
-\item{no_cores}{Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.}
+\item{no_cores}{Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is \code{NULL}.}
 }
 \value{
 Data.frame reporting the log2 fold change between clusters in \code{set} and the remaining clusters and the p-value for elevated variability for each genes. Rows are ordered by decreasing log2 fold change.

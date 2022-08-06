@@ -7,7 +7,7 @@
 fitBackVar(x, mthr = -1)
 }
 \arguments{
-\item{x}{Matrix of gene expression values with genes as rows and cells as columns.}
+\item{x}{Matrix of transcript counts with genes as rows and cells as columns.}
 
 \item{mthr}{Real number. Threshold of log2 mean expression. Genes with mean expression \code{< mthr} are discarded prior to fitting the polynomial. Default is -1.}
 }

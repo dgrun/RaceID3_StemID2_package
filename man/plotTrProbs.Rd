@@ -12,7 +12,7 @@ plotTrProbs(
   cthr = 0,
   fr = FALSE,
   um = FALSE,
-  cex = 1
+  cex = 0.5
 )
 }
 \arguments{
@@ -27,11 +27,11 @@ displayed in the map. Default is 0.}
 
 \item{cthr}{Integer number greater or equal 0 defining the minimum clusters size for inclusion into the map. Default is 0.}
 
-\item{fr}{logical. If \code{TRUE}, then a Fruchterman-Rheingold graph layout is shown (in case it has been computed for the \pkg{RaceID} bject), otherwise a t-SNE map is shown. Default is \code{FALSE}.}
+\item{fr}{Logical. If \code{TRUE}, then a Fruchterman-Rheingold graph layout is shown (in case it has been computed for the \pkg{RaceID} bject), otherwise a t-SNE map is shown. Default is \code{FALSE}.}
 
-\item{um}{logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
+\item{um}{Logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.}
 
-\item{cex}{real positive number. Size of data points. Default is 1.}
+\item{cex}{Real positive number. Size of data points. Default is 0.5.}
 }
 \value{
 None

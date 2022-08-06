@@ -7,7 +7,7 @@
 plotBackVar(x)
 }
 \arguments{
-\item{x}{List object returned by function \code{fitBackVar} or list object returned by function \code{pruneKnn}.}
+\item{x}{List object returned by function \code{fitBackVar} or list object returned by function \code{pruneKnn} (if it was run with \code{FSelect=TRUE}).}
 }
 \value{
 None
@@ -16,6 +16,6 @@ None
 This function plots the variance against mean expression across all genes and a second order polynomial to the variance-mean dependence in log space. It also plots a local regression.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
-plotBackVar(res)
+bg <- fitBackVar(intestinalDataSmall)
+plotBackVar(bg)
 }

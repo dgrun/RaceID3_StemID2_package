@@ -12,10 +12,10 @@ updateSC(object, res = NULL, cl = NULL, noise = NULL, flo = NULL)
 \item{res}{List object returned by \code{pruneKnn} function to update \code{SCseq} with distance matrix and/or dimensionally reduced feature matrix
 in \code{res}. Default is \code{NULL}}
 
-\item{cl}{List object with Louvain clustering information, returned by the \code{graphCluster} function to update \code{SCseq} object with clustering
+\item{cl}{List object with clustering information, returned by the \code{graphCluster} function to update \code{SCseq} object with clustering
 partition and Fruchterman-Rheingold layout. Default is \code{NULL}.}
 
-\item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} function, to update \code{SCseq}
+\item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} or \code{compTBNoise} function, to update \code{SCseq}
 object with a noise matrix. Default is \code{NULL}.}
 
 \item{flo}{Real number. Lower cutoff for the gene expression variability. All values \code{< flo} in the variability matrix are set to this level. Default is \code{NULL} and values are not reset.}

@@ -4,16 +4,20 @@
 \alias{plotRegNB}
 \title{Function for plotting negative binomial regression}
 \usage{
-plotRegNB(expData, noise, par.nb = NULL)
+plotRegNB(expData, y, par.nb = NULL, span = 0.75, ...)
 }
 \arguments{
-\item{expData}{Matrix of gene expression values with genes as rows and cells as columns. The matrix need to contain the same cell IDs as columns like the input matrix
+\item{expData}{Matrix of gene expression values with genes as rows and cells as columns. The matrix needs to contain the same cell IDs as columns like the input matrix.
 used to derive the pruned k nearest neighbours with the \code{pruneKnn} function.}
 
-\item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} function.}
+\item{y}{List object returned by the \code{compNoise} or \code{pruneKnn} function (if run with \code{regNB=TRUE}).}
 
-\item{par.nb}{Parameter to be plotted, i.e. valid column of \code{noise$regData$nbRegr}.
-of the log10 total UMI count. \code{intercept} is the intercept inferred by the regression. Default is \code{NULL} and \code{theta} is shown.}
+\item{par.nb}{Parameter to be plotted, i.e. valid column of \code{res$regData$nbRegr}.
+of the log total UMI count. \code{intercept} is the intercept inferred by the regression. Default is \code{NULL} and \code{theta} is shown.}
+
+\item{span}{Positive real number. Parameter for loess-regression (see \code{large}) controlling the degree of smoothing. Default is 0.75.}
+
+\item{...}{Additional arguments for \code{plot}.}
 }
 \value{
 None
@@ -23,7 +27,6 @@ This function plots the parameters obatined by the negative binomial regression 
 Smoothed parameter estimates are also shown.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
-noise <- compNoise(intestinalDataSmall,res,regNB=TRUE,pvalue=0.01,genes = NULL,no_cores=1)
-plotRegNB(intestinalDataSmall,noise,"theta")
+res <- pruneKnn(intestinalDataSmall,no_cores=1)
+plotRegNB(intestinalDataSmall,res,"theta")
 }

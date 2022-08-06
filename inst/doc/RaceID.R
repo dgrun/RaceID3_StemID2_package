@@ -41,7 +41,7 @@ plotsensitivity(sc)
 ## -----------------------------------------------------------------------------
 plotoutlierprobs(sc)
 
-## -----------------------------------------------------------------------------
+## ----results='hide', message=FALSE--------------------------------------------
 clustheatmap(sc)
 
 ## -----------------------------------------------------------------------------
@@ -65,16 +65,20 @@ plotmap(sc,um=TRUE)
 ## -----------------------------------------------------------------------------
 types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 subset <- types[grep("IV|V",types)]
-plotsymbolsmap(sc,types,subset=subset,fr=TRUE)
+plotsymbolsmap(sc,types,subset=subset,fr=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE)
+plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE,cex=1)
 g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
-plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE)
+plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE,cex=1)
+
+## -----------------------------------------------------------------------------
+genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
+plotmarkergenes(sc,genes=genes)
 
 ## -----------------------------------------------------------------------------
 d  <- clustdiffgenes(sc,4,pvalue=.01)
@@ -87,20 +91,20 @@ genes <- head(rownames(dg)[dg$fc>1],10)
 plotmarkergenes(sc,genes,samples=types)
 
 ## -----------------------------------------------------------------------------
-plotmarkergenes(sc,genes,cl=c(2,6,7,8,10),samples=types,order.cells=TRUE)
+plotmarkergenes(sc,genes,cl=c(2,3,1,4),samples=types,order.cells=TRUE)
 
 ## -----------------------------------------------------------------------------
-fractDotPlot(sc, genes, cluster=c(2,6,7,8,10), zsc=TRUE)
+fractDotPlot(sc, genes, cluster=c(2,3,1,4), zsc=TRUE)
 
 ## -----------------------------------------------------------------------------
 samples <- sub("(\\d.+)$","", colnames(sc@ndata))
 fractDotPlot(sc, genes, samples=samples, subset=c("I","II","III"), logscale=TRUE)
 
 ## -----------------------------------------------------------------------------
-A <- names(sc@cpart)[sc@cpart %in% c(2,4)]
-B <- names(sc@cpart)[sc@cpart %in% c(3)]
+A <- names(sc@cpart)[sc@cpart %in% c(2,3)]
+B <- names(sc@cpart)[sc@cpart %in% c(4)]
 x <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
-plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2",Bname="Cl.3,5",show_names=TRUE,padj=TRUE)
+plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2,3",Bname="Cl.4",show_names=TRUE,padj=TRUE)
 
 ## -----------------------------------------------------------------------------
 ltr <- Ltree(sc)
@@ -294,39 +298,44 @@ plotexpression(fs,y,"Clca4",n$f,col=fcol,cluster=FALSE,alpha=.5,types=NULL)
 ## -----------------------------------------------------------------------------
 plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=sub("\\_\\d+","",n$f))
 
-## ----eval=FALSE---------------------------------------------------------------
-#  sc <- SCseq(intestinalData)
-#  sc <- filterdata(sc)
-#  # calculate distance matrix
-#  sc <- compdist(sc)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  d <- getExpData(sc)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  distM <- sc@distances
-
-## ----eval=FALSE---------------------------------------------------------------
-#  res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=NULL,no_cores=1,FSelect=FALSE)
-
 ## -----------------------------------------------------------------------------
 sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-d <- getExpData(sc)
-res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
+sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
 
 ## -----------------------------------------------------------------------------
-plotBackVar(res)
+expData  <- getExpData(sc)
+res      <- pruneKnn(expData,no_cores=1)
 
-## ----eval=FALSE---------------------------------------------------------------
-#  bg <- fitBackVar(d)
-#  plotBackVar(bg)
+## -----------------------------------------------------------------------------
+plotRegNB(expData,res,"(Intercept)")
 
-## ----eval=FALSE---------------------------------------------------------------
-#  y <- createKnnMatrix(res,pvalue=0.01)
+## -----------------------------------------------------------------------------
+plotRegNB(expData,res,"beta")
+
+## -----------------------------------------------------------------------------
+plotRegNB(expData,res,"theta")
+
+## -----------------------------------------------------------------------------
+plotPearsonRes(res,log=TRUE,xlim=c(-.1,.2))
+
+## -----------------------------------------------------------------------------
+plotPC(res)
+
+## -----------------------------------------------------------------------------
+plotPC(res,logDiff=TRUE)
 
 ## -----------------------------------------------------------------------------
 cl <- graphCluster(res,pvalue=0.01)
+
+## ----eval=FALSE---------------------------------------------------------------
+#  install.packages("reticulate")
+#  reticulate::use_python("/usr/bin/python3", required=TRUE)
+#  #confirm that leiden, igraph, and python are available (should return TRUE).
+#  reticulate::py_module_available("leidenalg") && reticulate::py_module_available("igraph")
+#  reticulate::py_available()
+
+## ----eval=FALSE---------------------------------------------------------------
+#  cl <- graphCluster(res,pvalue=0.01,use.leiden=TRUE,leiden.resolution=1.5)
 
 ## -----------------------------------------------------------------------------
 sc <- updateSC(sc,res=res,cl=cl)
@@ -335,43 +344,52 @@ sc <- updateSC(sc,res=res,cl=cl)
 plotmap(sc,fr=TRUE)
 
 ## -----------------------------------------------------------------------------
-sc <- comptsne(sc)
+sc <- comptsne(sc,perplexity=50)
 plotmap(sc)
 
-## ----eval=FALSE---------------------------------------------------------------
-#  sc <- compumap(sc)
-#  plotmap(sc,um=TRUE)
+## -----------------------------------------------------------------------------
+sc <- compumap(sc,min_dist=0.5)
+plotmap(sc,um=TRUE)
 
 ## -----------------------------------------------------------------------------
-probs <-transitionProbs(res,cl,pvalue=0.01) 
+probs <- transitionProbs(res,cl,pvalue=0.01)
 
 ## -----------------------------------------------------------------------------
-plotTrProbs(sc,probs,tp=.5,prthr=0,cthr=0)
+plotTrProbs(sc,probs,um=TRUE)
+
+## ----warning = FALSE----------------------------------------------------------
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=TRUE,um=TRUE,cex=1)
+
+## ----warning = FALSE----------------------------------------------------------
+head(nn$pv.neighbours)
+
+## ----warning = FALSE----------------------------------------------------------
+head(nn$expr.neighbours)
+
+## ----warning = FALSE----------------------------------------------------------
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE)
+
+## ----warning = FALSE----------------------------------------------------------
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE,cv=TRUE)
 
 ## -----------------------------------------------------------------------------
-noise <- compNoise(d,res,regNB=TRUE,pvalue=0.01,genes = NULL,no_cores=1)
+x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+noise <- compTBNoise(res,x,pvalue=0.01,gamma = 0.5,no_cores=1) 
 
 ## -----------------------------------------------------------------------------
-plotRegNB(d,noise,par.nb="beta")
+plotUMINoise(sc,noise,log.scale=TRUE)
 
 ## -----------------------------------------------------------------------------
-plotPearsonRes(noise,log=TRUE)
+sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 
 ## -----------------------------------------------------------------------------
-noise <- compNoise(d,res,regNB=FALSE,pvalue=0.01,genes = NULL,no_cores=1)
+plotexpmap(sc,"Lgr5",logsc=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
-plotNoiseModel(noise)
-plotNoiseModel(noise,corrected=TRUE)
+plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
-sc <- updateSC(sc,noise=noise,flo=.1)
-
-## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE)
-
-## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE)
+plotExpNoise("Lgr5",sc,noise,norm=TRUE,log="xy")
 
 ## -----------------------------------------------------------------------------
 genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
@@ -379,7 +397,10 @@ ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
 ## -----------------------------------------------------------------------------
-ngenes <- diffNoisyGenes(noise,cl,set=c(5),no_cores=1)
+fractDotPlot(sc, genes, zsc=TRUE)
+
+## -----------------------------------------------------------------------------
+ngenes <- diffNoisyGenesTB(noise,cl,set=1,no_cores=1)
 head(ngenes)
 
 ## -----------------------------------------------------------------------------
@@ -393,31 +414,136 @@ ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=T
 plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
 
 ## -----------------------------------------------------------------------------
-mgenes <- maxNoisyGenes(noise,cl=cl,set=5)
+mgenes <- maxNoisyGenesTB(noise,cl=cl,set=3)
 head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 
+## -----------------------------------------------------------------------------
+ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(5,6))
+plotDiffNoise(ngenes)
+
+## -----------------------------------------------------------------------------
+dgenes <- clustdiffgenes(sc,1,bgr=c(5,6),pvalue=0.01)
+plotdiffgenesnb(dgenes,xlim=c(-6,3))
+
+## -----------------------------------------------------------------------------
+violinMarkerPlot(c("Mki67","Pcna"),sc,set=c(2,3,1))
+
+## -----------------------------------------------------------------------------
+violinMarkerPlot(c("Mki67","Pcna"),sc,noise,set=c(2,3,1))
+
+## -----------------------------------------------------------------------------
+qn <- quantKnn(res, noise, sc, pvalue = 0.01, minN = 5, no_cores = 1)
+
+## -----------------------------------------------------------------------------
+StemCluster <- 2
+
+## -----------------------------------------------------------------------------
+plotQuantMap(qn,"noise.av",sc,um=TRUE,ceil=.6,cex=1)
+plotQuantMap(qn,"noise.av",sc,box=TRUE,cluster=StemCluster)
+
+## -----------------------------------------------------------------------------
+plotQuantMap(qn,"local.corr",sc,um=TRUE,logsc=TRUE,cex=1)
+plotQuantMap(qn,"local.corr",sc,box=TRUE,logsc=TRUE,cluster=StemCluster)
+
+## -----------------------------------------------------------------------------
+plotQuantMap(qn,"umi",sc,um=TRUE,logsc=TRUE,cex=1)
+plotQuantMap(qn,"umi",sc,box=TRUE,logsc=TRUE,cluster=StemCluster)
+
+## -----------------------------------------------------------------------------
+plotQQ(qn,"umi","noise.av",sc,cluster=StemCluster,log="yx",cex=1)
+
+## -----------------------------------------------------------------------------
+plotQQ(qn,"local.corr","noise.av",sc,cluster=StemCluster,log="xy",cex=1)
+
+## -----------------------------------------------------------------------------
+plotTrProbs(sc,probs,um=TRUE)
+
+## -----------------------------------------------------------------------------
+plotexpmap(sc,"Lgr5",um=TRUE,cex=1,logsc=TRUE)
+plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
+
+## ----results='hide', message=FALSE--------------------------------------------
+# ordered set of clusters on the trajectory
+set <- c(2,3,1)
+pt <- pseudoTime(sc,m="umap",set=set)
+
+## -----------------------------------------------------------------------------
+plotPT(pt,sc,clusters=FALSE)
+
+## -----------------------------------------------------------------------------
+plotPT(pt,sc)
+
+## -----------------------------------------------------------------------------
+fs <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt)
+
+## ----results='hide', message=FALSE, warnings=FALSE----------------------------
+library(FateID)
+s1d   <- getsom(fs,nb=50,alpha=1)
+ps    <- procsom(s1d,corthr=.85,minsom=0)
+
+part  <- pt$part
+ord   <- pt$ord
+
+plotheatmap(ps$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
+
+## -----------------------------------------------------------------------------
+plotexpression(fs,y=part,g="Apoa1",n=ord,col=sc@fcol,cex=1,alpha=1)
+plotexpression(fs,y=part,g="Mki67",n=ord,col=sc@fcol,cex=1,alpha=1)
+
+## -----------------------------------------------------------------------------
+genes <- c("Mki67","Pcna","Sox9","Apoa1")
+plotexpressionProfile(fs,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2)
+
+## -----------------------------------------------------------------------------
+genes <- getNode(ps,1)
+plotexpressionProfile(fs,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2)
+
+## -----------------------------------------------------------------------------
+fsn    <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt,noise=TRUE)
+s1dn   <- getsom(fsn,nb=50,alpha=1)
+psn    <- procsom(s1dn,corthr=.85,minsom=0)
+plotheatmap(psn$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
+
+## -----------------------------------------------------------------------------
+plotexpression(fsn,y=part,g="Apoa1",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
+plotexpression(fsn,y=part,g="Mki67",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
+genes <- c("Mki67","Pcna","Sox9","Apoa1")
+plotexpressionProfile(fsn,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2,ylab="Noise")
+
+genes <- getNode(psn,1)
+plotexpressionProfile(fsn,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2,ylab="Noise")
+
 ## ----eval=FALSE---------------------------------------------------------------
 #  sc <- SCseq(intestinalData)
-#  sc <- filterdata(sc)
-#  d <- getExpData(sc)
-#  batch <- sub("_.+","",colnames(d))
-#  names(batch) <- colnames(d)
+#  sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
+#  expData  <- getExpData(sc)
+#  
+#  batch <- sub("5d.+","",colnames(expData))
+#  names(batch) <- colnames(expData)
 #  head(batch)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
-#  cl <- graphCluster(res,pvalue=0.01)
-
-## ----eval=TRUE----------------------------------------------------------------
-noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
-
-## ----eval=FALSE---------------------------------------------------------------
+#  
+#  require(Matrix)
+#  S_score   <- colMeans(sc@ndata[intersect(cc_genes$s,rownames(sc@ndata)),])
+#  G2M_score <- colMeans(sc@ndata[intersect(cc_genes$g2m,rownames(sc@ndata)),])
+#  regVar <- data.frame(S_score=S_score, G2M_score=G2M_score)
+#  rownames(regVar) <- colnames(expData)
+#  
+#  res   <- pruneKnn(expData,no_cores=1,batch=batch,regVar=regVar)
+#  cl    <- graphCluster(res,pvalue=0.01)
+#  probs <- transitionProbs(res,cl)
+#  x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+#  noise <- compTBNoise(res,x,pvalue=0.01,no_cores=1)
 #  sc <- updateSC(sc,res=res,cl=cl,noise=noise)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  sc <- compumap(sc)
-#  plotsymbolsmap(sc,batch)
+#  sc <- compumap(sc,min_dist=0.5)
+#  sc <- comptsne(sc,perplexity=50)
+#  
+#  plotmap(sc,cex=1)
+#  plotmap(sc,fr=TRUE,cex=1)
+#  plotmap(sc,um=TRUE,cex=1)
+#  plotsymbolsmap(sc,batch,um=TRUE,cex=1)
+#  plotexpmap(sc,"Mki67",um=TRUE,cex=1,log=TRUE)
+#  plotexpmap(sc,"Pcna",um=TRUE,cex=1,log=TRUE)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  require(Matrix)
@@ -447,10 +573,9 @@ noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_core
 #  probs <- transitionProbs(res,cl)
 #  
 #  ## compute noise from corrected variance
-#  noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=5)
-#  sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
+#  noise <- compTBNoise(res,expData,pvalue=0.01,no_cores=5)
+#  sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 #  
-#  sc <- updateSC(sc,res=res,cl=cl)
 #  sc <- comptsne(sc)
 #  sc <- compumap(sc)
 #  

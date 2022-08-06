@@ -9,7 +9,7 @@ maxNoisyGenes(noise, cl = NULL, set = NULL)
 \arguments{
 \item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} function.}
 
-\item{cl}{List object with Louvain clustering information, returned by the \code{graphCluster} function. Default is \code{NULL}.}
+\item{cl}{List object with clustering information, returned by the \code{graphCluster} function. Default is \code{NULL}.}
 
 \item{set}{Postive integer number or vector of integers corresponding to valid cluster numbers. Noise levels are computed across all cells in this subset of clusters. Default is \code{NULL} and noise levels are computed across all cells.}
 }

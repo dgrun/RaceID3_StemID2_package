@@ -14,7 +14,7 @@ knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg')
 # Prerequisites
 
 RaceID is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by an outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data obtained by quantification with unique molecular identifiers. StemID permits subsequent inference of a lineage tree based on clusters, i.e. cell types, identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published [@FateID]. 
-This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells. We now added another method termed VarID to the package, which allows the quantification of local gene expression variability, but furthermore offers an alternative clustering approach to RaceID based on density clustering which has certain advantages and, in particular, permits handling much larger datasets, since there is no requiremnet of storing a distance matrix. This method can be fully integrated into a RaceID analysis (see section "VarID").
+This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells. We now added another method termed VarID [@VarID] to the package, which allows the quantification of local gene expression variability, but furthermore offers an alternative clustering approach to RaceID based on density clustering which has certain advantages and, in particular, permits handling much larger datasets, since there is no requirement of storing a distance matrix. This method can be fully integrated into a RaceID analysis (see section "VarID").
 RaceID offers several optional steps and here we will show  examples of how to perform typical RaceID/StemID analyses.
 
 # RaceID 
@@ -103,7 +103,7 @@ plotoutlierprobs(sc)
 ```
 
 A heatmap of cell-to-cell distances grouped be the final clusters inferred based on the original clusters and the outliers allows visual inspection of the clusters:
-```{r}
+```{r results='hide', message=FALSE}
 clustheatmap(sc)
 ```
 
@@ -148,23 +148,30 @@ The dimensional reduction maps can be inspected, e.g., for the localization of (
 ```{r}
 types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 subset <- types[grep("IV|V",types)]
-plotsymbolsmap(sc,types,subset=subset,fr=TRUE)
+plotsymbolsmap(sc,types,subset=subset,fr=TRUE,cex=1)
 ```
 
 Expression of a gene of interest or aggregated expression for a group of genes can be highlighted in the dimensional reduction representation:
 ```{r}
-plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE)
+plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE,cex=1)
 g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
-plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE)
+plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE,cex=1)
 ```
 
 It is also possible to highight expression only for a subset of cells, e.g. a particular batch or sample:
 ```{r}
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE,cex=1)
 ```
 
 For the murine intestinal example data, inspetion of known marker genes suggests that cluster 2 and 3 correspnd to Lgr5-expressing intestinal stem cells. Cluster 2 is proliferative as indicated by up-regulation of Mki67, Cluster 1 comprises transiently amplifying progenitors biased towards absorptive entorytes in cluster 4 marked by Apolipoproteins. Cluster 7 comprises Lysozyme-expressing Paneth cells while Mucus-producing goblet cells constitute clusters 6 and 10.
+
+With the help of known marker genes, e.g., Chgb for enteroendocrine cells, Muc2, Agr2, and Clca3 for goblet cells, and Defa20 for Paneth cells, rare cell types among the detected RaceID clusters can be annotated:
+```{r}
+genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
+plotmarkergenes(sc,genes=genes)
+```
+
 To inspect clusters in more detail, differentially expressed genes can be inferred by an internal approach akin to DESeq2 [@DESeq2] but with a dispersion estimated globally from the background model of RaceID.
 
 For instance, to obtain differentially expressed genes within cluster 9 compared to all other cells:
@@ -183,16 +190,16 @@ plotmarkergenes(sc,genes,samples=types)
 
 The heatmap can also be ordered by cell names (i.e. by batch or sample) by setting `order.cells` to `TRUE`. With the input parameters `cl` and `cells`, the heatmap can be restricted to a subset of cluster or cells, respectively.
 ```{r}
-plotmarkergenes(sc,genes,cl=c(2,6,7,8,10),samples=types,order.cells=TRUE)
+plotmarkergenes(sc,genes,cl=c(2,3,1,4),samples=types,order.cells=TRUE)
 ```
 
 In this example, no inter-sample differences are apparent and all samples contribute to each cluster.
 
 It is also possible to plot gene expression across clusters or samples using a dot plot, where the diameter represents the fraction of cells in a sample or cluster expressing a gene, and the color indicates the expression level or z-score.
 
-For example, the following commmand plots expression z-scores across clusters 2,6,7,8, and 10:
+For example, the following commmand plots expression z-scores across clusters 2, 3, 1 and 4:
 ```{r}
-fractDotPlot(sc, genes, cluster=c(2,6,7,8,10), zsc=TRUE)
+fractDotPlot(sc, genes, cluster=c(2,3,1,4), zsc=TRUE)
 ```
 
 Expression on a log2 scale across samples I, II, and III can be plotted by
@@ -203,10 +210,10 @@ fractDotPlot(sc, genes, samples=samples, subset=c("I","II","III"), logscale=TRUE
 
 A differential gene expression analysis between two defined sets of cell, e.g., two (groups of) clusters can be performed:
 ```{r}
-A <- names(sc@cpart)[sc@cpart %in% c(2,4)]
-B <- names(sc@cpart)[sc@cpart %in% c(3)]
+A <- names(sc@cpart)[sc@cpart %in% c(2,3)]
+B <- names(sc@cpart)[sc@cpart %in% c(4)]
 x <- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
-plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2",Bname="Cl.3,5",show_names=TRUE,padj=TRUE)
+plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2,3",Bname="Cl.4",show_names=TRUE,padj=TRUE)
 ```
 
 See the paragraphs below for additional options of RaceID analyses and parameter choices ideal for analysing large datasets.
@@ -559,198 +566,223 @@ plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=s
 
 # VarID
 
-VarID is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities measured by a distance matrix with an arbitrary metric. The key idea is the inference of local neighbourhoods of cells in the same state, i.e. all k nearest neighbours follow the same transcript count distribution as the cell to which they are nearest neighbours.
-The computation starts with k nearest neighbours and infers a negative binomial distribtion for the transcript counts of each gene, derived from the mean-variance dependence computed the same way as for the RaceID background model. The mean expression is derived from a weighted average across the k nearest neighbours, where the weights are inferred using quadratic programming, representing the cell as a linear combination of its neighbours. The contribution of the "central" cell itself can be controlled by a given scale parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10. The default value is `NULL`. In this case, `alpha` is inferred by an optimization, i.e., `alpha` is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression).
-With the negative binomial distribution inferred from the local means and the global mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the minimum probability across all genes serves as a proxy for the probability of neighbours being in the same state. If this probability falls below a user-defined threshold, the neighbour is discarded. After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
-These local neighbourhoods can be used to compute local properties such as gene expression variability, which in turn can be correlated to cell state or predicted fate, derived, e.g., from RaceID or FateID analysis, respectively.
+VarID is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities [@VarID]. The key idea is the inference of locally homogenous neighbourhoods of cells in cell state space, i.e., all k nearest neighbours follow the same transcript count distributions as the cell to which they are nearest neighbours ("central" cell).
+The computation starts with k nearest neighbours and infers a negative binomial distribution for the transcript counts of each gene, derived from the mean-variance dependence computed locally across a central cell and its k nearest neighbours. The mean expression is derived from a weighted average across the k nearest neighbours, with weights  inferred using quadratic programming, representing the central cell as a linear combination of its neighbours. The contribution of the central cell itself can be controlled by a tunable scale parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10 (default 1). If `alpha` is `NULL`, then it is inferred by a local optimization, i.e., it is minimized under the constraint that the gene expression in the central cell does not deviate more then one standard deviation from the predicted weigthed mean across its k nearest neighbours, where the standard deviation is calculated from the predicted mean using the local background model (the average dependence of the variance on the mean expression).
+With the negative binomial distribution inferred from the local means and mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the geometric mean across the `nb` (deafult 3) genes with the lowest probability serves as a proxy for the link probability (i.e., the probability of neighbours being in the same state). If this probability falls below a user-defined threshold, the link to this neighbour is pruned After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph with homogenous neighbourhoods in cell state space is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
+These local neighbourhoods can be used to compute local properties such as gene expression variability, which in turn can be correlated to cell state or predicted fate, derived, e.g., from FateID analysis, respectively.
 
-Although VarID analysis can be performed independently of the RaceID data object, an integration with a RaceID analysis permits convenient visualization of the results. For this reason, we here demonstrate an integrated pipeline, but explain at each step, how computation can be performed given minimal input data, i.e. an expression matrix only.
+Although VarID analysis can be performed independently of the RaceID data object, an integration with a RaceID analysis permits convenient visualization and processing of the results. For this reason, we here demonstrate an integrated pipeline, but explain at each step, how computation can be performed given minimal input data, i.e., a transcript count matrix.
 
-The VarID method requires unique molecular identifier (UMI) counts, which have been shown to follow a negative binomial distribution, a property also crucial for the RaceID analysis.
+The VarID method requires unique molecular identifier (UMI) counts, which have been shown to follow a negative binomial distribution, in order for the background model to be valid.
 
-Given such a UMI matrix with cells as columns and genes as rows, we could first initialize a RaceID object, and perform cell and gene filtering to retain only expressed genes and high quality cells. This is followed by the computation of a distance matrix, which can be used for the VarID analysis. 
+Given such a UMI matrix with cells as columns and genes as rows, we could first initialize a RaceID object, and perform cell and gene filtering to retain only expressed genes and high quality cells. 
 
-```{r eval=FALSE}
+We here demonstrate the functionalities of VarID on our single-cell transcriptome data of intestinal epithelial cells [@StemID].
+```{r}
 sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-# calculate distance matrix
-sc <- compdist(sc)
-```
-However, the preferred mode of running VarID does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space (see below). For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells.
-If the `metric` argument of the `compdist` function is not initialized otherwise, the distance matrix is calculated as 1 - Pearson's correlation of the transcriptomes.
-
-The filtered, unnormalized, and otherwise unprocessed raw UMI count matrix can then be retrieved by
-```{r eval=FALSE}
-d <- getExpData(sc)
+sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
 ```
 
-and the distance matrix can be obtained by
-```{r eval=FALSE}
-distM <- sc@distances
-```
-
-VarID can handle sparse matrices, so `d` can be a sparse matrix defined with the `Matrix` package, if created independently of RaceID. The `getExpData` function returns a sparse matrix.
-No distance matrix input is required for the `distM` argument of `pruneKnn`. In fact, if given it will be ignored as long as `large` is set to `TRUE`.
-
-With this input the derivation and pruning of a k nearest neighbour graph can be performed:
-```{r eval=FALSE}
-res <- pruneKnn(d,distM=distM,large=FALSE,metric="pearson",genes=NULL,knn=10,alpha=NULL,no_cores=1,FSelect=FALSE)
-```
-
-In principle, only `d` is required as input data for the VarID analysis and the distance matrix can be computed internally if the `distM` argument is omitted. In this case, the `metric` argument defines the metric utilized for the distance matrix calculation. 
-
-The VarID analysis can also be performed without computing a distance matrix, since computation and storage of distance matrices is not feasible for very large datasets (>30k cells) on a conventional work station due to memory limitations. As an alternative, the `pruneKnn` function can be executed with the `large` argument set to `TRUE`, which is the default setting and usually shows better performance. In this case, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (top 100 principle components by default). This reduced feature matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances, i.e., a correlation-based metric can no longer be used. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
+In this example, all cells with a raw UMI count <1,000 are discarded, and all gene IDs starting with Gm (genes without official gene symbol, uncharacterized loci) are removed. Moreover, all  mitochondrial and ribosomal sub-unit encoding genes as well as all genes correlating with these classes are filtered out.
+Although VarID analysis can be performed with any given distance matrix, the preferred (default) mode does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space. For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells. In this case, the `pruneKnn` function can be executed with `large=TRUE` (default setting). Here, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (PCs). The number of top PCs used for dimensional reduction is determined by an elbow criterion (requiring that the change in explained variability upon further increasing the number of PCs has become linear). However, the number of PCs can also be adjusted manually (parameter `pcaComp`). This reduced PC matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
 In general, it is recommended to run VarID with `large=TRUE` and `regNB=TRUE` (default settings).
 A RaceID object can be utilized to facilitate the analysis, but in this mode the `compdist` function does not need to be executed:
 ```{r}
-sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-d <- getExpData(sc)
-res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
+expData  <- getExpData(sc)
+res      <- pruneKnn(expData,no_cores=1)
 ```
 
-The `genes` argument allows to limit the analysis to a subset of genes, `knn` defines the number of nearest neighbours, `alpha` is the scale parameter for the "central" cell, and `FSelect` allows internal feature selection. The background model is calculated internally in the same way as done in RaceID and feature selection follows the same logic. The function further permits multithreading and the number of cores can be defines using the `no_cores` argument. If this is set to `NULL`, the function detects the number of available cores and uses this number minus two to leave resources for other tasks running on the same machine. Calling  `help` for this function explains all parameters in detail (as for all other functions).
+The `pruneKnn` function allows normalization by a full negative binomial regression (akin to [@sctransform]), or, alternatively, by analyical Pearson residuals as proposed by Lause et al. [@offSetModel] (default). In the latter case, the dispersion parameter can either be inferred by maximum likelihood, or approximated as $\theta$=10 (default). The function has a number of optional parameters controllung the outcome of the this step.
+For instance, `genes` allows limiting the analysis to a subset of genes, `knn` defines the number of nearest neighbours, `alpha` is the scale parameter for the central cell, and `FSelect` allows internal feature selection. The background model is calculated internally based on the local mean-variance relation in the same way as done in RaceID and feature selection follows the same logic. The function further permits multithreading and the number of cores can be defines using the `no_cores` argument. If this is set to `NULL`, the function detects the number of available cores and uses this number minus two to leave resources for other tasks running on the same machine. Calling  `help` for this function explains all parameters in detail (as for all other functions).
 
-This function internally fits a background model of gene expression variability, which can be inspected:
+The coefficients of the negative binomial regression (or the coefficients of the analytical model, if `offsetModel=TRUE`) can be inspected.
+Intercept:
 ```{r}
-plotBackVar(res)
+plotRegNB(expData,res,"(Intercept)")
 ```
 
-This model can also be computed separately:
-```{r eval=FALSE}
-bg <- fitBackVar(d)
-plotBackVar(bg)
+Coefficient $\beta$ of total log UMI count:
+```{r}
+plotRegNB(expData,res,"beta")
 ```
 
-The function returns a list with the used distance matrix, a matrix with the indices of the k nearest neighbours for each cell, and a matrix with the corresponding probabilities. Finally, the background model is also returned.
-
-From this object, a sparse distance matrix can optionally be created with non-zero entries only for k nearest neighbours with probabilities larger or equal than `pvalue`:
-```{r eval=FALSE}
-y <- createKnnMatrix(res,pvalue=0.01)
+Dispersion parameter $\theta$:
+```{r}
+plotRegNB(expData,res,"theta")
 ```
-This is not needed as input for the subsequent step, but enables independent analyses by the user.
 
-This pruned k nearest neighbour information can be used as input for graph inference, Louvain clustering, and the derivation of a Fruchterman-Rheingold graph layout:
+In this example, the analytical model was used (no regression was calculated) and $\theta$=10 was used [@offSetModel].
+
+To check if the mean-dependence of the variance has been successfully removed by the normalization, the Pearson residuals can be plotted as a function of the mean:
+```{r}
+plotPearsonRes(res,log=TRUE,xlim=c(-.1,.2))
+```
+
+The number of PCs selected based on the elbow criterion can be inspected by plotting the percentage variability explained by each principle component:
+```{r}
+plotPC(res)
+```
+
+Alternatively, the difference between the percentage variability explained by PC i and PC i + 1 can be plotted on a logarithmic scale:
+```{r}
+plotPC(res,logDiff=TRUE)
+```
+
+The pruned k nearest neighbour information can be used as input for graph inference, Louvain clustering, and the derivation of a Fruchterman-Rheingold graph layout:
 ```{r}
 cl <- graphCluster(res,pvalue=0.01)
 ```
 
-The function returns a list of three components: a graph object `graph`,  an object `louvain` containing informarmation on the clustering, and a data.frame `fr` containing a Fruchterman-Rheingold layout computed from the pruned k nearest neighbour graph, all derived using the `igraph` package.
+Alternatively, community detection can be performed with the Leiden algorithm at variying resolution. However, the leiden package requires preinstallation of python libraries (https://cran.r-project.org/package=leiden).
+This can be done, e.g., by using python reticulate.
+```{r eval=FALSE}
+install.packages("reticulate")
+reticulate::use_python("/usr/bin/python3", required=TRUE)
+#confirm that leiden, igraph, and python are available (should return TRUE).
+reticulate::py_module_available("leidenalg") && reticulate::py_module_available("igraph")
+reticulate::py_available()
+```
 
-By setting the `use.weights` argument of `graphCluster` to `TRUE` (default), clustering can be performed on the pruned knn graph with weighted links, where weights correspond to the link probabilities. This may lead to the emergence of too many clusters (which could happen, e.g., due to variability in the link probabilities when integrating different experimental batches). In this case, the `use.weights` parameter can be set to `FALSE`, and Louvain clustering is performed on a pruned knn graph with equal weights for all links.
+With this `graphCluster` can be run using leiden clustering at defined resolution:
+```{r eval=FALSE}
+cl <- graphCluster(res,pvalue=0.01,use.leiden=TRUE,leiden.resolution=1.5)
+```
 
+The function returns a list of three components: a vector `partition` with a clustering partition, a data.frame `fr` containing a Fruchterman-Rheingold layout computed from the pruned k nearest neighbour graph, and an integer number `residual.cluster`. If clusters with less than `min.size` (input parameter to `graphCluster`) were obtained, all these clusters are aggregated into the cluster with the largest cluster number in the partition. If this aggregation was done, the cluster nuber is stored in `residual.cluster` (which is `NULL` otherwise).
+By setting the `use.weights` argument of `graphCluster` to `TRUE` (default), clustering can be performed on the pruned knn graph with weighted links, where weights correspond to the link probabilities. This may lead to the emergence of too many clusters (which could happen, e.g., due to variability in the link probabilities when integrating different experimental batches). In this case, the `use.weights` parameter can be set to `FALSE`, and clustering is performed on a pruned knn graph with equal weights for all links.
 The `pvalue` parameter determines the probability cutoff for link pruning, i.e., links with probabilities lower than `pvalue` are removed.
 
-To visualize the clustering with the help of RaceID, one can update the `Scseq` object with the results:
+To visualize the clustering with the help of RaceID,  the `SCseq` object can be updated with the results:
 ```{r}
 sc <- updateSC(sc,res=res,cl=cl)
 ```
 
-This function call will initialize the `cpart` and the `cluster$kpart` slots with the clustering partition in `cl$louvain$membership`, and the `fr` slot with the Fruchterman-Rheingold layout.
+This function call will initialize the `cpart` and the `cluster$kpart` slots with the clustering partition in `cl$partition`, and the `fr` slot with the Fruchterman-Rheingold layout.
 
 The clustering can readily be inspected in the Fruchterman-Rheingold layout:
 ```{r}
 plotmap(sc,fr=TRUE)
 ```
 
-After computing a t-SNE map or, the clustering can be also be visualized:
+After computing a t-SNE map, the clustering can be also be visualized in t-SNE space:
 ```{r}
-sc <- comptsne(sc)
+sc <- comptsne(sc,perplexity=50)
 plotmap(sc)
 ```
 
 Alternatively, a umap representation can be computed for visualization:
-```{r eval=FALSE}
-sc <- compumap(sc)
+```{r}
+sc <- compumap(sc,min_dist=0.5)
 plotmap(sc,um=TRUE)
 ```
 
-
 The pruned k nearest neighbour graph allows the derivation of transition probabilities between clusters, based on the remaining links connecting two clusters (at a minimum probability given by `pvalue`) and the inferred probabilities of these links:
 ```{r}
-probs <-transitionProbs(res,cl,pvalue=0.01) 
+probs <- transitionProbs(res,cl,pvalue=0.01)
 ```
 
-If RaceID is used for visualization and has been updated with the clustering using the `updateSC` function (see above), the transition probabilities can be visualized in the dimensional reduction representation:
+If RaceID is used for visualization and has been updated with the clustering using the `updateSC` function (see above), the transition probabilities can be visualized in the dimensional reduction representation (`fr=TRUE` for Fruchterman-Rheingold or `um=TRUE` for umap representation, default is t-SNE):
 ```{r}
-plotTrProbs(sc,probs,tp=.5,prthr=0,cthr=0)
+plotTrProbs(sc,probs,um=TRUE)
 ```
 
 The argument `prthr` allows discarding all links with a transition probability `<= prthr` and the th `cthr` argument sets a cluster size threshold. Only clusters with `> cthr` cells are shown.
 
+The Individual neighbourhood of a cell, e.g, cell `i=20`, can be inspected with the `inspectKnn` function, which returns a list object with information on gene expression and outlier p-values across all original k nearest neighbours.
+
+If the function is called with `plotSymbol=TRUE`, a dimensional reduction representation is returned (`um=TRUE` for umap), highlighting nearest neighbours and outliers which are subject to pruning:
+```{r warning = FALSE}
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=TRUE,um=TRUE,cex=1)
+```
+
+One element of the returned list object is an outlier p-value across all k nearest neighbours:
+```{r warning = FALSE}
+head(nn$pv.neighbours)
+```
+
+Another element contains the corresponding normalized gene expression counts:
+```{r warning = FALSE}
+head(nn$expr.neighbours)
+```
+
+If the same function is executed with `plotSymbol=FALSE`, the local mean-variance dependence is plotted along with a loess-regression, a second order polynomial fit (used for pruning), and the background model of the local variability (used for biological noise inference, see below):
+```{r warning = FALSE}
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE)
+```
+
+Alternatively, the coefficient of variation (CV) can be plotted with the same model fits:
+```{r warning = FALSE}
+nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE,cv=TRUE)
+```
+
+The plot also highlights the local variability associated with cell-to-cell variability of total transcript counts, as calculated directly from the mean and variance of total transcript counts (turquoise) or from a local fit of a gamma distribution (orange).
+
+
 The inference of homogenous local neighbourhoods, given by a cell and its remaining nearest neighbours after pruning, permits the computation of local quantities across such sets of similar cells.
-To investigate the dynamics of gene expression noise across cell states, we derive local estimates of gene expression variability. The systematic dependence of gene expression variance on the mean expression is a central challenge for the derivation of differential variability between two states. VarID solves this problem using one of two alternative strategies. The first strategy is based on a negative binomial regression on the total transcript count in each cell. The pearson residuals of this regression serve as an expression estimate corrected for the mean-dependence.To avoid overfitting, the regression parameters as a function of mean expression are smoothed by a local polynomial regression. Local variability is then computed as the variance of pearson residuals across the pruned k nearest neighbours. The second approach relies on infering a baseline variability, comprising biological and technical noise, reflecting the systematic dependency, and regresses out this trend, in order to estimate a corrected variability, which no longer depends on mean expression. In both cases the corrected variability can then be meaningfully compared across local neighbourhoods. The distribution of corrected variabilities can thus be compared between cell states, or clusters, in order to infer genes with differential variability. 
+To investigate the dynamics of gene expression noise across cell states, we derive local estimates of gene expression variability. The systematic dependence of gene expression variance on the mean expression is a central challenge for the derivation of differential variability between cell states. VarID solves this problem by deconvoluting binomial sampling noise, cell-to-cell variability in total transcript counts (as a consequence of cell-to-cell variability in sequencing efficiency, but also due to global biological variability in total RNA content, e.g., during different phases of the cell cycle), and residual variability, which we address as biological noise. This deconvolution is achieved by fitting a Gamma distribution to the local disrtibution of total transcript counts, yielding a technical noise paramater `rt` for each central cell, followed by a maximum a posterior inference of the reidual variability, i.e., biological noise, `epsilon` for each gene in every neighbourhood. The local mean expression `mu` within each neighbourhood is computed as the average of non-normalized transcript count across pruned local neighbourhoods.
 
-The corrected variability estimate can be computed for the local neighbourhoods of all cells:
+The noise inference can be done on a transcript count matrix, filtered by expression, e.g., retaining only cells with a minimum of 5 UMI counts in at least 5 cells:
 ```{r}
-noise <- compNoise(d,res,regNB=TRUE,pvalue=0.01,genes = NULL,no_cores=1)
+x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+noise <- compTBNoise(res,x,pvalue=0.01,gamma = 0.5,no_cores=1) 
 ```
 
-The default approach is the second approach, i.e., the direct correction of the variability by regressing out the baseline variability. Alternatively, the negative binomial regression can be applied by setting the parameter `regNB=TRUE`.
-The function returns the noise model (only used if `regNB=FALSE`) and the corrected noise estimates. If `regNB=TRUE` the function also return a list `regData` with the logarithmic UMI counts of all cells used for the regression, the pearson residuals, and the parameters inferred by the regression before and after smoothing.
+The most important argument of the `compTBNoise` is the `gamma` parameter which determines the strength of the prior for the suppression of spurious inflation of noise levels at low expression. The `p-value` argument again determines the link probability threshold for pruning. For neighbourhoods with zero transcript count noise estimates are replaced by `NA` in `noise$epsilon`.
 
-If the regression has been computed by `pruneKnn` and the slot `res$regData` is not `NULL`, the pearson residuals from this step are used and the calculation is not repeated. However, it is also possible to determine neighborhoods with a given distance matrix and apply the regression only at this step for the noise inference.
-
-If negative binomial regression has been applied (`regNB=TRUE`), the raw and smoothed regression parameters can be plotted:
+The prior parameter `gamma` should be chosen such that the correlation between mean
+ noise across cells and total UMI count per cell is minimal. This dependence can be analysed with the function `plotUMINoise`:
 ```{r}
-plotRegNB(d,noise,par.nb="beta")
+plotUMINoise(sc,noise,log.scale=TRUE)
+``` 
+ 
+If a positive correlation is observed, `gamma` should be increased in order to weaken the prior. If the correlation is negative, `gamma` should be decreased in order to increase the strength of the prior.
+
+The RaceID `SCseq` object can be updated with the biological noise estimates:
+```{r}
+sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 ```
 
-`par.nb` is the parameter to be plotted, and has to be one of "theta", "beta", or (Intercept)". `theta` is the disersion parameter and `beta` is the regression coefficient
-of the log10 total UMI count. `(Intercept)` is the intercept inferred by the regression.
-
-To check if the negative binomial regression could remove the mean-dependence of the variance, the latter can be plotted:
-```{r}
-plotPearsonRes(noise,log=TRUE)
-```
-
-The plot also shows Spearman's correlation coefficient between mean and variance of the Pearson residuals. If a systematic dependence is still observed, the noise should be estimated by the alternative method based on regressing out the baseline mean-dependence of the variance (`compNoise` with `regNB=FALSE`).
-
-```{r}
-noise <- compNoise(d,res,regNB=FALSE,pvalue=0.01,genes = NULL,no_cores=1)
-```
-
-The dependence of the variance on the mean, and the fit to the baseline variability (used if `regNB=FALSE`) can be visualized before and after correction for the trend:
-```{r}
-plotNoiseModel(noise)
-plotNoiseModel(noise,corrected=TRUE)
-```
-
-The function `baseLineVar` can be used to extracted the corrected variability. See help function.
-
-To visualize the noise level using RaceID, the `SCseq` object needs to be updated with the results from the noise computation:
-```{r}
-sc <- updateSC(sc,noise=noise,flo=.1)
-```
-
-The `flo` argument sets a lower limit to the noise estimates, since, due to locality, the estimates can fall below the baseline level. This will alleviate the impact of outliers in for the subsequent analysis and visualization.
-
-This initializes a slot `noise` of the `SCseq` object with gene by cell matrix of corrected noise etsimates. The noise levels of a given gene (or group of genes), can then be visualized in the same way as gene expression with the help of RaceID functions.
+This initializes a slot `noise` of the `SCseq` object with a gene-by-cell matrix of the biological noise etsimates `noise$epsilon`. The noise levels of a given gene (or group of genes), can then be visualized in the same way as gene expression with the help of RaceID functions.
 
 Gene expression (on logarithmic scale):
 ```{r}
-plotexpmap(sc,"Lgr5",logsc=TRUE)
+plotexpmap(sc,"Lgr5",logsc=TRUE,cex=1)
 ```
 
-Corrected gene expression variability (on logarithmic scale):
+Biological noise (on logarithmic scale):
 ```{r}
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE)
+plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE,cex=1)
 ```
 
-The corrected noise can also be plotted in a cluster heatmap and directly compared to gene expression. After deriving a gene expression heatmap, the order of genes stored in `ph` (returned by the `pheatmap` function of the `pheatmap` package), can be applied to the noise heatmap in order to permit direct comparability:
+This plot indicates that cluster 1 comprises Lgr5+ intestinal stem cells.
+
+A scatter plot of noise versus gene expression allows inspection of the dependence between noise and gene expression:
+```{r}
+plotExpNoise("Lgr5",sc,noise,norm=TRUE,log="xy")
+```
+
+The biological noise can also be plotted in a cluster heatmap and directly compared to gene expression. After deriving a gene expression heatmap, the order of genes stored in `ph` (returned by the `pheatmap` function of the `pheatmap` package), can be applied to the noise heatmap in order to permit direct comparability:
 ```{r}
 genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
 ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 ```
 
-With the clustering derived by `graphCluster` and the object returned from the `compNoise` function, genes with elevated noise levels in a cluster (or a set of clusters) can be inferred:
+Based on marker gene expression, clusters 1, 5, and 6, can be annotated as enterocytes, goblet and Paneth cells.
+The gene expression can also be visualized in a dot plot highlighting the fraction of cells in a cluster expressing a gene (size of dots) together with the average expresson level (dot color):
 ```{r}
-ngenes <- diffNoisyGenes(noise,cl,set=c(5),no_cores=1)
+fractDotPlot(sc, genes, zsc=TRUE)
+```
+
+With the clustering derived by `graphCluster` and the `noise` object returned by the `compTBNoise` function, genes with differential noise levels in a cluster (or a set of clusters) `set` versus a background set `bgr` (by default all clusters not in `set`) can be inferred:
+```{r}
+ngenes <- diffNoisyGenesTB(noise,cl,set=1,no_cores=1)
 head(ngenes)
 ```
 
-This functions applies a t-test to compare variability in a cluster (or set of clusters) versus the remaining clusters. It is also possible to define a background set (`bgr`) of clusters.
+The output lists average (non-normalized) expression `mu` and noise levels `eps` for clusters in `set` and `bgr` as well as the log2 fold change in noise levels, `log2FC`, between `set` and `bgr` and a multiple testing-corrected p-value (Bonferroni correction, multiplied by the maximal number `knn` of nearest neighbours).
+
+This functions applies a Wilcoxon test to compare variability in a cluster (or set of clusters) versus the remaining clusters or a given background set of clusters. To avoid spurious signals with small effect size, a uniform random variable (by default, from `[0:ps]` with `ps=0.1`) is added to the noise estimates.
 
 The top varaible genes can be plotted in a heatmap:
 ```{r}
@@ -770,48 +802,201 @@ plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cel
 
 It is also possible to order genes by their noise levels across a (set of) cluster or the entire dataset, if the `cl` argument is omitted:
 ```{r}
-mgenes <- maxNoisyGenes(noise,cl=cl,set=5)
+mgenes <- maxNoisyGenesTB(noise,cl=cl,set=3)
 head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 ```
 
-To further study dynamics of gene expression across cell types and along inferred differentiation trajectories, the noise estimates can be co-analyzed with gene expression and lineage trajectories as inferred by RaceID and StemID.
-In particular, we mention that imputing expression with RaceID follows the same logic as in `pruneKnn`. Therefore, the derived variability estimates can be analyzed in conjunction with the imputed mean expression in the same local neighbourhood (see `compdist` and `imputeexp` functions of RaceID).
+Differential noise between clusters in `set` and `bgr` can also be visualized as MA plot:
+```{r}
+ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(5,6))
+plotDiffNoise(ngenes)
+```
+
+For comparison, differentially expressed genes between the same groups can be inferred and visualized in a similar manner:
+```{r}
+dgenes <- clustdiffgenes(sc,1,bgr=c(5,6),pvalue=0.01)
+plotdiffgenesnb(dgenes,xlim=c(-6,3))
+```
+
+The distribution of gene expression (for individual genes or groups of genes) across a set of clusters can be visualized as violin plots:
+```{r}
+violinMarkerPlot(c("Mki67","Pcna"),sc,set=c(2,3,1))
+```
+
+Similarly, the distribution of gene expression noise can be plotted:
+```{r}
+violinMarkerPlot(c("Mki67","Pcna"),sc,noise,set=c(2,3,1))
+```
+
+To further investigate transcriptome variability and related quantities, the function `quantKnn` allows computation of average noise levels across cells, cell-to-cell transcriptome correlation, and total UMI counts.
+```{r}
+qn <- quantKnn(res, noise, sc, pvalue = 0.01, minN = 5, no_cores = 1)
+```
+
+These quantities can be inspected in the dimensional reduction representation, or as boxplots across cluster, with the level of a selected reference cluster highlighted as horizontal line.
+For instance, the Lgr5+ stem cell cluster 1 can be used as a reference:
+```{r}
+StemCluster <- 2
+```
+
+Average biological noise across all genes:
+```{r}
+plotQuantMap(qn,"noise.av",sc,um=TRUE,ceil=.6,cex=1)
+plotQuantMap(qn,"noise.av",sc,box=TRUE,cluster=StemCluster)
+```
+
+Avergae Spearman's transcriptome correlation across all cells within pruned k nearest neighbourhoods:
+```{r}
+plotQuantMap(qn,"local.corr",sc,um=TRUE,logsc=TRUE,cex=1)
+plotQuantMap(qn,"local.corr",sc,box=TRUE,logsc=TRUE,cluster=StemCluster)
+```
+
+Total UMI count averaged across cells within pruned k nearest neighbourhoods:
+```{r}
+plotQuantMap(qn,"umi",sc,um=TRUE,logsc=TRUE,cex=1)
+plotQuantMap(qn,"umi",sc,box=TRUE,logsc=TRUE,cluster=StemCluster)
+```
+
+
+Dependencies between different quantities can be inspected in a scatter plot, highlighting a cluster of interest:
+
+For instance, the dependency between biological noise and UMI counts:
+```{r}
+plotQQ(qn,"umi","noise.av",sc,cluster=StemCluster,log="yx",cex=1)
+```
+
+A residual dependency of the noise estimate on the total UMI count may indicate that the prior is either not strong enough to suppress noise inflation at low expression (negative slope) or too strong (positive slope). In this case, the parameter `gamma` of the function `compTBNoise` should be increased or decreased, respectively.
+
+Dependency between transcriptome correlation and average biological noise:
+```{r}
+plotQQ(qn,"local.corr","noise.av",sc,cluster=StemCluster,log="xy",cex=1)
+```
+
+
+To study dynamics of gene expression and biological noise during differentiation, VarID facilitates pseudo-time analysis. Selection of a linear trajectry connecting a defined set of clusters could be based on the transition probabilities obtained from VarID.
+```{r}
+plotTrProbs(sc,probs,um=TRUE)
+```
+
+For examples, clusters 1, 5, and 3, represent the differentiation trajectory from Lgr5+ stem cell towards Apoa1+ enterocytes.
+```{r}
+plotexpmap(sc,"Lgr5",um=TRUE,cex=1,logsc=TRUE)
+plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
+```
+
+To order cells pseudo-temporally, VarID offers a wrapper function `pseudoTime`, which calls the Slingshot method [@slingshot] on a desired dimensional reduction, which can be a subset from the precomputed dimensional reductions of the RaceID object (`sc@fr`, `sc@tsne`, or `sc@umap`, given by the `map` parameter), or a dimensional reduction (t-SNE or UMAP) computed for the subset of cells on the trajectory. This set is assumed to be ordered along the trajectory, with the initial cluster as first entry. This function is not designed to recover branched trajetories; single lineages could be defined based on the output of the `plotTrPtobs` function as an ordered set of clusters. `pseudoTime` will always fit a single trajectory to the clusters specified in `set` according to the indicated order.
+```{r results='hide', message=FALSE}
+# ordered set of clusters on the trajectory
+set <- c(2,3,1)
+pt <- pseudoTime(sc,m="umap",set=set)
+```
+
+Inferred pseudo-time can be highlighted in the inferred dimensional reduction representation:
+```{r}
+plotPT(pt,sc,clusters=FALSE)
+```
+
+The trajectory can also be overlaid with the cluster annotation:
+```{r}
+plotPT(pt,sc)
+```
+
+With the derived pseudo-time a filtered count matrix with cells ordered by pseudo-time can be obtained:
+```{r}
+fs <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt)
+```
+
+Using methods from the `FateID` package, pseudo-time expression profiles can be derived by self-organizing maps (SOM) and grouped into modules:
+```{r results='hide', message=FALSE, warnings=FALSE}
+library(FateID)
+s1d   <- getsom(fs,nb=50,alpha=1)
+ps    <- procsom(s1d,corthr=.85,minsom=0)
+
+part  <- pt$part
+ord   <- pt$ord
+
+plotheatmap(ps$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
+```
+
+Individual pseudo-time expression profiles can be plotted for genes of interest, e.g.,
+```{r}
+plotexpression(fs,y=part,g="Apoa1",n=ord,col=sc@fcol,cex=1,alpha=1)
+plotexpression(fs,y=part,g="Mki67",n=ord,col=sc@fcol,cex=1,alpha=1)
+```
+
+It is also possible to plot profiles for a group of genes into the same window:
+```{r}
+genes <- c("Mki67","Pcna","Sox9","Apoa1")
+plotexpressionProfile(fs,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2)
+```
+
+From the SOM all genes within a given module, e.g., module 1, can be extracted:
+```{r}
+genes <- getNode(ps,1)
+plotexpressionProfile(fs,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2)
+```
+
+
+Similarly, gene modules with correlated noise profiles can be derived:
+```{r}
+fsn    <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt,noise=TRUE)
+s1dn   <- getsom(fsn,nb=50,alpha=1)
+psn    <- procsom(s1dn,corthr=.85,minsom=0)
+plotheatmap(psn$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
+```
+
+Noise profiles of individual genes or groups of genes:
+```{r}
+plotexpression(fsn,y=part,g="Apoa1",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
+plotexpression(fsn,y=part,g="Mki67",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
+genes <- c("Mki67","Pcna","Sox9","Apoa1")
+plotexpressionProfile(fsn,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2,ylab="Noise")
+
+genes <- getNode(psn,1)
+plotexpressionProfile(fsn,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2,ylab="Noise")
+```
+
+For further details on plotting functions for pseudo-time analysis see `vignette("FateID")`.
+Gene expression and noise modules can now be co-analyzed to characterize the inter-dependence of gene expression and noise dynamics during differentiation.
+
 
 ## Removing batch effects and other confounding factors with VarID
 
-VarID offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` and `compNoise` functions if the parameter `regNB` is set to `TRUE`. For the `pruneKnn` function, this option only exists if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
+VarID offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` and function if the parameter `regNB` is set to `TRUE`. Alternatively, batch effect correction can ben done by the `harmony` package, if the `bmethod` parameter of `pruneKnn` is set to `"harmony"`. These batch correction options only exist if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
 ```{r eval=FALSE}
 sc <- SCseq(intestinalData)
-sc <- filterdata(sc)
-d <- getExpData(sc)
-batch <- sub("_.+","",colnames(d))
-names(batch) <- colnames(d)
+sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
+expData  <- getExpData(sc)
+
+batch <- sub("5d.+","",colnames(expData))
+names(batch) <- colnames(expData)
 head(batch)
-```
 
-To regress out additional latent variables, the parameter `regVar` has to be initialized with a data.frame of these variable, e.g. a cell cycle score. Column names of `regVar` indicate the latent variable names, and row names correspond to cell IDs, i.e. valid column names of `d`. Interaction terms between the batch variable and the UMI count or the other latent variables in `regVar` are included.
-```{r eval=FALSE}
-res <- pruneKnn(d,large=TRUE,pcaComp=100,regNB=TRUE,batch=batch,genes=NULL,knn=10,alpha=1,no_cores=1,FSelect=FALSE,ngenes=2000)
-cl <- graphCluster(res,pvalue=0.01)
-```
+require(Matrix)
+S_score   <- colMeans(sc@ndata[intersect(cc_genes$s,rownames(sc@ndata)),])
+G2M_score <- colMeans(sc@ndata[intersect(cc_genes$g2m,rownames(sc@ndata)),])
+regVar <- data.frame(S_score=S_score, G2M_score=G2M_score)
+rownames(regVar) <- colnames(expData)
 
-The corrected noise estimate can be computed for the local neighbourhoods of all cells:
-```{r eval=TRUE}
-noise <- compNoise(d,res,regNB=TRUE,batch=batch,pvalue=0.01,genes = NULL,no_cores=1)
-```
-Here, the pearson residuals from the regression are used if `regNB` equals `TRUE`. If the regression has been computed by `pruneKnn` and the slot `res$regData` is not `NULL`, the pearson residuals from this step are used and the calculation is not repeated. However, it is also possible to determine neighborhoods with a given distance matrix and apply the regression only at this step for the noise inference.
-
-To visualize the clustering with the help of RaceID, one can update the `Scseq` object with the results:
-```{r eval=FALSE}
+res   <- pruneKnn(expData,no_cores=1,batch=batch,regVar=regVar)
+cl    <- graphCluster(res,pvalue=0.01)
+probs <- transitionProbs(res,cl)
+x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+noise <- compTBNoise(res,x,pvalue=0.01,no_cores=1) 
 sc <- updateSC(sc,res=res,cl=cl,noise=noise)
+sc <- compumap(sc,min_dist=0.5)
+sc <- comptsne(sc,perplexity=50)
+
+plotmap(sc,cex=1)
+plotmap(sc,fr=TRUE,cex=1)
+plotmap(sc,um=TRUE,cex=1)
+plotsymbolsmap(sc,batch,um=TRUE,cex=1)
+plotexpmap(sc,"Mki67",um=TRUE,cex=1,log=TRUE)
+plotexpmap(sc,"Pcna",um=TRUE,cex=1,log=TRUE)
 ```
 
-After computing a t-SNE map or, similarly, a umap, the clustering can be also be visualized in these maps:
-```{r eval=FALSE}
-sc <- compumap(sc)
-plotsymbolsmap(sc,batch)
-```
+To regress out additional latent variables associated with distinct phases of the cell cycle, the parameter `regVar` was initialized with a data.frame of cell cycle S phase and G2/M phase scores (aggregated normalized gene expression of cell cycle phase markers). Column names of `regVar` indicate the latent variable names, and row names correspond to cell IDs, i.e.  column names of `expData`. Interaction terms between the batch variable and the UMI count or the other latent variables in `regVar` are included.
 
 See previous paragraph for more advice on how to explore the output data.
 
@@ -858,10 +1043,9 @@ cl    <- graphCluster(res,pvalue=0.01)
 probs <- transitionProbs(res,cl)
 
 ## compute noise from corrected variance
-noise <- compNoise(expData,res,regNB=FALSE,pvalue=0.01,no_cores=5)
-sc <- updateSC(sc,res=res,cl=cl,noise=noise,flo=.1)
+noise <- compTBNoise(res,expData,pvalue=0.01,no_cores=5) 
+sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 
-sc <- updateSC(sc,res=res,cl=cl)
 sc <- comptsne(sc)
 sc <- compumap(sc)
 
@@ -904,7 +1088,7 @@ corrected by matching mutual nearest neighbors]{.nocase}'
     given: J. S.
   - family: Sagar
     given:
-  - family: Grün
+  - family: Grun
     given: D.
   issued:
   - year: '2018'
@@ -918,7 +1102,7 @@ corrected by matching mutual nearest neighbors]{.nocase}'
 - id: Noise
   type: article-journal
   author:
-  - family: Grün
+  - family: Grun
     given: D.
   - family: Kester
     given: L.
@@ -960,7 +1144,7 @@ corrected by matching mutual nearest neighbors]{.nocase}'
 - id: StemID
   type: article-journal
   author:
-  - family: Grün
+  - family: Grun
     given: D.
   - family: Muraro
     given: M. J.
@@ -1104,5 +1288,79 @@ corrected by matching mutual nearest neighbors]{.nocase}'
   page: '1241-1243'
   volume: '32'
   issue: '8'
+  
+- id: sctransform
+  type: article-journal
+  author:
+  - family: Hafemeister
+    given: C.
+  - family: Satija
+    given: R.
+  issued:
+  - year: '2019'
+    month: '12'
+  title: '[Normalization and variance stabilization of single-cell RNA-seq data using regularized negative binomial regression]{.nocase}'
+  container-title: Genome Biol.
+  page: '296'
+  volume: '20'
+  issue: '1'
+  
+- id: offSetModel
+  type: article-journal
+  author:
+  - family: Lause
+    given: J.
+  - family: Berens
+    given: P.
+  - family: Kobak
+    given: D.
+  issued:
+  - year: '2020'
+    month: '12'
+  title: '[Analytic Pearson residuals for normalization
+of single-cell RNA-seq UMI data]{.nocase}'
+  container-title: bioRxiv
+  URL: 'https://doi.org/10.1101/2020.12.01.405886'
+
+- id: slingshot
+  type: article-journal
+  author:
+  - family: Street
+    given: K.
+  - family: Risso
+    given: D.
+  - family: Fletcher
+    given: R.B.
+  - family: Das
+    given: D.
+  - family: Ngai
+    given: J.
+  - family: Yosef
+    given: N.
+  - family: Purdom
+    given: E.
+  - family: Dudoit
+    given: S.
+  issued:
+  - year: '2018'
+    month: '6'
+  title: '[Slingshot: cell lineage and pseudotime inference for single-cell transcriptomics]{.nocase}'
+  container-title: BMC Genomics
+  page: '477'
+  volume: '19'
+
+- id: VarID
+  type: article-journal
+  author:
+  - family: Grun
+    given: D.
+  issued:
+  - year: '2020'
+    month: '1'
+  title: '[Revealing dynamics of gene expression variability in cell state space]{.nocase}'
+  container-title: Nat. Methods
+  page: '45-49'
+  volume: '17'
+  issue: '1'
 ...
 

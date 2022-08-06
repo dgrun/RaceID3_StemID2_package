@@ -4,21 +4,22 @@
 \alias{plotPearsonRes}
 \title{Function for plotting the variance of Pearson residuals}
 \usage{
-plotPearsonRes(noise, log = FALSE)
+plotPearsonRes(y, log = FALSE, ...)
 }
 \arguments{
-\item{noise}{List object with the background noise model and a variability matrix, returned by the \code{compNoise} function.}
+\item{y}{List object returned by the \code{compNoise} or \code{pruneKnn} function (if run with \code{regNB=TRUE}).}
 
 \item{log}{logical. If \code{TRUE} then the y-axis is log-transformed. Default is \code{FALSE}.}
+
+\item{...}{Additional arguments for \code{plot}.}
 }
 \value{
 None
 }
 \description{
-This function plots the variance versus the mean of the Pearson residuals obtained by the negative binomial regression computed by the function \code{compNoise} if \code{regNB} is \code{TRUE}. A local regression is also shown.
+This function plots the variance versus the mean of the Pearson residuals obtained by the negative binomial regression computed by the function \code{compY} if \code{regNB} is \code{TRUE}. A local regression is also shown.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
-noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
-plotPearsonRes(noise,log=TRUE)
+res <- pruneKnn(intestinalDataSmall,no_cores=1)
+plotPearsonRes(res,log=TRUE)
 }

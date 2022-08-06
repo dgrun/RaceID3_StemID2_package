@@ -9,20 +9,26 @@ pruneKnn(
   distM = NULL,
   large = TRUE,
   regNB = TRUE,
+  bmethod = NULL,
   batch = NULL,
   regVar = NULL,
+  offsetModel = TRUE,
+  thetaML = FALSE,
+  theta = 10,
   ngenes = 2000,
   span = 0.75,
-  pcaComp = 100,
+  pcaComp = NULL,
+  tol = 1e-05,
   algorithm = "kd_tree",
   metric = "pearson",
   genes = NULL,
-  knn = 10,
-  alpha = NULL,
+  knn = 25,
+  alpha = 1,
+  nb = 3,
   no_cores = NULL,
   FSelect = FALSE,
   seed = 12345,
-  res = NULL
+  ...
 )
 }
 \arguments{
@@ -34,52 +40,65 @@ pruneKnn(
 feature matrix computed by a principle component analysis. Only the first \code{pcaComp} principle components are considered. Prior to principal component
 analysis a negative binomial regression is performed to eliminate the dependence on the total number of transcripts per cell. The pearson residuals of
 this regression serve as input for the principal component analysis after smoothing the parameter dependence on the mean by a \code{loess} regression.
-Deafult is \code{TRUE}.
-Recommended mode for very large datasets, where a distance matrix consumes too much memory. A distance matrix is no longer required, and if \code{distM}
-is initialized it will be ignored if \code{large} equals \code{TRUE}.}
+Deafult is \code{TRUE}. Recommended mode for very large datasets, where storing a distance matrix requires too much memory. \code{distM}
+ will be ignored if \code{large} is \code{TRUE}.}
 
 \item{regNB}{logical. If \code{TRUE} then gene a negative binomial regression is performed to prior to the principle component analysis if \code{large = TRUE}. See \code{large}. Default is \code{TRUE}.}
 
-\item{batch}{vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log10 UMI count per cell.An interaction term is included for the log10 UMI count with the batch variable. Default value is \code{NULL}.}
+\item{bmethod}{Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. Default is \code{NULL} and batch correction will be done by negative binomial regression.}
 
-\item{regVar}{data.frame with additional variables to be regressed out simultaneously with the log10 UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log10 UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.}
+\item{batch}{vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log UMI count per cell.An interaction term is included for the log UMI count with the batch variable. Default value is \code{NULL}.}
+
+\item{regVar}{data.frame with additional variables to be regressed out simultaneously with the log UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.}
+
+\item{offsetModel}{Logical parameter. Only considered if \code{regNB} is \code{TRUE}. If \code{TRUE} then the \code{beta} (log UMI count) coefficient is set to 1 and the intercept is computed analytically as the log ration of UMI counts for a gene and the total UMI count across all cells. Batch variables and additional variables in \code{regVar} are regressed out with an offset term given by the sum of the intercept and the log UMI count. Default is \code{TRUE}.}
+
+\item{thetaML}{Logical parameter. Only considered if \code{offsetModel} equals \code{TRUE}. If \code{TRUE} then the dispersion parameter is estimated by a maximum likelihood fit. Otherwise, it is set to \code{theta}. Default is \code{FALSE}.}
+
+\item{theta}{Positive real number. Fixed value of the dispersion parameter. Only considered if \code{theaML} equals \code{FALSE}.}
 
 \item{ngenes}{Positive integer number. Randomly sampled number of genes (from rownames of \code{expData}) used for predicting regression coefficients (if \code{regNB=TRUE}). Smoothed coefficients are derived for all genes. Default is 2000.}
 
 \item{span}{Positive real number. Parameter for loess-regression (see \code{large}) controlling the degree of smoothing. Default is 0.75.}
 
-\item{pcaComp}{Positive integer number. Number of princple components to be included if \code{large} is \code{TRUE}. Default is 100.}
+\item{pcaComp}{Positive integer number. Number of princple components to be included if \code{large} is \code{TRUE}. Default is \code{NULL} and the number of principal components used for dimensionality reduction of the feature matrix is derived by an elbow criterion. However, the minimum number of components will be set to 15 if the elbow criterion results in a smaller number. The derived number can be be plotted using the \code{plotPC} function.}
+
+\item{tol}{Numerical value greater than zero. Tolerance for numerical PCA using \pkg{irlba}. Default value is 1e-6.}
 
 \item{algorithm}{Algorithm for fast k nearest neighbour inference, using the \code{get.knn} function from the \pkg{FNN} package.
 See \code{help(get.knn)}. Deafult is "kd_tree".}
 
 \item{metric}{Distances are computed from the  expression matrix \code{x} after optionally including only genes given as argument \code{genes} or after optional feature selection (see \code{FSelect}).
 Possible values for \code{metric} are \code{"pearson", "spearman", "logpearson",  "euclidean"}.  Default is \code{"pearson"}. In case of the correlation based methods,
-the distance is computed as 1 – correlation.}
+the distance is computed as 1 – correlation. This parameter is only used if \code{large} is FALSE and \code{distM} is NULL.}
 
 \item{genes}{Vector of gene names corresponding to a subset of rownames of \code{x}. Only these genes are used for the computation of a distance matrix and for the computation of joint probabilities of nearest neighbours. Default is \code{NULL} and all genes are used.}
 
-\item{knn}{Positive integer number. Number of nearest neighbours considered for each cell. Default is 10.}
+\item{knn}{Positive integer number. Number of nearest neighbours considered for each cell. Default is 25.}
 
-\item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the weighted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are used for the derivation of of link probabilities. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is NULL. In this case, \code{alpha} is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression).}
+\item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weights of its k nearest neighbours as determined by quadratic programming sum up to one. The sum across all weights and alpha is normalized to one, and the weighted mean expression is used for computing the link porbabilities for each of the k nearest neighbours. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is value is 1. If \code{alpha} is set to NULL it is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression). This procedure is coputationally more intense and inceases the run time of the function significantly.}
 
-\item{no_cores}{Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is 1.}
+\item{nb}{Positive integer number. Number of genes with the lowest outlier probability included for calculating the link probabilities for the knn pruning. The link probability is computed as the geometric mean across these genes. Default is 3.}
+
+\item{no_cores}{Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is \code{NULL}.}
 
 \item{FSelect}{Logical parameter. If \code{TRUE}, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is \code{FALSE}.}
 
 \item{seed}{Integer number. Random number to initialize stochastic routines. Default is 12345.}
 
-\item{res}{Output object from \code{pruneKnn}. The rownames (genes) and colnames (cells) of the parameter \code{expData} have to be subsets on the input data used to produce this output. For example, the batch effects could have been corrected on the global dataset using the \code{pruneKnn} function, and using the output from the global run permits using regression parameters from the global analysis on specific subsets if \code{expData} contain a subset of genes and cells.}
+\item{...}{Additional parameters for \code{HarmonyMatrix} function of the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.}
 }
 \value{
 List object of six components:
 \item{distM}{Distance matrix.}
-\item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or
-variable genes only if \code{Fselect} equals \code{TRUE}. Is is set to \code{NULL} if \code{large} equals \code{FALSE}.}
+\item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or variable genes only if \code{Fselect} equals \code{TRUE}. Is is set to \code{NULL} if \code{large} equals \code{FALSE}.}
 \item{pvM}{Matrix of link probabilities between a cell and each of its k nearest neighbours. Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
-\item{NN}{Matrix of column indices of k nearest neighbours for each cell according to input matrix \code{x}. First entry corresponds to index of the cell itself. Column \code{i} shows the k nearest neighbour indices for cell \code{i} in matrix \code{x}.}
+\item{NN}{Matrix of column indices of k nearest neighbours for each cell according to input matrix \code{x}. First entry corresponds to index of the cell itself. Columns contain the k nearest neighbour indices for cell \code{i} in matrix \code{x}.}
 \item{B}{List object with background model of gene expression as obtained by \code{fitBackVar} function.}
-\item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log10_umi} is a vector with the total log10 UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log10 UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
+\item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log_umi} is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
+\item{alpha}{Vector of inferred values for the \code{alpha} parameter for each neighbourhood (if input parameter \code{alpha} is NULL; otherwise all values are equal to the input parameter).}
+\item{pars}{List object storing the run parameters.}
+\item{pca}{Principal component analysis of the of the input data, if \code{large} is TRUE. Output or the function \code{irlba} from the \pkg{irlba} package with \code{pcaComp} principal components, or 100 principal components if \code{pcaComp} is NULL.}
 }
 \description{
 This function determines k nearest neighbours for each cell in gene expression space, and tests if the links are supported by a negative binomial joint distribution of gene expression. A probability is assigned to each link which is given by the minimum joint probability across all genes.

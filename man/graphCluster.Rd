@@ -2,9 +2,17 @@
 % Please edit documentation in R/VarID_functions.R
 \name{graphCluster}
 \alias{graphCluster}
-\title{Function for infering Louvain clustering of the pruned k nearest neighbour graph}
+\title{Function for infering clustering of the pruned k nearest neighbour graph}
 \usage{
-graphCluster(res, pvalue = 0.01, use.weights = TRUE, rseed = 12345)
+graphCluster(
+  res,
+  pvalue = 0.01,
+  use.weights = TRUE,
+  use.leiden = FALSE,
+  leiden.resolution = 1,
+  min.size = 2,
+  rseed = 12345
+)
 }
 \arguments{
 \item{res}{List object with k nearest neighbour information returned by \code{pruneKnn} function.}
@@ -13,16 +21,23 @@ graphCluster(res, pvalue = 0.01, use.weights = TRUE, rseed = 12345)
 
 \item{use.weights}{logical. If TRUE, then nearest-neighbor link probabilities are used to build a graph as input for Louvain clustering. If FALSE, then all links have equal weight. Default is TRUE.}
 
+\item{use.leiden}{logical. If TRUE, then the Leiden algorithm is used. If FALSE, the Louvain algorithm is used. Default is FALSE.}
+
+\item{leiden.resolution}{Positive real number. Resolution parameter for the Leiden algorithm.}
+
+\item{min.size}{Positive integer number. Minimum cluster size. All clusters with less than \code{min.size} elements are aggregated into one cluster, to which the largest cluster number is assigned. See output value \code{residual.cluster}. Default value is 2.}
+
 \item{rseed}{Integer number. Random seed to enforce reproducible clustering results. Default is 12345.}
 }
 \value{
 List object of three components:
-\item{graph}{graph derived from the pruned adjacency matrix computed with the \pkg{igraph} package.}
-\item{louvain}{Louvain clustering returned by the cluster_louvain function from the \pkg{igraph} package.}
-\item{fr}{Fruchterman-Rheingold graph layout derived from the pruned adjacency matrix.}
+\item{partition}{ Vector with clustering partition.}
+\item{fr}{ Data.frame with Fruchterman-Rheingold graph layout.}
+\item{residual.cluster}{ In case clusters with less than \code{min.size} elements occur in the cluster partition, these are grouped into a common cluster, to which the largest cluster number is assigned. If this grouping was done, the cluster number is given by this value. Otherwise, the value of this object is NULL.}
 }
 \description{
-This function derives a graph object from the pruned nearest neighbours and infers clusters by the the Louvain clustering method on this graph.
+This function derives a graph object from the pruned k nearest neighbours and infers clusters by modularity
+optimizatio nusing the Louvain or the Leiden algorithm on this graph.
 A Fruchterman-Rheingold graph layout is also derived from the pruned nearest neighbours.
 }
 \examples{
