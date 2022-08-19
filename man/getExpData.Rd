@@ -25,5 +25,5 @@ sc <- SCseq(intestinalDataSmall)
 sc <- filterdata(sc)
 sc <- compdist(sc)
 d <- getExpData(sc)
-res <- pruneKnn(d,distM=sc@distances,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(d,distM=sc@distances,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 }

@@ -421,7 +421,7 @@ plotBackVar <- function(x){
 #' \item{pars}{List object storing the run parameters.}
 #' \item{pca}{Principal component analysis of the of the input data, if \code{large} is TRUE. Output or the function \code{irlba} from the \pkg{irlba} package with \code{pcaComp} principal components, or 100 principal components if \code{pcaComp} is NULL.}
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' @importFrom compiler cmpfun
 #' @import parallel
 #' @import Matrix
@@ -651,7 +651,7 @@ plotPC <- function(res,logDiff=FALSE){
 #' @param pvalue Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.
 #' @return Adjacency matrix in sparse matrix format (see package \pkg{Matrix}) with positive non-zero entries only for k nearest neighours with link probability \code{>= pvalue}. The value of these entries equals the link probability.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' y <- createKnnMatrix(res,pvalue=0.01)
 #' @import Matrix
 #' @export
@@ -717,7 +717,7 @@ noiseBaseFit <- function(x,step=.01,thr=.05){
 #' \item{fr}{ Data.frame with Fruchterman-Rheingold graph layout.}
 #' \item{residual.cluster}{ In case clusters with less than \code{min.size} elements occur in the cluster partition, these are grouped into a common cluster, to which the largest cluster number is assigned. If this grouping was done, the cluster number is given by this value. Otherwise, the value of this object is NULL.}
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' @importFrom leiden leiden
 #' @export
@@ -787,7 +787,7 @@ graphCluster <- function(res,pvalue=0.01,use.weights=TRUE,use.leiden=FALSE,leide
 #' \item{data}{matrix with local gene expression variability estimates, corrected for the mean dependence.}
 #' \item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log_umi} is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 #' @importFrom MASS glm.nb theta.ml theta.md
 #' @importFrom stats coefficients glm loess predict model.matrix df.residual density approx
@@ -863,7 +863,7 @@ compNoise <- function(x,res,pvalue=0.01,genes=NULL,regNB=FALSE,batch=NULL,regVar
 #' \item{mean}{matrix with local gene expression averages, computed from Pearson residuals (if \code{regNB=TRUE}) or normalized UMI counts (if \code{regNB=FALSE}). In the latter case, the average UMI count for a local neighbourhood is normalized to one and rescaled by the median UMI count across neighborhoods.}
 #' \item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log_umi} is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' mexp <- compMean(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 #' @importFrom MASS glm.nb theta.ml theta.md
 #' @importFrom stats coefficients glm loess predict model.matrix df.residual density approx
@@ -984,7 +984,7 @@ plotNoiseModel <- function(x,corrected=FALSE){
 #' sc <- filterdata(sc)
 #' sc <- compdist(sc)
 #' d <- getExpData(sc)
-#' res <- pruneKnn(d,distM=sc@distances,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(d,distM=sc@distances,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' sc <- updateSC(sc,res=res,cl=cl)
 #' sc <- comptsne(sc)
@@ -1047,7 +1047,7 @@ updateSC <- function(object,res=NULL, cl=NULL,noise=NULL,flo=NULL){
 #' sc <- filterdata(sc)
 #' sc <- compdist(sc)
 #' d <- getExpData(sc)
-#' res <- pruneKnn(d,distM=sc@distances,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(d,distM=sc@distances,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' @export
 getExpData <- function(object,genes=NULL){
    if ( is.null(genes) ) genes <- object@genes 
@@ -1062,7 +1062,7 @@ getExpData <- function(object,genes=NULL){
 #' @param pvalue Positive real number between 0 and 1. All nearest neighbours with link probability \code{< pvalue} are discarded. Default is 0.01.
 #' @return Matrix of transition probabilities between clusters.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' probs <-transitionProbs(res,cl,pvalue=0.01) 
 #' @export
@@ -1128,7 +1128,7 @@ transitionProbs <- function(res,cl,pvalue=0.01){
 #' sc <- filterdata(sc)
 #' sc <- compdist(sc)
 #' d <- getExpData(sc)
-#' res <- pruneKnn(d,distM=sc@distances,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(d,distM=sc@distances,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' sc <- updateSC(sc,res=res,cl=cl)
 #' sc <- comptsne(sc)
@@ -1240,7 +1240,7 @@ plotTrProbs <- function(object,probs,tp=.5,prthr=0,cthr=0,fr=FALSE,um=FALSE, cex
 #' @param no_cores Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is \code{NULL}.
 #' @return Data.frame reporting the log2 fold change between clusters in \code{set} and the remaining clusters and the p-value for elevated variability for each genes. Rows are ordered by decreasing log2 fold change.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' ngenes <- diffNoisyGenes(noise,cl,c(1,2),no_cores=1)
@@ -1286,7 +1286,7 @@ diffNoisyGenes <- function(noise,cl,set,bgr=NULL,no_cores=1){
 #' @return Vector with average gene expression variability in decreasing order, computed across all cells or only cells in a set of clusters (if \code{cl} and
 #' \code{set} are given.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 #' mgenes <- maxNoisyGenes(noise)
 #' @export
@@ -1542,8 +1542,10 @@ fitNBtbCl <- function(z, mu, rt, gamma=2, x0=.1, lower=0, upper=100 ){
 #' \item{epsilon}{Matrix of biological noise estimates for all genes across for all k-nearest neighbourhoods. Componenets are set to \code{NA} if less than \code{minN} neighbours present in pruned neighbourhood.}
 #' \item{pars}{List of parameters.}
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' \dontrun{
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compTBNoise(res,intestinalDataSmall,pvalue=0.01,genes = NULL,no_cores=1)
+#' }
 #' @import parallel
 #' @import Matrix
 #' @export
@@ -1834,10 +1836,12 @@ plotMV <- function(x,cv=FALSE,ret=FALSE,span=.75,degree=2,...){
 #'\item{pvalue}{Banjamini-Hochberg corrected Wilcoxon rank sum test p-value for differential variability.}
 #' Rows are ordered by decreasing log2 fold change of variability.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' \dontrun{
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compTBNoise(res,intestinalDataSmall,pvalue=0.01,genes = NULL,no_cores=1)
 #' cl <- graphCluster(res,pvalue=0.01)
 #' ngenes <- diffNoisyGenesTB(noise,cl,c(1,2),no_cores=1)
+#' }
 #' @importFrom stats wilcox.test
 #' @importFrom parallel detectCores parApply
 #' @export
@@ -1933,7 +1937,7 @@ plotDiffNoise <- function(x,pthr=.05,mu=TRUE,lthr=0,ps=.01,mthr=-Inf,set.name=NU
 #' @return Vector with average gene expression variability in decreasing order, computed across all cells or only cells in a set of clusters (if \code{cl} and
 #' \code{set} are given.
 #' @examples
-#' res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+#' res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 #' noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 #' mgenes <- maxNoisyGenes(noise)
 #' @export
@@ -2299,7 +2303,7 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
 }
 
 #' @title Extract pseudo-time order of cells along a trajectory
-#' @description Extract pseudo-time order of cells along a trajectory defined by a set of clusters using the \pkg{slingshot} algorithm.
+#' @description Extract pseudo-time order of cells along a trajectory defined by a set of clusters using the \pkg{slingshot} algorithm. If the \pkg{slingshot} package is unavailable, the function falls back to inference by principal curve analysis using the \pkg{princurve} package.
 #' @param object \pkg{RaceID} \code{SCseq} object.
 #' @param set Set of valid ordered cluster numbers (in \code{object@cpart}) defining the trajectory for which the pseudo-temporal order of cells should be computed computed. Only clusters on a single, linear trajectory should be given.
 #' @param m Existing dimensional reduction representation of RaceID object. Either \code{"fr"}, \code{"tsne"} or \code{"umap"}. Default is NULL and dimensional reduction representation is computed for all cells in \code{set}.
@@ -2327,6 +2331,7 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
 #' @import RColorBrewer
 #' @import umap
 #' @import Rtsne
+#' @import princurve
 pseudoTime <- function(object,set,m=NULL,map="umap",x=NULL,n_neighbors = 15, metric = "euclidean", n_epochs = 200, min_dist = 0.1, local_connectivity = 1, spread = 1, initial_cmd=TRUE,perplexity=30,rseed=15555,...){
 
     umap.pars <- umap.defaults
@@ -2396,31 +2401,39 @@ pseudoTime <- function(object,set,m=NULL,map="umap",x=NULL,n_neighbors = 15, met
         }
     }
 
-    sls <-  slingshot::getLineages(rd, part, start.clus = set[1])
-    cset <- as.character(set)
-    sls@metadata$adjacency <- matrix(rep(0,length(set)**2),ncol=length(set))
-    colnames(sls@metadata$adjacency) <- rownames(sls@metadata$adjacency) <- cset
-    for ( i in 1:(length(set) - 1) ){ sls@metadata$adjacency[ cset[i], cset[i + 1]] <- sls@metadata$adjacency[ cset[i + 1], cset[i]] <- 1 }
-    sls@metadata$lineages <- list( Lineage1 = cset )
-    sls@metadata$slingParams$end.clus <- cset[length(cset)]
-    sls@metadata$slingParams$end.given <- TRUE
-    sls <- slingshot::getCurves(sls,...)
-    pt  <- slingshot::slingPseudotime(sls)
+    if (requireNamespace('slingshot',quietly=TRUE)) {
+        sls <-  slingshot::getLineages(rd, part, start.clus = set[1])
+        cset <- as.character(set)
+        sls@metadata$adjacency <- matrix(rep(0,length(set)**2),ncol=length(set))
+        colnames(sls@metadata$adjacency) <- rownames(sls@metadata$adjacency) <- cset
+        for ( i in 1:(length(set) - 1) ){ sls@metadata$adjacency[ cset[i], cset[i + 1]] <- sls@metadata$adjacency[ cset[i + 1], cset[i]] <- 1 }
+        sls@metadata$lineages <- list( Lineage1 = cset )
+        sls@metadata$slingParams$end.clus <- cset[length(cset)]
+        sls@metadata$slingParams$end.given <- TRUE
+        sls <- slingshot::getCurves(sls,...)
+        pt  <- slingshot::slingPseudotime(sls)
     
     
-    #SingleCellExperiment::reducedDims(sls) <- list( RD = rd )
-    #SummarizedExperiment::colData(sls)$cluster <- part
+        ##SingleCellExperiment::reducedDims(sls) <- list( RD = rd )
+        ##SummarizedExperiment::colData(sls)$cluster <- part
     
-    #sls  <- slingshot::slingshot(sls, lineages = sds, clusterLabels = 'cluster', reducedDim = 'RD')
-    #colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
+        ##sls  <- slingshot::slingshot(sls, lineages = sds, clusterLabels = 'cluster', reducedDim = 'RD')
+        ##colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
 
-    #pt  <- sls$slingPseudotime_1
-    ord <- order(pt,decreasing=FALSE)
-    #if ( median(pt[part %in% set[1]],na.rm=TRUE) > median(pt[part %in% set[length(set)]],na.rm=TRUE) ) ord <- rev(ord)
-    names(ord) <- names(pt) <- colnames(x)
-    ord <- names(ord)[ord]
-   
-
+        ##pt  <- sls$slingPseudotime_1
+        ord <- order(pt,decreasing=FALSE)
+        ##if ( median(pt[part %in% set[1]],na.rm=TRUE) > median(pt[part %in% set[length(set)]],na.rm=TRUE) ) ord <- rev(ord)
+        names(ord) <- names(pt) <- colnames(x)
+        ord <- names(ord)[ord]
+    }else{
+        cat("Bioconductor package \'slingshot\' unavailable. Install from Bioconductor. Using princurve instead.\n")
+        pr <- principal_curve(as.matrix(rd),plot_iterations=FALSE)
+        pt <- as.matrix(data.frame(Lineage1=pr$lambda))
+        ord <- pr$ord
+        names(ord) <- rownames(rd)[ord]
+        ord <- names(ord)
+        sls <- pr$s[ord,]
+   }
     return( list( pt=pt, ord=ord, set=set, part=part, rd=rd, sls=sls ) )
 }
 
@@ -2439,10 +2452,19 @@ plotPT <- function(pt,object,clusters=TRUE,lineages=FALSE){
     plotcol <- colors[cut(pt$pt, breaks=100)]
     if ( clusters ) plotcol <- object@fcol[pt$part]
     plot( pt$rd, col = plotcol, pch=16, asp = 1)
-    if ( lineages ){
-        lines(slingshot::SlingshotDataSet(pt$sls), lwd=2, type = 'lineages', col = 'black')
+    if ( is.matrix(pt$sls) ){
+        if ( lineages ){
+            points(pt$sls[object@medoids[pt$set],1],pt$sls[object@medoids[pt$set],2],cex=3,pch=20)
+            lines(pt$sls[object@medoids[pt$set],1],pt$sls[object@medoids[pt$set],2],lwd=2)
+        }else{
+            lines(pt$sls[,1],pt$sls[,2],lwd=2)
+        }
     }else{
-        lines(slingshot::SlingshotDataSet(pt$sls), lwd=2, col='black')
+        if ( lineages ){
+            lines(slingshot::SlingshotDataSet(pt$sls), lwd=2, type = 'lineages', col = 'black')
+        }else{
+            lines(slingshot::SlingshotDataSet(pt$sls), lwd=2, col='black')
+        }
     }
 }
 

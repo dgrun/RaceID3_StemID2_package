@@ -20,7 +20,7 @@ Matrix of transition probabilities between clusters.
 This function computes transition probabilities between clusters based on the link probabilities of the pruned k nearest neighbour graph.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 cl <- graphCluster(res,pvalue=0.01)
 probs <-transitionProbs(res,cl,pvalue=0.01) 
 }

@@ -41,8 +41,8 @@ plotsensitivity(sc)
 ## -----------------------------------------------------------------------------
 plotoutlierprobs(sc)
 
-## ----results='hide', message=FALSE--------------------------------------------
-clustheatmap(sc)
+## ----eval=FALSE---------------------------------------------------------------
+#  clustheatmap(sc)
 
 ## -----------------------------------------------------------------------------
 sc <- comptsne(sc)
@@ -56,25 +56,25 @@ sc <- compumap(sc)
 ## -----------------------------------------------------------------------------
 plotmap(sc)
 
-## -----------------------------------------------------------------------------
-plotmap(sc,fr=TRUE)
+## ----eval=FALSE---------------------------------------------------------------
+#  plotmap(sc,fr=TRUE)
 
-## -----------------------------------------------------------------------------
-plotmap(sc,um=TRUE)
+## ----eval=FALSE---------------------------------------------------------------
+#  plotmap(sc,um=TRUE)
 
 ## -----------------------------------------------------------------------------
 types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 subset <- types[grep("IV|V",types)]
-plotsymbolsmap(sc,types,subset=subset,fr=TRUE,cex=1)
+plotsymbolsmap(sc,types,subset=subset,cex=1)
 
 ## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,"Lyz1",logsc=TRUE,cex=1)
 g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
-plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
 genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
@@ -90,8 +90,8 @@ types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 genes <- head(rownames(dg)[dg$fc>1],10)
 plotmarkergenes(sc,genes,samples=types)
 
-## -----------------------------------------------------------------------------
-plotmarkergenes(sc,genes,cl=c(2,3,1,4),samples=types,order.cells=TRUE)
+## ----eval=FALSE---------------------------------------------------------------
+#  plotmarkergenes(sc,genes,cl=c(2,3,1,4),samples=types,order.cells=TRUE)
 
 ## -----------------------------------------------------------------------------
 fractDotPlot(sc, genes, cluster=c(2,3,1,4), zsc=TRUE)
@@ -113,7 +113,7 @@ ltr <- Ltree(sc)
 ltr <- compentropy(ltr)
 
 ## -----------------------------------------------------------------------------
-ltr <- projcells(ltr,cthr=5,nmode=FALSE,fr=TRUE)
+ltr <- projcells(ltr,cthr=5,nmode=FALSE)
 
 ## ----results='hide', message=FALSE--------------------------------------------
 ltr <- projback(ltr,pdishuf=100)
@@ -158,7 +158,7 @@ ltr <- Ltree(sc)
 ltr <- compentropy(ltr)
 
 ## -----------------------------------------------------------------------------
-ltr <- projcells(ltr,cthr=5,nmode=TRUE,fr=TRUE,knn=3)
+ltr <- projcells(ltr,cthr=5,nmode=TRUE,knn=3)
 
 ## ----results='hide', message=FALSE--------------------------------------------
 ltr <- lineagegraph(ltr)
@@ -168,34 +168,34 @@ ltr <- comppvalue(ltr,pthr=0.05)
 plotgraph(ltr,showCells=FALSE,showMap=TRUE)
 x <- compscore(ltr)
 
-## -----------------------------------------------------------------------------
-n <- colnames(intestinalData)
-b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
+## ----eval=FALSE---------------------------------------------------------------
+#  n <- colnames(intestinalData)
+#  b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
 
-## -----------------------------------------------------------------------------
-sc <- SCseq(intestinalData)
-sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
+## ----eval=FALSE---------------------------------------------------------------
+#  sc <- SCseq(intestinalData)
+#  sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
 
-## ----results='hide', message=FALSE--------------------------------------------
-sc <- compdist(sc,knn=5,metric="pearson")
+## ----results='hide', message=FALSE, eval=FALSE--------------------------------
+#  sc <- compdist(sc,knn=5,metric="pearson")
 
-## ----results='hide', message=FALSE--------------------------------------------
-sc <- clustexp(sc)
-sc <- findoutliers(sc)
-sc <- compfr(sc)
-sc <- comptsne(sc)
-plotmap(sc,fr=TRUE)
+## ----results='hide', message=FALSE, eval=FALSE--------------------------------
+#  sc <- clustexp(sc)
+#  sc <- findoutliers(sc)
+#  sc <- compfr(sc)
+#  sc <- comptsne(sc)
+#  plotmap(sc,fr=TRUE)
 
-## -----------------------------------------------------------------------------
-types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
-plotsymbolsmap(sc,types,fr=TRUE)
+## ----eval=FALSE---------------------------------------------------------------
+#  types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
+#  plotsymbolsmap(sc,types,fr=TRUE)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  plotexpmap(sc,"Mki67",imputed=TRUE,fr=TRUE)
 #  plotmarkergenes(sc,c("Clca4","Mki67","Defa24","Defa20","Agr2","Apoa1"),imputed=TRUE,samples=types)
 
-## -----------------------------------------------------------------------------
-k <- imputeexp(sc)
+## ----eval=FALSE---------------------------------------------------------------
+#  k <- imputeexp(sc)
 
 ## ----results='hide', message=FALSE, eval=FALSE--------------------------------
 #  sc <- SCseq(intestinalData)
@@ -265,7 +265,7 @@ library(FateID)
 fs  <- filterset(x,n=n$f)
 
 ## -----------------------------------------------------------------------------
-s1d <- getsom(fs,nb=1000,alpha=.5)
+s1d <- getsom(fs,nb=100,alpha=.5)
 
 ## -----------------------------------------------------------------------------
 ps  <- procsom(s1d,corthr=.85,minsom=3)
@@ -306,14 +306,14 @@ sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),
 expData  <- getExpData(sc)
 res      <- pruneKnn(expData,no_cores=1)
 
-## -----------------------------------------------------------------------------
-plotRegNB(expData,res,"(Intercept)")
+## ----eval=FALSE---------------------------------------------------------------
+#  plotRegNB(expData,res,"(Intercept)")
 
-## -----------------------------------------------------------------------------
-plotRegNB(expData,res,"beta")
+## ----eval=FALSE---------------------------------------------------------------
+#  plotRegNB(expData,res,"beta")
 
-## -----------------------------------------------------------------------------
-plotRegNB(expData,res,"theta")
+## ----eval=FALSE---------------------------------------------------------------
+#  plotRegNB(expData,res,"theta")
 
 ## -----------------------------------------------------------------------------
 plotPearsonRes(res,log=TRUE,xlim=c(-.1,.2))
@@ -343,9 +343,9 @@ sc <- updateSC(sc,res=res,cl=cl)
 ## -----------------------------------------------------------------------------
 plotmap(sc,fr=TRUE)
 
-## -----------------------------------------------------------------------------
-sc <- comptsne(sc,perplexity=50)
-plotmap(sc)
+## ----eval=FALSE---------------------------------------------------------------
+#  sc <- comptsne(sc,perplexity=50)
+#  plotmap(sc)
 
 ## -----------------------------------------------------------------------------
 sc <- compumap(sc,min_dist=0.5)
@@ -369,11 +369,11 @@ head(nn$expr.neighbours)
 ## ----warning = FALSE----------------------------------------------------------
 nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE)
 
-## ----warning = FALSE----------------------------------------------------------
-nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE,cv=TRUE)
+## ----eval = FALSE-------------------------------------------------------------
+#  nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE,cv=TRUE)
 
 ## -----------------------------------------------------------------------------
-x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+x <- getFilteredCounts(sc,minexpr=5,minnumber=20)
 noise <- compTBNoise(res,x,pvalue=0.01,gamma = 0.5,no_cores=1) 
 
 ## -----------------------------------------------------------------------------
@@ -383,16 +383,16 @@ plotUMINoise(sc,noise,log.scale=TRUE)
 sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 
 ## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE,cex=1)
+plotexpmap(sc,"Clca4",logsc=TRUE,um=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE,cex=1)
+plotexpmap(sc,"Clca4",logsc=TRUE,um=TRUE,noise=TRUE,cex=1)
 
 ## -----------------------------------------------------------------------------
-plotExpNoise("Lgr5",sc,noise,norm=TRUE,log="xy")
+plotExpNoise("Clca4",sc,noise,norm=TRUE,log="xy")
 
 ## -----------------------------------------------------------------------------
-genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
+genes <- c("Lyz1","Agr2","Clca3","Apoa1","Aldob","Clca4","Mki67","Pcna")
 ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 
@@ -407,11 +407,11 @@ head(ngenes)
 genes <- head(rownames(ngenes),50)
 ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=FALSE,zsc=TRUE)
 
-## -----------------------------------------------------------------------------
-ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=TRUE)
+## ----eval=FALSE---------------------------------------------------------------
+#  ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=TRUE)
 
-## -----------------------------------------------------------------------------
-plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
+## ----eval=FALSE---------------------------------------------------------------
+#  plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
 
 ## -----------------------------------------------------------------------------
 mgenes <- maxNoisyGenesTB(noise,cl=cl,set=3)
@@ -419,12 +419,12 @@ head(mgenes)
 plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 
 ## -----------------------------------------------------------------------------
-ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(5,6))
+ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(2,4))
 plotDiffNoise(ngenes)
 
-## -----------------------------------------------------------------------------
-dgenes <- clustdiffgenes(sc,1,bgr=c(5,6),pvalue=0.01)
-plotdiffgenesnb(dgenes,xlim=c(-6,3))
+## ----eval=FALSE---------------------------------------------------------------
+#  dgenes <- clustdiffgenes(sc,1,bgr=c(2,4),pvalue=0.01)
+#  plotdiffgenesnb(dgenes,xlim=c(-6,3))
 
 ## -----------------------------------------------------------------------------
 violinMarkerPlot(c("Mki67","Pcna"),sc,set=c(2,3,1))
@@ -460,7 +460,6 @@ plotQQ(qn,"local.corr","noise.av",sc,cluster=StemCluster,log="xy",cex=1)
 plotTrProbs(sc,probs,um=TRUE)
 
 ## -----------------------------------------------------------------------------
-plotexpmap(sc,"Lgr5",um=TRUE,cex=1,logsc=TRUE)
 plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
 
 ## ----results='hide', message=FALSE--------------------------------------------
@@ -472,10 +471,10 @@ pt <- pseudoTime(sc,m="umap",set=set)
 plotPT(pt,sc,clusters=FALSE)
 
 ## -----------------------------------------------------------------------------
-plotPT(pt,sc)
+plotPT(pt,sc,clusters=TRUE,lineages=TRUE)
 
 ## -----------------------------------------------------------------------------
-fs <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt)
+fs <- extractCounts(sc,minexpr=5,minnumber=20,pt=pt)
 
 ## ----results='hide', message=FALSE, warnings=FALSE----------------------------
 library(FateID)
@@ -489,10 +488,9 @@ plotheatmap(ps$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE
 
 ## -----------------------------------------------------------------------------
 plotexpression(fs,y=part,g="Apoa1",n=ord,col=sc@fcol,cex=1,alpha=1)
-plotexpression(fs,y=part,g="Mki67",n=ord,col=sc@fcol,cex=1,alpha=1)
 
 ## -----------------------------------------------------------------------------
-genes <- c("Mki67","Pcna","Sox9","Apoa1")
+genes <- c("Mki67","Pcna","Apoa1")
 plotexpressionProfile(fs,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2)
 
 ## -----------------------------------------------------------------------------
@@ -500,15 +498,16 @@ genes <- getNode(ps,1)
 plotexpressionProfile(fs,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2)
 
 ## -----------------------------------------------------------------------------
-fsn    <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt,noise=TRUE)
-s1dn   <- getsom(fsn,nb=50,alpha=1)
+fsn    <- extractCounts(sc,minexpr=5,minnumber=20,pt=pt,noise=TRUE)
+s1dn   <- getsom(fsn,nb=25,alpha=1)
 psn    <- procsom(s1dn,corthr=.85,minsom=0)
-plotheatmap(psn$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
+
+## ----eval=FALSE---------------------------------------------------------------
+#  plotheatmap(psn$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
 
 ## -----------------------------------------------------------------------------
 plotexpression(fsn,y=part,g="Apoa1",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
-plotexpression(fsn,y=part,g="Mki67",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
-genes <- c("Mki67","Pcna","Sox9","Apoa1")
+genes <- c("Mki67","Pcna","Apoa1")
 plotexpressionProfile(fsn,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2,ylab="Noise")
 
 genes <- getNode(psn,1)

@@ -21,7 +21,7 @@ Vector with average gene expression variability in decreasing order, computed ac
 This function extracts genes with maximal variability in a cluster or in the entire data set.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 mgenes <- maxNoisyGenes(noise)
 }

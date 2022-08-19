@@ -64,5 +64,5 @@ List object of six components:
 \item{sls}{\code{slingshot} data object.}
 }
 \description{
-Extract pseudo-time order of cells along a trajectory defined by a set of clusters using the \pkg{slingshot} algorithm.
+Extract pseudo-time order of cells along a trajectory defined by a set of clusters using the \pkg{slingshot} algorithm. If the \pkg{slingshot} package is unavailable, the function falls back to inference by principal curve analysis using the \pkg{princurve} package.
 }

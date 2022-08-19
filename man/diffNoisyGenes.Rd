@@ -28,7 +28,7 @@ This function extracts genes with significantly elevated variability in a cluste
 and all remaining cells.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 noise <- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
 cl <- graphCluster(res,pvalue=0.01)
 ngenes <- diffNoisyGenes(noise,cl,c(1,2),no_cores=1)

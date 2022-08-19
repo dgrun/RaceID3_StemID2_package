@@ -18,6 +18,6 @@ Adjacency matrix in sparse matrix format (see package \pkg{Matrix}) with positiv
 This creates an adjacency matrix, keeping only nearest neighbour with a link probability above a minimum probability
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 y <- createKnnMatrix(res,pvalue=0.01)
 }

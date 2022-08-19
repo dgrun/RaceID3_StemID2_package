@@ -41,6 +41,6 @@ optimizatio nusing the Louvain or the Leiden algorithm on this graph.
 A Fruchterman-Rheingold graph layout is also derived from the pruned nearest neighbours.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 cl <- graphCluster(res,pvalue=0.01)
 }

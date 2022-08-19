@@ -103,7 +103,7 @@ plotoutlierprobs(sc)
 ```
 
 A heatmap of cell-to-cell distances grouped be the final clusters inferred based on the original clusters and the outliers allows visual inspection of the clusters:
-```{r results='hide', message=FALSE}
+```{r eval=FALSE}
 clustheatmap(sc)
 ```
 
@@ -133,12 +133,12 @@ plotmap(sc)
 ```
 
 The Fruchterman-Rheingold layout can be plotted by
-```{r}
+```{r eval=FALSE}
 plotmap(sc,fr=TRUE)
 ```
 
 The umap representation can be plotted by
-```{r}
+```{r eval=FALSE}
 plotmap(sc,um=TRUE)
 ```
 
@@ -148,20 +148,20 @@ The dimensional reduction maps can be inspected, e.g., for the localization of (
 ```{r}
 types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 subset <- types[grep("IV|V",types)]
-plotsymbolsmap(sc,types,subset=subset,fr=TRUE,cex=1)
+plotsymbolsmap(sc,types,subset=subset,cex=1)
 ```
 
 Expression of a gene of interest or aggregated expression for a group of genes can be highlighted in the dimensional reduction representation:
 ```{r}
-plotexpmap(sc,"Lyz1",logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,"Lyz1",logsc=TRUE,cex=1)
 g <- c("Apoa1", "Apoa1bp", "Apoa2", "Apoa4", "Apoa5")
-plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,g,n="Apoa genes",logsc=TRUE,cex=1)
 ```
 
 It is also possible to highight expression only for a subset of cells, e.g. a particular batch or sample:
 ```{r}
 sample <- colnames(sc@ndata)[grep("^I5d",colnames(sc@ndata))]
-plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,fr=TRUE,cex=1)
+plotexpmap(sc,"Lyz1",cells=sample,logsc=TRUE,cex=1)
 ```
 
 For the murine intestinal example data, inspetion of known marker genes suggests that cluster 2 and 3 correspnd to Lgr5-expressing intestinal stem cells. Cluster 2 is proliferative as indicated by up-regulation of Mki67, Cluster 1 comprises transiently amplifying progenitors biased towards absorptive entorytes in cluster 4 marked by Apolipoproteins. Cluster 7 comprises Lysozyme-expressing Paneth cells while Mucus-producing goblet cells constitute clusters 6 and 10.
@@ -188,8 +188,8 @@ genes <- head(rownames(dg)[dg$fc>1],10)
 plotmarkergenes(sc,genes,samples=types)
 ```
 
-The heatmap can also be ordered by cell names (i.e. by batch or sample) by setting `order.cells` to `TRUE`. With the input parameters `cl` and `cells`, the heatmap can be restricted to a subset of cluster or cells, respectively.
-```{r}
+The heatmap can also be ordered by cell names (i.e. by batch or sample) by setting `order.cells` to `TRUE`. With the input parameters `cl` and `cells`, the heatmap can be restricted to a subset of clusters or cells, respectively.
+```{r eval=FALSE}
 plotmarkergenes(sc,genes,cl=c(2,3,1,4),samples=types,order.cells=TRUE)
 ```
 
@@ -235,7 +235,7 @@ ltr <- compentropy(ltr)
 
 In the subsequent step, cells are projected onto inter-cluster links. Cells are assigned to a link based on minimum distance to k nearest neighbours (`nmode=TRUE`) or based on the maximum projection coordinate (`nmode=FALSE`). Only clusters with `>cthr` cells are included in the analysis. If `fr=TRUE` then the Fruchterman-Rheingold layout will be used for representation of the inferred lineage tree, and if `um=TRUE` a UMAP representation will be used. Otherwise, representation will be done in t-SNE space. The computation of the lineage graph is independent of the dimensional reduction method which is only used for visualization.
 ```{r}
-ltr <- projcells(ltr,cthr=5,nmode=FALSE,fr=TRUE)
+ltr <- projcells(ltr,cthr=5,nmode=FALSE)
 ```
 
 If projections are used for link determenation (`nmode=FALSE`), the derivation of link significance is done by comparing to the link population after randomizing cell positions within the boundaries imposed by the gene expression manifold. This is done by bootstrapping using 500 randomizations by default. More randomizations are possible, but obviously linearly increase runtime.
@@ -313,7 +313,7 @@ ltr <- compentropy(ltr)
 
 Next, cell projection are calculated with the parameter `nmode=TRUE`, which is also the default value:
 ```{r}
-ltr <- projcells(ltr,cthr=5,nmode=TRUE,fr=TRUE,knn=3)
+ltr <- projcells(ltr,cthr=5,nmode=TRUE,knn=3)
 ```
 
 The `knn` parameter determines how many nearest neighbours are considered in each cluster for determining the link assignment: the distance two each cluster is calculated as the average across the distance of a cell to the `knn` nearest neighbours within each other cluster, and the cell is assigned to the link with the cluster minimizing this distance.
@@ -335,13 +335,13 @@ x <- compscore(ltr)
 ## Batch effect removal
 RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `batchelor` package [@mnnCorrect]. The `batchelor` package needs to be separately installed from bioconductor if this mode is desired.
 In order to apply batch effect removal, a list with a vector of cell ids for each batch needs to be defined, e.g.:
-```{r}
+```{r eval=FALSE}
 n <- colnames(intestinalData)
 b <- list(n[grep("^I5",n)],n[grep("^II5",n)],n[grep("^III5",n)],n[grep("^IV5",n)],n[grep("^V5",n)])
 ```
 
 This list is provided as input to the `filterdata` function, and the `bmode` argument is initialized with the desired method, i.e. `mnnCorrect` or `RaceID`. The latter method simply compares the local neigbourhood, i.e. the set of k nearest neighbours, for each cell between two batches and identifies the neighbourhood of the two batches with the smallest average distance. A differential gene expression analysis between the closest neighbourhoods of two batches yields batch associated genes. The next batch is then compared in the same way to the merged dataset of the previous batches. Batches are compared and successively merged according to the order they are provided in `b`. An additional input parameter `knn` controls the number of nearest neighbours, i.e. the size of the neighbourhood.
-```{r}
+```{r eval=FALSE}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=2000,LBatch=b,bmode="RaceID",knn=10)
 ```
@@ -351,7 +351,7 @@ The `filterdata` function will identify all batch-associated genes, which are st
 ## Imputing of gene expression
 RaceID also offers optional imputing of gene expression, which can be useful if gene expression differences between cell types or states are governed only by lowly expressed genes and are difficult to resolve by clustering based on raw counts.
 If imputing is desired, the `knn` argument needs to be initialized with the number of nearest neighbours used for imputing gene expression :
-```{r results='hide', message=FALSE}
+```{r results='hide', message=FALSE, eval=FALSE}
 sc <- compdist(sc,knn=5,metric="pearson")
 ```
 
@@ -359,7 +359,7 @@ Now, for each cell the `knn` nearest neighbours are used to infer a local negati
 With the help of this negative binomial the tail probability of each  gene is derived across all `knn` nearest neighbours. The geometric means of these tail probabilities are finally applied as a weights for each nearest neighbours in the calculation of the imputed gene expression. This strategy ensures that gene expression can only be learned from nearest neighbours following the same transcript count distributions.
 
 After this, all steps remain the same. Imputing often helps to improve cluster discrimination and stability. Importantly, distances derived from imputed gene expression are only used for clustering. The outlier identification relies on unimputed gene expression, and hence can correct spurious clusters produced from imputed values.
-```{r results='hide', message=FALSE}
+```{r results='hide', message=FALSE, eval=FALSE}
 sc <- clustexp(sc)
 sc <- findoutliers(sc)
 sc <- compfr(sc)
@@ -368,7 +368,7 @@ plotmap(sc,fr=TRUE)
 ```
 
 If batch effect removal has been applied, the remaining batch effect can be checked by plotting symbols representig the sample of origin:
-```{r}
+```{r eval=FALSE}
 types <- sub("(\\_\\d+)$","", colnames(sc@ndata))
 plotsymbolsmap(sc,types,fr=TRUE)
 ```
@@ -380,7 +380,7 @@ plotmarkergenes(sc,c("Clca4","Mki67","Defa24","Defa20","Agr2","Apoa1"),imputed=T
 ```
 
 An expression matrix with imputed expression values can be extracted for further analysis:
-```{r}
+```{r eval=FALSE}
 k <- imputeexp(sc)
 ```
 
@@ -499,7 +499,7 @@ fs  <- filterset(x,n=n$f)
 The `filterset` function can be used to eliminate lowly expressed genes on the trajectory from the subsequent analysis and has two additional arguments to discard genes, which are not expressed at a level of `minexpr` or higher in at least `minnumber` of cells. The function returns a filtered expression data frame with genes as rows and cells as columns in the same order as in the input vector `n`.
 In the next step, a self-organizing map (SOM) of the pseudo-temporal expression profiles is computed:
 ```{r}
-s1d <- getsom(fs,nb=1000,alpha=.5)
+s1d <- getsom(fs,nb=100,alpha=.5)
 ```
 
 This map provides a grouping of similar expression profiles into modules. The first input argument is again an expression data frame. In this case, we use the filtered expression table generated by the filterset function to retain only genes that are expressed on the trajectory under consideration.
@@ -597,17 +597,17 @@ For instance, `genes` allows limiting the analysis to a subset of genes, `knn` d
 
 The coefficients of the negative binomial regression (or the coefficients of the analytical model, if `offsetModel=TRUE`) can be inspected.
 Intercept:
-```{r}
+```{r eval=FALSE}
 plotRegNB(expData,res,"(Intercept)")
 ```
 
 Coefficient $\beta$ of total log UMI count:
-```{r}
+```{r eval=FALSE}
 plotRegNB(expData,res,"beta")
 ```
 
 Dispersion parameter $\theta$:
-```{r}
+```{r eval=FALSE}
 plotRegNB(expData,res,"theta")
 ```
 
@@ -665,7 +665,7 @@ plotmap(sc,fr=TRUE)
 ```
 
 After computing a t-SNE map, the clustering can be also be visualized in t-SNE space:
-```{r}
+```{r eval=FALSE}
 sc <- comptsne(sc,perplexity=50)
 plotmap(sc)
 ```
@@ -711,7 +711,7 @@ nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE)
 ```
 
 Alternatively, the coefficient of variation (CV) can be plotted with the same model fits:
-```{r warning = FALSE}
+```{r eval = FALSE}
 nn <- inspectKNN(20,expData,res,cl,object=sc,pvalue=0.01,plotSymbol=FALSE,cv=TRUE)
 ```
 
@@ -721,9 +721,9 @@ The plot also highlights the local variability associated with cell-to-cell vari
 The inference of homogenous local neighbourhoods, given by a cell and its remaining nearest neighbours after pruning, permits the computation of local quantities across such sets of similar cells.
 To investigate the dynamics of gene expression noise across cell states, we derive local estimates of gene expression variability. The systematic dependence of gene expression variance on the mean expression is a central challenge for the derivation of differential variability between cell states. VarID solves this problem by deconvoluting binomial sampling noise, cell-to-cell variability in total transcript counts (as a consequence of cell-to-cell variability in sequencing efficiency, but also due to global biological variability in total RNA content, e.g., during different phases of the cell cycle), and residual variability, which we address as biological noise. This deconvolution is achieved by fitting a Gamma distribution to the local disrtibution of total transcript counts, yielding a technical noise paramater `rt` for each central cell, followed by a maximum a posterior inference of the reidual variability, i.e., biological noise, `epsilon` for each gene in every neighbourhood. The local mean expression `mu` within each neighbourhood is computed as the average of non-normalized transcript count across pruned local neighbourhoods.
 
-The noise inference can be done on a transcript count matrix, filtered by expression, e.g., retaining only cells with a minimum of 5 UMI counts in at least 5 cells:
+The noise inference can be done on a transcript count matrix, filtered by expression, e.g., retaining only cells with a minimum of 5 UMI counts in at least 20 cells:
 ```{r}
-x <- getFilteredCounts(sc,minexpr=5,minnumber=5)
+x <- getFilteredCounts(sc,minexpr=5,minnumber=20)
 noise <- compTBNoise(res,x,pvalue=0.01,gamma = 0.5,no_cores=1) 
 ```
 
@@ -746,24 +746,24 @@ This initializes a slot `noise` of the `SCseq` object with a gene-by-cell matrix
 
 Gene expression (on logarithmic scale):
 ```{r}
-plotexpmap(sc,"Lgr5",logsc=TRUE,cex=1)
+plotexpmap(sc,"Clca4",logsc=TRUE,um=TRUE,cex=1)
 ```
 
 Biological noise (on logarithmic scale):
 ```{r}
-plotexpmap(sc,"Lgr5",logsc=TRUE,noise=TRUE,cex=1)
+plotexpmap(sc,"Clca4",logsc=TRUE,um=TRUE,noise=TRUE,cex=1)
 ```
 
-This plot indicates that cluster 1 comprises Lgr5+ intestinal stem cells.
+This plot indicates that cluster 2 comprises Clca4+ intestinal stem cells.
 
 A scatter plot of noise versus gene expression allows inspection of the dependence between noise and gene expression:
 ```{r}
-plotExpNoise("Lgr5",sc,noise,norm=TRUE,log="xy")
+plotExpNoise("Clca4",sc,noise,norm=TRUE,log="xy")
 ```
 
 The biological noise can also be plotted in a cluster heatmap and directly compared to gene expression. After deriving a gene expression heatmap, the order of genes stored in `ph` (returned by the `pheatmap` function of the `pheatmap` package), can be applied to the noise heatmap in order to permit direct comparability:
 ```{r}
-genes <- c("Lyz1","Defa20","Agr2","Clca3","Muc2","Chgb","Neurog3","Apoa1","Aldob","Lgr5","Clca4","Mki67","Pcna")
+genes <- c("Lyz1","Agr2","Clca3","Apoa1","Aldob","Clca4","Mki67","Pcna")
 ph <- plotmarkergenes(sc,genes=genes,noise=FALSE)
 plotmarkergenes(sc,genes=genes[ph$tree_row$order],noise=TRUE,cluster_rows=FALSE)
 ```
@@ -791,12 +791,12 @@ ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=FALSE,zsc=TRUE)
 ```
 
 One can also cluster the cells and/or genes in the heatmap based on the noise quantification:
-```{r}
+```{r eval=FALSE}
 ph <- plotmarkergenes(sc,genes=genes,noise=TRUE,cluster_rows=TRUE,cluster_cols=TRUE)
 ```
 
 The gene expression itself can be represented with the same order of cells and genes by utilizing the `ph` output:
-```{r}
+```{r eval=FALSE}
 plotmarkergenes(sc,genes=ph$tree_row$labels[ ph$tree_row$order ],noise=FALSE,cells=ph$tree_col$labels[ ph$tree_col$order ], order.cells=TRUE,cluster_rows=FALSE)
 ```
 
@@ -809,13 +809,13 @@ plotmarkergenes(sc,genes=head(names(mgenes),50),noise=TRUE)
 
 Differential noise between clusters in `set` and `bgr` can also be visualized as MA plot:
 ```{r}
-ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(5,6))
+ngenes <- diffNoisyGenesTB(noise, cl, set=1, bgr=c(2,4))
 plotDiffNoise(ngenes)
 ```
 
 For comparison, differentially expressed genes between the same groups can be inferred and visualized in a similar manner:
-```{r}
-dgenes <- clustdiffgenes(sc,1,bgr=c(5,6),pvalue=0.01)
+```{r eval=FALSE}
+dgenes <- clustdiffgenes(sc,1,bgr=c(2,4),pvalue=0.01)
 plotdiffgenesnb(dgenes,xlim=c(-6,3))
 ```
 
@@ -881,11 +881,10 @@ plotTrProbs(sc,probs,um=TRUE)
 
 For examples, clusters 1, 5, and 3, represent the differentiation trajectory from Lgr5+ stem cell towards Apoa1+ enterocytes.
 ```{r}
-plotexpmap(sc,"Lgr5",um=TRUE,cex=1,logsc=TRUE)
 plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
 ```
 
-To order cells pseudo-temporally, VarID offers a wrapper function `pseudoTime`, which calls the Slingshot method [@slingshot] on a desired dimensional reduction, which can be a subset from the precomputed dimensional reductions of the RaceID object (`sc@fr`, `sc@tsne`, or `sc@umap`, given by the `map` parameter), or a dimensional reduction (t-SNE or UMAP) computed for the subset of cells on the trajectory. This set is assumed to be ordered along the trajectory, with the initial cluster as first entry. This function is not designed to recover branched trajetories; single lineages could be defined based on the output of the `plotTrPtobs` function as an ordered set of clusters. `pseudoTime` will always fit a single trajectory to the clusters specified in `set` according to the indicated order.
+To order cells pseudo-temporally, VarID offers a wrapper function `pseudoTime`, which calls the Slingshot method [@slingshot] on a desired dimensional reduction, which can be a subset from the precomputed dimensional reductions of the RaceID object (`sc@fr`, `sc@tsne`, or `sc@umap`, given by the `map` parameter), or a dimensional reduction (t-SNE or UMAP) computed for the subset of cells on the trajectory. This set is assumed to be ordered along the trajectory, with the initial cluster as first entry. This function is not designed to recover branched trajetories; single lineages could be defined based on the output of the `plotTrPtobs` function as an ordered set of clusters. `pseudoTime` will always fit a single trajectory to the clusters specified in `set` according to the indicated order. The slingsot package needs to be installed from Bioconductor. If the package is not installed, the function falls back to principal curve inference using the `princurve` package.
 ```{r results='hide', message=FALSE}
 # ordered set of clusters on the trajectory
 set <- c(2,3,1)
@@ -899,12 +898,12 @@ plotPT(pt,sc,clusters=FALSE)
 
 The trajectory can also be overlaid with the cluster annotation:
 ```{r}
-plotPT(pt,sc)
+plotPT(pt,sc,clusters=TRUE,lineages=TRUE)
 ```
 
 With the derived pseudo-time a filtered count matrix with cells ordered by pseudo-time can be obtained:
 ```{r}
-fs <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt)
+fs <- extractCounts(sc,minexpr=5,minnumber=20,pt=pt)
 ```
 
 Using methods from the `FateID` package, pseudo-time expression profiles can be derived by self-organizing maps (SOM) and grouped into modules:
@@ -922,12 +921,11 @@ plotheatmap(ps$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE
 Individual pseudo-time expression profiles can be plotted for genes of interest, e.g.,
 ```{r}
 plotexpression(fs,y=part,g="Apoa1",n=ord,col=sc@fcol,cex=1,alpha=1)
-plotexpression(fs,y=part,g="Mki67",n=ord,col=sc@fcol,cex=1,alpha=1)
 ```
 
 It is also possible to plot profiles for a group of genes into the same window:
 ```{r}
-genes <- c("Mki67","Pcna","Sox9","Apoa1")
+genes <- c("Mki67","Pcna","Apoa1")
 plotexpressionProfile(fs,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2)
 ```
 
@@ -940,17 +938,19 @@ plotexpressionProfile(fs,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2)
 
 Similarly, gene modules with correlated noise profiles can be derived:
 ```{r}
-fsn    <- extractCounts(sc,minexpr=5,minnumber=5,pt=pt,noise=TRUE)
-s1dn   <- getsom(fsn,nb=50,alpha=1)
+fsn    <- extractCounts(sc,minexpr=5,minnumber=20,pt=pt,noise=TRUE)
+s1dn   <- getsom(fsn,nb=25,alpha=1)
 psn    <- procsom(s1dn,corthr=.85,minsom=0)
+```
+
+```{r eval=FALSE}
 plotheatmap(psn$all.z, xpart=part[ord], xcol=sc@fcol, ypart=ps$nodes, xgrid=FALSE, ygrid=TRUE, xlab=TRUE)
 ```
 
 Noise profiles of individual genes or groups of genes:
 ```{r}
 plotexpression(fsn,y=part,g="Apoa1",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
-plotexpression(fsn,y=part,g="Mki67",n=ord, col=sc@fcol,cex=1,alpha=1,ylab="Noise")
-genes <- c("Mki67","Pcna","Sox9","Apoa1")
+genes <- c("Mki67","Pcna","Apoa1")
 plotexpressionProfile(fsn,y=part,g=genes,n=ord,alpha=1,col=rainbow(length(genes)),lwd=2,ylab="Noise")
 
 genes <- getNode(psn,1)

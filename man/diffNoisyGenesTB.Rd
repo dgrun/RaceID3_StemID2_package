@@ -51,8 +51,10 @@ This function infers genes with differential biological variability in a cluster
 and in the background set.
 }
 \examples{
-res <- pruneKnn(intestinalDataSmall,metric="pearson",knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+\dontrun{
+res <- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
 noise <- compTBNoise(res,intestinalDataSmall,pvalue=0.01,genes = NULL,no_cores=1)
 cl <- graphCluster(res,pvalue=0.01)
 ngenes <- diffNoisyGenesTB(noise,cl,c(1,2),no_cores=1)
+}
 }
