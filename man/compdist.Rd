@@ -17,8 +17,8 @@ compdist(
 \item{object}{\code{SCseq} class object.}
 
 \item{metric}{Distances are computed from the filtered expression matrix after optional feature selection, dimensional reduction, and/or transformation (batch correction).
-Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, rho, phi, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
-the distance is computed as 1 – correlation. \code{rho} and \code{phi} are measures of proportionality computed on non-normalized counts, taken from the \pkg{propr} package.}
+Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
+the distance is computed as 1 – correlation.}
 
 \item{FSelect}{Logical parameter. If \code{TRUE}, then feature selection is performed prior to RaceID3 analysis. Default is \code{TRUE}.}
 

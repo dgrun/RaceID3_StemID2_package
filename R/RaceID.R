@@ -730,8 +730,8 @@ getfdata <- function(object,g=NULL,n=NULL){
 #' @description This functions computes the distance matrix used for cell type inference by RaceID3.
 #' @param object \code{SCseq} class object.
 #' @param metric Distances are computed from the filtered expression matrix after optional feature selection, dimensional reduction, and/or transformation (batch correction).
-#' Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, rho, phi, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
-#' the distance is computed as 1 – correlation. \code{rho} and \code{phi} are measures of proportionality computed on non-normalized counts, taken from the \pkg{propr} package.
+#' Possible values for \code{metric} are \code{ spearman, pearson, logpearson, euclidean, kendall}.  Default is \code{"pearson"}. In case of the correlation based methods,
+#' the distance is computed as 1 – correlation.
 #' @param FSelect Logical parameter. If \code{TRUE}, then feature selection is performed prior to RaceID3 analysis. Default is \code{TRUE}.
 #' @param knn Positive integer number of nearest neighbours used for imputing gene expression values. Default is \code{NULL} and no imputing is done.
 #' @param alpha Positive real number. Relative weight of a cell versus its k nearest neigbour applied for imputing gene expression. A cell receives a weight of \code{alpha} while the weight of its k nearest neighbours is determined by quadratic programming. The sum across all weights is normalized to one, and the wieghted mean expression is used for computing the joint probability of a cell and each of its k nearest neighbours. These probabilities are applied for the derivation of the imputed gene expression for each cell. Default is 1. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood.
@@ -746,10 +746,9 @@ getfdata <- function(object,g=NULL,n=NULL){
 #' @importFrom quadprog solve.QP
 #' @importFrom compiler cmpfun
 #' @import parallel
-#' @importFrom propr propr
 #' @export
 compdist <- function(object,metric="pearson",FSelect=TRUE,knn=NULL,alpha=1,no_cores=1){
-    if ( ! ( metric %in% c( "spearman","pearson","logpearson","euclidean","rho","phi","kendall") ) ) stop("metric has to be one of the following: spearman, pearson, logpearson, euclidean, rho, phi, kendall")
+    if ( ! ( metric %in% c( "spearman","pearson","logpearson","euclidean","kendall") ) ) stop("metric has to be one of the following: spearman, pearson, logpearson, euclidean, kendall")
     if ( ! ( is.numeric(FSelect) | is.logical(FSelect) ) ) stop( "FSelect has to be logical (TRUE/FALSE)" )
     if ( ! ( is.numeric(knn) | is.null(knn) ) ) stop( "knn has to be NULL or integer > 0" )
     if ( ! is.null(knn) ) knn <- max(knn,2)
@@ -765,15 +764,7 @@ compdist <- function(object,metric="pearson",FSelect=TRUE,knn=NULL,alpha=1,no_co
         x <- object@dimRed$x
         if ( metric == "logpearson" & min(x) <= 0 ) metric <- "pearson"
     }
-    
-    if ( metric %in% c("rho","phi")){
-        if ( !is.null(knn) ) warning("imputing cannot be done in combination with proportionality metric rho or phi. Setting knn to NULL...\n")
-        if ( !is.null(object@dimRed$x) ) warning("dimensional reduction cannot be done in combination with proportionality metric rho or phi. Using raw counts as input...\n")
-        z <- as.matrix(object@expdata[n,colnames(x)])
-        object@distances <- dist.gen(t(z),method=metric)
-    }else{
-        object@distances <- dist.gen(t(as.matrix(x)),method=metric)
-    }
+    object@distances <- dist.gen(t(as.matrix(x)),method=metric)
     cPAdjust <- cmpfun(PAdjust)
     cQP <- cmpfun(QP)
 

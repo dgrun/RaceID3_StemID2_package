@@ -387,7 +387,7 @@ plotBackVar <- function(x){
 #' Deafult is \code{TRUE}. Recommended mode for very large datasets, where storing a distance matrix requires too much memory. \code{distM}
 #'  will be ignored if \code{large} is \code{TRUE}.
 #' @param regNB logical. If \code{TRUE} then gene a negative binomial regression is performed to prior to the principle component analysis if \code{large = TRUE}. See \code{large}. Default is \code{TRUE}.
-#' @param bmethod Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. Default is \code{NULL} and batch correction will be done by negative binomial regression.
+#' @param bmethod Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. This package requires separate installation by the user. This option only works, if \pkg{harmony} is available on CRAN or Bioconductor. Default is \code{NULL} and batch correction will be done by negative binomial regression.
 #' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log UMI count per cell.An interaction term is included for the log UMI count with the batch variable. Default value is \code{NULL}.
 #' @param regVar data.frame with additional variables to be regressed out simultaneously with the log UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.
 #' @param offsetModel Logical parameter. Only considered if \code{regNB} is \code{TRUE}. If \code{TRUE} then the \code{beta} (log UMI count) coefficient is set to 1 and the intercept is computed analytically as the log ration of UMI counts for a gene and the total UMI count across all cells. Batch variables and additional variables in \code{regVar} are regressed out with an offset term given by the sum of the intercept and the log UMI count. Default is \code{TRUE}.
@@ -425,7 +425,6 @@ plotBackVar <- function(x){
 #' @importFrom compiler cmpfun
 #' @import parallel
 #' @import Matrix
-#' @import harmony
 #' @importFrom quadprog solve.QP
 #' @importFrom irlba irlba
 #' @importFrom FNN get.knn
@@ -447,9 +446,14 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
     hflag <- FALSE
     if ( !is.null(batch) & !is.null(bmethod) ){
         if ( bmethod == "harmony" ){
-            hflag  <- TRUE
-            hbatch <- batch
-            batch  <- NULL
+             message("Harmony is currently unavailable on CRAN/Bioconductor. Falling back to regression.")
+            #if(!requireNamespace("harmony")){
+            #    message("This option requires the 'harmony' package. Please install. Falling back to bmethod=NULL.")               
+            #}else{
+            #    hflag  <- TRUE
+            #    hbatch <- batch
+            #    batch  <- NULL
+            #}
         }
     }
     
@@ -515,7 +519,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
         if ( hflag ){
             dimRed <- t(dimRed)
             colnames(dimRed) <- colnames(expData)
-            dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE,...)
+            #dimRed <- harmony::HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE,...)
             nn     <- get.knn(t(dimRed), k=knn, algorithm=algorithm)
             nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
             colnames(nn) <- colnames(expData)
