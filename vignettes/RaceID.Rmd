@@ -14,7 +14,7 @@ knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg')
 # Prerequisites
 
 RaceID is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by an outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data obtained by quantification with unique molecular identifiers. StemID permits subsequent inference of a lineage tree based on clusters, i.e. cell types, identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published [@FateID]. 
-This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells. We now added another method termed VarID [@VarID] to the package, which allows the quantification of local gene expression variability, but furthermore offers an alternative clustering approach to RaceID based on density clustering which has certain advantages and, in particular, permits handling much larger datasets, since there is no requirement of storing a distance matrix. This method can be fully integrated into a RaceID analysis (see section "VarID").
+This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells. We now added VarID2 [@VarID2] to the package, replacing the previous method VarID [@VarID], which allows the quantification of local gene expression variability and the deconvolution into technical and biological noise components. The original functions of VarID are still available, but were excluded from the vignette. We recommend using VarID2 with additional functionalities, in particular, quantification of biological noise. VarID2 furthermore offers an alternative clustering approach to RaceID based on density clustering which has certain advantages and, in particular, permits handling much larger datasets, since there is no requirement of storing a distance matrix. This method can be fully integrated into a RaceID analysis (see section "VarID2").
 RaceID offers several optional steps and here we will show  examples of how to perform typical RaceID/StemID analyses.
 
 # RaceID 
@@ -442,7 +442,7 @@ plotmap(sc)
 However, this is normally not required, since the improved outlier detection of the current version leads to stable clusters which do not change substantially after applying this function. Running `rfcorrect` takes very long for large datasets and should be omitted in this case.
 
 ## Parameters: Large Datasets
-For large dataset (>25k cells), we recommend using the VarID approach (see below) for density based clustering which does not require computation and storage of a huge distance matrix. For datasets below this size we recommend running RaceID/StemID with specific parameter settings. Since the correlation metric does not require dataset normalization, this approach has certained advantages compared to VarID. However, the latter can also be run with a correlation matrix.
+For large dataset (>25k cells), we recommend using the VarID2 approach (see below) for density based clustering which does not require computation and storage of a huge distance matrix. For datasets below this size we recommend running RaceID/StemID with specific parameter settings. Since the correlation metric does not require dataset normalization, this approach has certained advantages compared to VarID2. However, the latter can also be run with a correlation matrix.
 In the following, we discuss a few paramters critical for the runtime of RaceID/StemID on large datasets.
 ```{r results='hide', message=FALSE, eval=FALSE}
 sc <- SCseq(intestinalData)
@@ -564,28 +564,28 @@ It is also possible to highlight the data points as specific symbols, for exampl
 plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=sub("\\_\\d+","",n$f))
 ```
 
-# VarID
+# VarID2
 
-VarID is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities [@VarID]. The key idea is the inference of locally homogenous neighbourhoods of cells in cell state space, i.e., all k nearest neighbours follow the same transcript count distributions as the cell to which they are nearest neighbours ("central" cell).
+VarID2 is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities [@VarID2]. The key idea is the inference of locally homogenous neighbourhoods of cells in cell state space, i.e., all k nearest neighbours follow the same transcript count distributions as the cell to which they are nearest neighbours ("central" cell).
 The computation starts with k nearest neighbours and infers a negative binomial distribution for the transcript counts of each gene, derived from the mean-variance dependence computed locally across a central cell and its k nearest neighbours. The mean expression is derived from a weighted average across the k nearest neighbours, with weights  inferred using quadratic programming, representing the central cell as a linear combination of its neighbours. The contribution of the central cell itself can be controlled by a tunable scale parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10 (default 1). If `alpha` is `NULL`, then it is inferred by a local optimization, i.e., it is minimized under the constraint that the gene expression in the central cell does not deviate more then one standard deviation from the predicted weigthed mean across its k nearest neighbours, where the standard deviation is calculated from the predicted mean using the local background model (the average dependence of the variance on the mean expression).
 With the negative binomial distribution inferred from the local means and mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the geometric mean across the `nb` (deafult 3) genes with the lowest probability serves as a proxy for the link probability (i.e., the probability of neighbours being in the same state). If this probability falls below a user-defined threshold, the link to this neighbour is pruned After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph with homogenous neighbourhoods in cell state space is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
 These local neighbourhoods can be used to compute local properties such as gene expression variability, which in turn can be correlated to cell state or predicted fate, derived, e.g., from FateID analysis, respectively.
 
-Although VarID analysis can be performed independently of the RaceID data object, an integration with a RaceID analysis permits convenient visualization and processing of the results. For this reason, we here demonstrate an integrated pipeline, but explain at each step, how computation can be performed given minimal input data, i.e., a transcript count matrix.
+Although VarID2 analysis can be performed independently of the RaceID data object, an integration with a RaceID analysis permits convenient visualization and processing of the results. For this reason, we here demonstrate an integrated pipeline, but explain at each step, how computation can be performed given minimal input data, i.e., a transcript count matrix.
 
-The VarID method requires unique molecular identifier (UMI) counts, which have been shown to follow a negative binomial distribution, in order for the background model to be valid.
+The VarID2 method requires unique molecular identifier (UMI) counts, which have been shown to follow a negative binomial distribution, in order for the background model to be valid.
 
 Given such a UMI matrix with cells as columns and genes as rows, we could first initialize a RaceID object, and perform cell and gene filtering to retain only expressed genes and high quality cells. 
 
-We here demonstrate the functionalities of VarID on our single-cell transcriptome data of intestinal epithelial cells [@StemID].
+We here demonstrate the functionalities of VarID2 on our single-cell transcriptome data of intestinal epithelial cells [@StemID].
 ```{r}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
 ```
 
 In this example, all cells with a raw UMI count <1,000 are discarded, and all gene IDs starting with Gm (genes without official gene symbol, uncharacterized loci) are removed. Moreover, all  mitochondrial and ribosomal sub-unit encoding genes as well as all genes correlating with these classes are filtered out.
-Although VarID analysis can be performed with any given distance matrix, the preferred (default) mode does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space. For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells. In this case, the `pruneKnn` function can be executed with `large=TRUE` (default setting). Here, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (PCs). The number of top PCs used for dimensional reduction is determined by an elbow criterion (requiring that the change in explained variability upon further increasing the number of PCs has become linear). However, the number of PCs can also be adjusted manually (parameter `pcaComp`). This reduced PC matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
-In general, it is recommended to run VarID with `large=TRUE` and `regNB=TRUE` (default settings).
+Although VarID2 analysis can be performed with any given distance matrix, the preferred (default) mode does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space. For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells. In this case, the `pruneKnn` function can be executed with `large=TRUE` (default setting). Here, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (PCs). The number of top PCs used for dimensional reduction is determined by an elbow criterion (requiring that the change in explained variability upon further increasing the number of PCs has become linear). However, the number of PCs can also be adjusted manually (parameter `pcaComp`). This reduced PC matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
+In general, it is recommended to run VarID2 with `large=TRUE` and `regNB=TRUE` (default settings).
 A RaceID object can be utilized to facilitate the analysis, but in this mode the `compdist` function does not need to be executed:
 ```{r}
 expData  <- getExpData(sc)
@@ -719,7 +719,7 @@ The plot also highlights the local variability associated with cell-to-cell vari
 
 
 The inference of homogenous local neighbourhoods, given by a cell and its remaining nearest neighbours after pruning, permits the computation of local quantities across such sets of similar cells.
-To investigate the dynamics of gene expression noise across cell states, we derive local estimates of gene expression variability. The systematic dependence of gene expression variance on the mean expression is a central challenge for the derivation of differential variability between cell states. VarID solves this problem by deconvoluting binomial sampling noise, cell-to-cell variability in total transcript counts (as a consequence of cell-to-cell variability in sequencing efficiency, but also due to global biological variability in total RNA content, e.g., during different phases of the cell cycle), and residual variability, which we address as biological noise. This deconvolution is achieved by fitting a Gamma distribution to the local disrtibution of total transcript counts, yielding a technical noise paramater `rt` for each central cell, followed by a maximum a posterior inference of the reidual variability, i.e., biological noise, `epsilon` for each gene in every neighbourhood. The local mean expression `mu` within each neighbourhood is computed as the average of non-normalized transcript count across pruned local neighbourhoods.
+To investigate the dynamics of gene expression noise across cell states, we derive local estimates of gene expression variability. The systematic dependence of gene expression variance on the mean expression is a central challenge for the derivation of differential variability between cell states. VarID2 solves this problem by deconvoluting binomial sampling noise, cell-to-cell variability in total transcript counts (as a consequence of cell-to-cell variability in sequencing efficiency, but also due to global biological variability in total RNA content, e.g., during different phases of the cell cycle), and residual variability, which we address as biological noise. This deconvolution is achieved by fitting a Gamma distribution to the local disrtibution of total transcript counts, yielding a technical noise paramater `rt` for each central cell, followed by a maximum a posterior inference of the reidual variability, i.e., biological noise, `epsilon` for each gene in every neighbourhood. The local mean expression `mu` within each neighbourhood is computed as the average of non-normalized transcript count across pruned local neighbourhoods.
 
 The noise inference can be done on a transcript count matrix, filtered by expression, e.g., retaining only cells with a minimum of 5 UMI counts in at least 20 cells:
 ```{r}
@@ -874,7 +874,7 @@ plotQQ(qn,"local.corr","noise.av",sc,cluster=StemCluster,log="xy",cex=1)
 ```
 
 
-To study dynamics of gene expression and biological noise during differentiation, VarID facilitates pseudo-time analysis. Selection of a linear trajectry connecting a defined set of clusters could be based on the transition probabilities obtained from VarID.
+To study dynamics of gene expression and biological noise during differentiation, VarID2 facilitates pseudo-time analysis. Selection of a linear trajectry connecting a defined set of clusters could be based on the transition probabilities obtained from VarID2.
 ```{r}
 plotTrProbs(sc,probs,um=TRUE)
 ```
@@ -884,7 +884,7 @@ For examples, clusters 1, 5, and 3, represent the differentiation trajectory fro
 plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
 ```
 
-To order cells pseudo-temporally, VarID offers a wrapper function `pseudoTime`, which calls the Slingshot method [@slingshot] on a desired dimensional reduction, which can be a subset from the precomputed dimensional reductions of the RaceID object (`sc@fr`, `sc@tsne`, or `sc@umap`, given by the `map` parameter), or a dimensional reduction (t-SNE or UMAP) computed for the subset of cells on the trajectory. This set is assumed to be ordered along the trajectory, with the initial cluster as first entry. This function is not designed to recover branched trajetories; single lineages could be defined based on the output of the `plotTrPtobs` function as an ordered set of clusters. `pseudoTime` will always fit a single trajectory to the clusters specified in `set` according to the indicated order. The slingsot package needs to be installed from Bioconductor. If the package is not installed, the function falls back to principal curve inference using the `princurve` package.
+To order cells pseudo-temporally, VarID2 offers a wrapper function `pseudoTime`, which calls the Slingshot method [@slingshot] on a desired dimensional reduction, which can be a subset from the precomputed dimensional reductions of the RaceID object (`sc@fr`, `sc@tsne`, or `sc@umap`, given by the `map` parameter), or a dimensional reduction (t-SNE or UMAP) computed for the subset of cells on the trajectory. This set is assumed to be ordered along the trajectory, with the initial cluster as first entry. This function is not designed to recover branched trajetories; single lineages could be defined based on the output of the `plotTrPtobs` function as an ordered set of clusters. `pseudoTime` will always fit a single trajectory to the clusters specified in `set` according to the indicated order. The slingsot package needs to be installed from Bioconductor. If the package is not installed, the function falls back to principal curve inference using the `princurve` package.
 ```{r results='hide', message=FALSE}
 # ordered set of clusters on the trajectory
 set <- c(2,3,1)
@@ -961,9 +961,9 @@ For further details on plotting functions for pseudo-time analysis see `vignette
 Gene expression and noise modules can now be co-analyzed to characterize the inter-dependence of gene expression and noise dynamics during differentiation.
 
 
-## Removing batch effects and other confounding factors with VarID
+## Removing batch effects and other confounding factors with VarID2
 
-VarID offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` and function if the parameter `regNB` is set to `TRUE`. Alternatively, batch effect correction can ben done by the `harmony` package, if the `bmethod` parameter of `pruneKnn` is set to `"harmony"`. These batch correction options only exist if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
+VarID2 offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` and function if the parameter `regNB` is set to `TRUE`. Alternatively, batch effect correction can ben done by the `harmony` package, if the `bmethod` parameter of `pruneKnn` is set to `"harmony"`. These batch correction options only exist if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
 ```{r eval=FALSE}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
@@ -1005,7 +1005,7 @@ For bug reports and any questions related to RaceID and StemID please email dire
 
 # FAQ
 
-1. How can I perform RaceID/VarID analysis on 10x Genomics Chromium Single Cell RNA-Seq data?
+1. How can I perform RaceID/VarID2 analysis on 10x Genomics Chromium Single Cell RNA-Seq data?
 
 Processed count data from the Cell Ranger pipeline (or equivalent formats) can be read from the working directory (or any other path) and transformed into a sparse count matrix, which can be loaded into an `SCseq` object. This requires the `Matrix` package which is installed as a dependency together with `RaceID`. The following chunk of code can be used:
 
@@ -1023,7 +1023,7 @@ sc <- SCseq(x)
 
 2. How should I analyze large datasets (>25k cells)?
 
-Datasets with >25k cells should be analyzed with VarID instead of RaceID, which is more suitable for large datasets and does not require a distance matrix. The memory requirement of a distance matrix scales with N^2 as a function of the number of cells N. VarID should be run with with parameters `large=TRUE` and `regNB=TRUE` of the `pruneKnn` function in order to achieve optimal performance (default parameters). To increase processing speed VarID can be run with multiple cores. However, each core requires additional memory, and with too many cores VarID will run out of memory. To reduce computation time, the number of genes used for the negative binomial regression of total UMI count per cell can be limited to, e.g., 2000 by setting the `ngenes` parameter.
+Datasets with >25k cells should be analyzed with VarID2 instead of RaceID, which is more suitable for large datasets and does not require a distance matrix. The memory requirement of a distance matrix scales with N^2 as a function of the number of cells N. VarID2 should be run with with parameters `large=TRUE` and `regNB=TRUE` of the `pruneKnn` function in order to achieve optimal performance (default parameters). To increase processing speed VarID2 can be run with multiple cores. However, each core requires additional memory, and with too many cores VarID2 will run out of memory. To reduce computation time, the number of genes used for the negative binomial regression of total UMI count per cell can be limited to, e.g., 2000 by setting the `ngenes` parameter.
 
 Example for mouse data, including filtering of mitochondrial genes, ribosomal genes, and Gm* genes (and genes correlating to these groups):
 ```{r eval=FALSE}
@@ -1054,7 +1054,7 @@ sc <- compumap(sc)
 
 3. What can I do if too many clusters were detected in my dataset?
 
-This could be a consequence of technical noise, e.g., if experimental batches with strong differences in total UMI counts were co-analyzed. In such cases the background models of RaceID or VarID could indicate the presence of many spurious outliers. In RaceID, the number of outliers can be reduced by setting the the `probthr` parameter of the `findoutliers` function to values closer to zero. This is the probability threshold for outlier detection. In VarID the `pvalue` parameter of the `graphCluster` function can be set to lower values. This is the probability threshold for pruning links of the knn network. In the extreme case that no outliers (or pruning) are desired, `probthr` (or `pvalue`) should be set to zero. Moreover, the `use.weights` parameter of the `graphCluster` function can be set to `FALSE`; in this case, Louvain clustering is performed on a (pruned) knn-network with equal weights for all links. By default, links are weighted by the link probability, and if strong technical differences lead to low link probabilities, this could be the reason for the emergence of too many clusters.
+This could be a consequence of technical noise, e.g., if experimental batches with strong differences in total UMI counts were co-analyzed. In such cases the background models of RaceID or VarID2 could indicate the presence of many spurious outliers. In RaceID, the number of outliers can be reduced by setting the the `probthr` parameter of the `findoutliers` function to values closer to zero. This is the probability threshold for outlier detection. In VarID2 the `pvalue` parameter of the `graphCluster` function can be set to lower values. This is the probability threshold for pruning links of the knn network. In the extreme case that no outliers (or pruning) are desired, `probthr` (or `pvalue`) should be set to zero. Moreover, the `use.weights` parameter of the `graphCluster` function can be set to `FALSE`; in this case, Louvain clustering is performed on a (pruned) knn-network with equal weights for all links. By default, links are weighted by the link probability, and if strong technical differences lead to low link probabilities, this could be the reason for the emergence of too many clusters.
 
 # References
 
@@ -1319,9 +1319,11 @@ corrected by matching mutual nearest neighbors]{.nocase}'
     month: '12'
   title: '[Analytic Pearson residuals for normalization
 of single-cell RNA-seq UMI data]{.nocase}'
-  container-title: bioRxiv
-  URL: 'https://doi.org/10.1101/2020.12.01.405886'
-
+  container-title: Genome Biol.
+  page: '258'
+  volume: '22'
+  issue: '1'
+  
 - id: slingshot
   type: article-journal
   author:
@@ -1362,5 +1364,27 @@ of single-cell RNA-seq UMI data]{.nocase}'
   page: '45-49'
   volume: '17'
   issue: '1'
-...
 
+- id: VarID2
+  type: article-journal
+  author:
+  - family: Rosalez-Alvarez
+    given: R.E.
+  - family: Rettkowski
+    given: J.
+  - family: Herman
+    given: J.S.
+  - family: Dumbovic
+    given: G.
+  - family: Cabezas-Wallscheid
+    given: N.
+  - family: Grun
+    given: D.
+  issued:
+  - year: '2022'
+    month: '8'
+  title: '[Gene expression noise dynamics unveil functional heterogeneity of ageing hematopoietic stem cells]{.nocase}'
+  container-title: bioRxiv
+  URL: 'https://doi.org/10.1101/2022.08.04.502776'
+  
+...

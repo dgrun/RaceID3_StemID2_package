@@ -539,11 +539,12 @@ plotlabelsmap <- function(object,labels=NULL,fr=FALSE,um=FALSE,cex=.5){
 #' @param fr logical. If \code{TRUE} then plot Fruchterman-Rheingold layout. Default is \code{FALSE}.
 #' @param um logical. If \code{TRUE} then plot umap dimensional reduction representation. Default is \code{FALSE}.
 #' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
-#' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}. 
+#' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.
+#' @param cex.legend Positive real number. Size of data points and text in the legend. Default is 0.75.
 #' @return None
 #'
 #' @export
-plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5, fr=FALSE, um=FALSE, leg = TRUE, map = TRUE){
+plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5, fr=FALSE, um=FALSE, leg = TRUE, map = TRUE, cex.legend = .75){
     if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
     if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
     if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")
@@ -583,7 +584,7 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5
     }else{
         plot(d, xlab = "", ylab = "",  axes = FALSE, cex=0, pch=20, col="grey", xlim=c(min(d[,1]),max(d[,1])), ylim=c(min(d[,2]),max(d[,2])))
     }
-    if ( leg ) legend("topleft", legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex=.75, bty="n")
+    if ( leg ) legend("topleft", legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex = cex.legend, bty="n")
 }
 
 #' @title Highlighting gene expression in a dimensional reduction representation

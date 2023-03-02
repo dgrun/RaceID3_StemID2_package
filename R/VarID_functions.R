@@ -408,12 +408,15 @@ plotBackVar <- function(x){
 #' @param nb Positive integer number. Number of genes with the lowest outlier probability included for calculating the link probabilities for the knn pruning. The link probability is computed as the geometric mean across these genes. Default is 3.
 #' @param no_cores Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is \code{NULL}.
 #' @param FSelect Logical parameter. If \code{TRUE}, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is \code{FALSE}.
+#' @param pca.scale Logical parameter. If \code{TRUE}, then input features are scaled prior to PCA transformation. Default is \code{FALSE}.
+#' @param ps Real number greater or equal to zero. Pseudocount to be added to counts within local neighbourhoods for outlier identification and pruning. Default is 1.
 #' @param seed Integer number. Random number to initialize stochastic routines. Default is 12345.
 #' @param ... Additional parameters for \code{HarmonyMatrix} function of the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.
 #' @return List object of six components:
 #' \item{distM}{Distance matrix.}
 #' \item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or variable genes only if \code{Fselect} equals \code{TRUE}. Is is set to \code{NULL} if \code{large} equals \code{FALSE}.}
-#' \item{pvM}{Matrix of link probabilities between a cell and each of its k nearest neighbours. Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
+#' \item{pvM}{Matrix of link probabilities between a cell and each of its k nearest neighbours (Bonferroni-corrected p-values). Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
+#' \item{pvM.raw}{Matrix of uncorrected link probabilities between a cell and each of its k nearest neighbours (without multiple-testing correction). Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
 #' \item{NN}{Matrix of column indices of k nearest neighbours for each cell according to input matrix \code{x}. First entry corresponds to index of the cell itself. Columns contain the k nearest neighbour indices for cell \code{i} in matrix \code{x}.}
 #' \item{B}{List object with background model of gene expression as obtained by \code{fitBackVar} function.}
 #' \item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log_umi} is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
@@ -433,8 +436,9 @@ plotBackVar <- function(x){
 #' @importFrom runner mean_run
 #' @importFrom stats coefficients glm loess predict model.matrix rpois density approx
 #' @export
-pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,seed=12345,...){
+pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,pca.scale=FALSE,ps=1,seed=12345,...){
 
+    if ( ps < 0 ) stop("Pseudocount needs to be greater or equal to 0!" )
     expData <- as.matrix(expData)
     
     rs <- rowSums(expData > 0)
@@ -490,6 +494,8 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
         z <- z[genes,]
         f <- rowSums(is.na(z)) == 0 
         z <- z[f,]
+        if ( pca.scale ) z <- t(apply(z,1,scale))
+
         set.seed(seed)
 
         if ( !is.null(pcaComp) ){
@@ -580,13 +586,16 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
     
         weights <- c(alpha,weights)
         weights <- weights/sum(weights)
-        z <- applyProb(y + 1,coefficients(fit),weights)
+        ##z <- applyProb(y + 1,coefficients(fit),weights)
+        z <- applyProb(y + ps,coefficients(fit),weights)
         rownames(z) <- rownames(y)
         colnames(z) <- colnames(y)
         
         p <- apply(z,2,function(x){ exp( mean(log( p.adjust(x[order(x,decreasing=FALSE)],method="bonferroni")[1:nb] + 1e-16 ) ) ) })[-1]
         names(p) <- colnames(m)
-        c(alpha,p)
+        p.raw <- apply(z,2,function(x){ exp( mean(log( x[order(x,decreasing=FALSE)][1:nb] + 1e-16 ) ) ) })[-1]
+        names(p.raw) <- colnames(m)
+        c(alpha,p,p.raw)
     }
 
     if ( no_cores == 1 ){
@@ -597,8 +606,8 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
         stopCluster(clust)
     }
     colnames(out) <- colnames(nn)
-    pars <- list(large=large,regNB=regNB,offsetModel=offsetModel,thetaML=thetaML,theta=theta,ngenes=2000,span=.75,pcaComp=pcaComp,algorithm=algorithm,metric=metric,genes=genes,knn=knn,alpha=alpha,nb=nb,no_cores=no_cores,FSelect=FSelect,seed=seed)
-    return(list(distM=distM,dimRed=dimRed,pvM=out[-1,],NN=nn,B=bg,regData=regData,pars=pars,alpha=out[1,],pca=Xpca))
+    pars <- list(large=large,regNB=regNB,offsetModel=offsetModel,thetaML=thetaML,theta=theta,ngenes=2000,span=.75,pcaComp=pcaComp,algorithm=algorithm,metric=metric,genes=genes,knn=knn,alpha=alpha,nb=nb,no_cores=no_cores,FSelect=FSelect,pca.scale=pca.scale,ps=ps,seed=seed)
+    return(list(distM=distM,dimRed=dimRed,pvM=out[2:(knn + 1),],pvM.raw=out[(knn + 2):nrow(out),],NN=nn,B=bg,regData=regData,pars=pars,alpha=out[1,],pca=Xpca))
 }
 
 #' @title Function for pruning k-nearest neighborhoods based on neighborhood overlap
@@ -1465,12 +1474,16 @@ fitNBtb <- function(z, gamma=2, x0=0, lower=0, upper=100, grad=TRUE){
             
             gu <- gf(upper)
             gl <- gf(lower)
-            
-            if ( gu >= 0 & gl >= 0 ){
+
+            if ( gu > 0 & gl >= 0 ){
                 eps <- lower
-            }else if ( gu <= 0 & gl <= 0 ){
+            }else if ( gu <= 0 & gl < 0 ){
                 eps <- upper
-            }else{
+            }else if ( gu < 0 & gl > 0 ){
+                eps <- NA
+            }else if ( gu == 0 & gl == 0 ){
+                eps <- NA
+            }else{  
                 if ( mu == 0 ){
                     eps = NA
                 }else{
@@ -1512,10 +1525,14 @@ fitNBtbCl <- function(z, mu, rt, gamma=2, x0=.1, lower=0, upper=100 ){
         gu <- gf(upper)
         gl <- gf(lower)
 
-        if ( gu >= 0 & gl >= 0 ){
+        if ( gu > 0 & gl >= 0 ){
             eps <- lower
-        }else if ( gu <= 0 & gl <= 0 ){
+        }else if ( gu <= 0 & gl < 0 ){
             eps <- upper
+        }else if ( gu < 0 & gl > 0 ){
+            eps <- NA
+        }else if ( gu == 0 & gl == 0 ){
+            eps <- NA
         }else{            
             if ( mu == 0 ){
                 eps = NA

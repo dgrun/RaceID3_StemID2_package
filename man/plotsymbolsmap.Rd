@@ -13,7 +13,8 @@ plotsymbolsmap(
   fr = FALSE,
   um = FALSE,
   leg = TRUE,
-  map = TRUE
+  map = TRUE,
+  cex.legend = 0.75
 )
 }
 \arguments{
@@ -36,6 +37,8 @@ types are shown.}
 \item{leg}{logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.}
 
 \item{map}{logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.}
+
+\item{cex.legend}{Positive real number. Size of data points and text in the legend. Default is 0.75.}
 }
 \value{
 None

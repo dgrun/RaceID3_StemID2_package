@@ -27,6 +27,8 @@ pruneKnn(
   nb = 3,
   no_cores = NULL,
   FSelect = FALSE,
+  pca.scale = FALSE,
+  ps = 1,
   seed = 12345,
   ...
 )
@@ -84,6 +86,10 @@ the distance is computed as 1 – correlation. This parameter is only used if \c
 
 \item{FSelect}{Logical parameter. If \code{TRUE}, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is \code{FALSE}.}
 
+\item{pca.scale}{Logical parameter. If \code{TRUE}, then input features are scaled prior to PCA transformation. Default is \code{FALSE}.}
+
+\item{ps}{Real number greater or equal to zero. Pseudocount to be added to counts within local neighbourhoods for outlier identification and pruning. Default is 1.}
+
 \item{seed}{Integer number. Random number to initialize stochastic routines. Default is 12345.}
 
 \item{...}{Additional parameters for \code{HarmonyMatrix} function of the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.}
@@ -92,7 +98,8 @@ the distance is computed as 1 – correlation. This parameter is only used if \c
 List object of six components:
 \item{distM}{Distance matrix.}
 \item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or variable genes only if \code{Fselect} equals \code{TRUE}. Is is set to \code{NULL} if \code{large} equals \code{FALSE}.}
-\item{pvM}{Matrix of link probabilities between a cell and each of its k nearest neighbours. Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
+\item{pvM}{Matrix of link probabilities between a cell and each of its k nearest neighbours (Bonferroni-corrected p-values). Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
+\item{pvM.raw}{Matrix of uncorrected link probabilities between a cell and each of its k nearest neighbours (without multiple-testing correction). Column \code{i} shows the k nearest neighbour link probabilities for cell \code{i} in matrix \code{x}. }
 \item{NN}{Matrix of column indices of k nearest neighbours for each cell according to input matrix \code{x}. First entry corresponds to index of the cell itself. Columns contain the k nearest neighbour indices for cell \code{i} in matrix \code{x}.}
 \item{B}{List object with background model of gene expression as obtained by \code{fitBackVar} function.}
 \item{regData}{If \code{regNB=TRUE} this argument contains a list of four components: component \code{pearsonRes} contains a matrix of the Pearson Residual computed from the negative binomial regression, component \code{nbRegr} contains a matrix with the regression coefficients, component \code{nbRegrSmooth} contains a matrix with the smoothed regression coefficients, and \code{log_umi} is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if \code{batch} is not \code{NULL}).}
