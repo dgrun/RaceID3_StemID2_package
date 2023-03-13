@@ -14,7 +14,8 @@ plotsymbolsmap(
   um = FALSE,
   leg = TRUE,
   map = TRUE,
-  cex.legend = 0.75
+  cex.legend = 0.75,
+  leg.pos = "topleft"
 )
 }
 \arguments{
@@ -39,6 +40,8 @@ types are shown.}
 \item{map}{logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.}
 
 \item{cex.legend}{Positive real number. Size of data points and text in the legend. Default is 0.75.}
+
+\item{leg.pos}{Position of the legend. a single keyword from the list ‘"bottomright"’, ‘"bottom"’, ‘"bottomleft"’,‘"left"’, ‘"topleft"’, ‘"top"’, ‘"topright"’, ‘"right"’ and‘"center"’. This places the legend on the inside of the plot frame at the given location.}
 }
 \value{
 None

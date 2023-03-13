@@ -2321,7 +2321,12 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
     cluster <- y <- NULL
     yl  <- if ( is.null(noise)  ) "normalized expression" else "epsilon" 
     col <- object@fcol[set]
-    ggplot(x,aes(cluster,y,fill=cluster)) + geom_violin()+ scale_fill_manual(values=col,labels=set) + ylab(yl) + xlab("cluster") + ggtitle(ti) 
+    ggplot(x, aes(cluster, y, fill = cluster)) + 
+        geom_violin( lwd=0.2) +
+        geom_point( position = "jitter", size =0.5, alpha=0.8) +
+        geom_boxplot(width=0.1, outlier.alpha = 0, fill="darkgrey",  color="black", lwd=0.2 ) +
+        scale_fill_manual(values = col, labels = set) + ylab(yl) + 
+        xlab("cluster") + ggtitle(ti)
 }
 
 #' @title Extract pseudo-time order of cells along a trajectory

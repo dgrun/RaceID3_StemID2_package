@@ -541,10 +541,11 @@ plotlabelsmap <- function(object,labels=NULL,fr=FALSE,um=FALSE,cex=.5){
 #' @param leg logical. If \code{TRUE} then the legend is shown. Default value is \code{TRUE}.
 #' @param map logical. If \code{TRUE} then data points are shown. Default value is \code{TRUE}.
 #' @param cex.legend Positive real number. Size of data points and text in the legend. Default is 0.75.
+#' @param leg.pos Position of the legend. a single keyword from the list ‘"bottomright"’, ‘"bottom"’, ‘"bottomleft"’,‘"left"’, ‘"topleft"’, ‘"top"’, ‘"topright"’, ‘"right"’ and‘"center"’. This places the legend on the inside of the plot frame at the given location.
 #' @return None
 #'
 #' @export
-plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5, fr=FALSE, um=FALSE, leg = TRUE, map = TRUE, cex.legend = .75){
+plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5, fr=FALSE, um=FALSE, leg = TRUE, map = TRUE, cex.legend = .75, leg.pos = "topleft"){
     if ( length(object@tsne) == 0 & length(object@fr) == 0 & length(object@umap) == 0 ) stop("run comptsne/compfr/compumap before plotlabelsmap")
     if ( !is.logical(fr) ) stop("fr has to be TRUE or FALSE")
     if ( !is.logical(um) ) stop("um has to be TRUE or FALSE")
@@ -584,7 +585,7 @@ plotsymbolsmap <- function(object,types,subset = NULL,samples_col = NULL, cex=.5
     }else{
         plot(d, xlab = "", ylab = "",  axes = FALSE, cex=0, pch=20, col="grey", xlim=c(min(d[,1]),max(d[,1])), ylim=c(min(d[,2]),max(d[,2])))
     }
-    if ( leg ) legend("topleft", legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex = cex.legend, bty="n")
+    if ( leg ) legend(leg.pos, legend = sort(unique(types[fp])), col = samples_col, pch = 20, cex = cex.legend, bty="n")
 }
 
 #' @title Highlighting gene expression in a dimensional reduction representation
