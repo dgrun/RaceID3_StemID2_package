@@ -545,6 +545,35 @@ plotexpressionProfile(fsn,y=part,g=head(genes,10),n=ord,alpha=1,lwd=2,ylab="Nois
 #  plotexpmap(sc,"Pcna",um=TRUE,cex=1,log=TRUE)
 
 ## ----eval=FALSE---------------------------------------------------------------
+#  
+#  library(Seurat)
+#  library(RaceID)
+#  
+#  Se <- CreateSeuratObject(counts = intestinalData, project = "intestine", min.cells = 3, min.features = 200)
+#  Se <- NormalizeData(Se, normalization.method = "LogNormalize", scale.factor = 10000)
+#  Se <- FindVariableFeatures(Se, selection.method = "vst", nfeatures = 2000)
+#  
+#  all.genes <- rownames(Se)
+#  Se <- ScaleData(Se, features = all.genes)
+#  Se <- RunPCA(Se, features = VariableFeatures(object = Se))
+#  Se <- RunUMAP(Se, dims = 1:30, verbose = FALSE)
+#  Se <- RunTSNE(Se, dims = 1:30, verbose = FALSE)
+#  Se <- FindNeighbors(Se, dims = 1:10)
+#  Se <- FindClusters(Se, resolution = 0.5)
+#  DimPlot(Se, label = TRUE) + NoLegend()
+#  
+#  res <- pruneKnn(Se)
+#  ## without pruning (fast)
+#  ## res <- pruneKnn(Se,do.prune=FALSE,no_cores=1)
+#  sc  <- Seurat2SCseq(Se)
+#  plotmap(sc,um=TRUE)
+#  
+#  noise <- compTBNoise(res,getExpData(sc),no_cores=1)
+#  sc <- updateSC(sc,noise=noise)
+#  plotexpmap(sc,"Clca4",um=TRUE,cex=1,log=TRUE)
+#  plotexpmap(sc,"Clca4",um=TRUE,noise=TRUE,cex=1)
+
+## ----eval=FALSE---------------------------------------------------------------
 #  require(Matrix)
 #  require(RaceID)
 #  x <- readMM("matrix.mtx")

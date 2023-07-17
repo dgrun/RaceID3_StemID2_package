@@ -1,21 +1,36 @@
 ---
-title: "RaceID reference manual"
+title: "RaceID/StemID/VarID reference manual"
 date: "`r Sys.Date()`"
-output: html_document
+author: "Dominic Grun"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
 vignette: >
   %\VignetteIndexEntry{An introduction to RaceID and StemID.}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-
+\tableofcontents
 ```{r echo=FALSE}
 knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg') 
 ```
 # Prerequisites
+This vignettes provides a manual for the analysis of single-cell RNA-seq data with three different methods:
 
-RaceID is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by an outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data obtained by quantification with unique molecular identifiers. StemID permits subsequent inference of a lineage tree based on clusters, i.e. cell types, identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published [@FateID]. 
-This package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. We tested the method successfully on a dataset of ~50k cells. We now added VarID2 [@VarID2] to the package, replacing the previous method VarID [@VarID], which allows the quantification of local gene expression variability and the deconvolution into technical and biological noise components. The original functions of VarID are still available, but were excluded from the vignette. We recommend using VarID2 with additional functionalities, in particular, quantification of biological noise. VarID2 furthermore offers an alternative clustering approach to RaceID based on density clustering which has certain advantages and, in particular, permits handling much larger datasets, since there is no requirement of storing a distance matrix. This method can be fully integrated into a RaceID analysis (see section "VarID2").
-RaceID offers several optional steps and here we will show  examples of how to perform typical RaceID/StemID analyses.
+1. RaceID3 [@FateID]: pre-processing, clustering and outlier identification
+2. StemID2 [@FateID]: lineage tree inference (dependend on a prior RaceID3 analysis)
+3. VarID2 [@VarID2]: pre-processing, clustering, quantification of technical and biological noise, pseudotime analysis (independent of RaceID3, but can be integrated)
+
+RaceID [@RaceID] (the current version is RaceID3 [@FateID]) is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by  outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq with unique molecular identifiers. 
+
+StemID [@StemID] (the current version is StemID2 [@FateID]) permits  inference of a lineage tree based on clusters identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published together with the FateID algorithm [@FateID]. 
+
+The current version of the RaceID package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. 
+
+VarID [@VarID] (the current version is VarID2 [@VarID2]) is implemented as part of the RaceID package. VarID2 allows the quantification of local gene expression variability and the deconvolution into technical and biological noise components, and provides an alternative clustering approach based on community detection. VarID2 analysis is independent of RaceID but can be fully integrated into RaceID \code{SCseq} objects.
+
+RaceID is integrated with the FateID method for the prediction of cell fate probabilities [@FateID], which is available as a separate package.
 
 # RaceID 
 
@@ -567,7 +582,7 @@ plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=s
 # VarID2
 
 VarID2 is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities [@VarID2]. The key idea is the inference of locally homogenous neighbourhoods of cells in cell state space, i.e., all k nearest neighbours follow the same transcript count distributions as the cell to which they are nearest neighbours ("central" cell).
-The computation starts with k nearest neighbours and infers a negative binomial distribution for the transcript counts of each gene, derived from the mean-variance dependence computed locally across a central cell and its k nearest neighbours. The mean expression is derived from a weighted average across the k nearest neighbours, with weights  inferred using quadratic programming, representing the central cell as a linear combination of its neighbours. The contribution of the central cell itself can be controlled by a tunable scale parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10 (default 1). If `alpha` is `NULL`, then it is inferred by a local optimization, i.e., it is minimized under the constraint that the gene expression in the central cell does not deviate more then one standard deviation from the predicted weigthed mean across its k nearest neighbours, where the standard deviation is calculated from the predicted mean using the local background model (the average dependence of the variance on the mean expression).
+The computation starts with k nearest neighbours and infers a negative binomial distribution for the transcript counts of each gene, derived from the mean-variance dependence computed locally across a central cell and its k nearest neighbours. The mean expression is derived from a weighted average across the k nearest neighbours, with weights  inferred using quadratic programming, representing the central cell as a linear combination of its neighbours. The contribution of the central cell itself can be controlled by a tunable scaling parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10 (default 1). If `alpha` is `NULL`, then it is inferred by a local optimization, i.e., it is minimized under the constraint that the gene expression in the central cell does not deviate more then one standard deviation from the predicted weigthed mean across its k nearest neighbours, where the standard deviation is calculated from the predicted mean using the local background model (the average dependence of the variance on the mean expression).
 With the negative binomial distribution inferred from the local means and mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the geometric mean across the `nb` (deafult 3) genes with the lowest probability serves as a proxy for the link probability (i.e., the probability of neighbours being in the same state). If this probability falls below a user-defined threshold, the link to this neighbour is pruned After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph with homogenous neighbourhoods in cell state space is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
 These local neighbourhoods can be used to compute local properties such as gene expression variability, which in turn can be correlated to cell state or predicted fate, derived, e.g., from FateID analysis, respectively.
 
@@ -592,7 +607,7 @@ expData  <- getExpData(sc)
 res      <- pruneKnn(expData,no_cores=1)
 ```
 
-The `pruneKnn` function allows normalization by a full negative binomial regression (akin to [@sctransform]), or, alternatively, by analyical Pearson residuals as proposed by Lause et al. [@offSetModel] (default). In the latter case, the dispersion parameter can either be inferred by maximum likelihood, or approximated as $\theta$=10 (default). The function has a number of optional parameters controllung the outcome of the this step.
+The `pruneKnn` function allows normalization by a full negative binomial regression (akin to [@sctransform]), or, alternatively, by analyical Pearson residuals as proposed by Lause et al. [@offSetModel] (default). In the latter case, the dispersion parameter can either be inferred by maximum likelihood, or approximated as $\theta$=10 (default). The function has a number of optional parameters controlling the outcome of the this step.
 For instance, `genes` allows limiting the analysis to a subset of genes, `knn` defines the number of nearest neighbours, `alpha` is the scale parameter for the central cell, and `FSelect` allows internal feature selection. The background model is calculated internally based on the local mean-variance relation in the same way as done in RaceID and feature selection follows the same logic. The function further permits multithreading and the number of cores can be defines using the `no_cores` argument. If this is set to `NULL`, the function detects the number of available cores and uses this number minus two to leave resources for other tasks running on the same machine. Calling  `help` for this function explains all parameters in detail (as for all other functions).
 
 The coefficients of the negative binomial regression (or the coefficients of the analytical model, if `offsetModel=TRUE`) can be inspected.
@@ -742,7 +757,7 @@ The RaceID `SCseq` object can be updated with the biological noise estimates:
 sc <- updateSC(sc,res=res,cl=cl,noise=noise)
 ```
 
-This initializes a slot `noise` of the `SCseq` object with a gene-by-cell matrix of the biological noise etsimates `noise$epsilon`. The noise levels of a given gene (or group of genes), can then be visualized in the same way as gene expression with the help of RaceID functions.
+This initializes a slot `noise` of the `SCseq` object with a gene-by-cell matrix of the biological noise estimates `noise$epsilon`. The noise levels of a given gene (or group of genes), can then be visualized in the same way as gene expression with the help of RaceID functions.
 
 Gene expression (on logarithmic scale):
 ```{r}
@@ -835,7 +850,7 @@ qn <- quantKnn(res, noise, sc, pvalue = 0.01, minN = 5, no_cores = 1)
 ```
 
 These quantities can be inspected in the dimensional reduction representation, or as boxplots across cluster, with the level of a selected reference cluster highlighted as horizontal line.
-For instance, the Lgr5+ stem cell cluster 1 can be used as a reference:
+For instance, the Lgr5+ stem cell cluster 2 can be used as a reference:
 ```{r}
 StemCluster <- 2
 ```
@@ -963,7 +978,7 @@ Gene expression and noise modules can now be co-analyzed to characterize the int
 
 ## Removing batch effects and other confounding factors with VarID2
 
-VarID2 offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` and function if the parameter `regNB` is set to `TRUE`. Alternatively, batch effect correction can ben done by the `harmony` package, if the `bmethod` parameter of `pruneKnn` is set to `"harmony"`. These batch correction options only exist if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
+VarID2 offers the possibility to remove batch effects and other confounding sources of variability. To achieve this, batch variables and other latent variables can be included as dependent variables in the negative binomial regression, utilized in the `pruneKnn` function if the parameter `regNB` is set to `TRUE`. Alternatively, batch effect correction can ben done by the `harmony` package, if the `bmethod` parameter of `pruneKnn` is set to `"harmony"`. These batch correction options only exist if `large` is set to `TRUE`. The `batch` parameter is given by a categorical vector of batch names.
 ```{r eval=FALSE}
 sc <- SCseq(intestinalData)
 sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),value=TRUE),CGenes=grep("^(mt|Rp(l|s))",rownames(intestinalData),value=TRUE))
@@ -998,16 +1013,52 @@ plotexpmap(sc,"Pcna",um=TRUE,cex=1,log=TRUE)
 
 To regress out additional latent variables associated with distinct phases of the cell cycle, the parameter `regVar` was initialized with a data.frame of cell cycle S phase and G2/M phase scores (aggregated normalized gene expression of cell cycle phase markers). Column names of `regVar` indicate the latent variable names, and row names correspond to cell IDs, i.e.  column names of `expData`. Interaction terms between the batch variable and the UMI count or the other latent variables in `regVar` are included.
 
-See previous paragraph for more advice on how to explore the output data.
+See previous paragraphs for more advice on how to explore the output data.
+
+## Integrating Seurat with VarID2/RaceID3
+
+`Seurat` object can be converted into an \pkg{RaceID}`SCseq` object for VarID2 analysis, using the function `Seurat2SCseq`. This function expects a class `Seurat` object from the \pkg{Seurat} package as input and converts this into a \pkg{RaceID} `SCseq` object. The function transfers the counts, initializes `ndata` and `fdata` without further filtering, transfers the PCA cell embeddings from the `Seurat` object to `dimRed`, transfers the clustering partition, and `umap` and `tsne` dimensional reduction (if available). CAUTION: Cluster numbers in `RaceID` start at 1 by default. Hence, all `Seurat` cluster numbers are shifted by 1. 
+```{r eval=FALSE}
+
+library(Seurat)
+library(RaceID)
+
+Se <- CreateSeuratObject(counts = intestinalData, project = "intestine", min.cells = 3, min.features = 200)
+Se <- NormalizeData(Se, normalization.method = "LogNormalize", scale.factor = 10000)
+Se <- FindVariableFeatures(Se, selection.method = "vst", nfeatures = 2000)
+
+all.genes <- rownames(Se)
+Se <- ScaleData(Se, features = all.genes)
+Se <- RunPCA(Se, features = VariableFeatures(object = Se))
+Se <- RunUMAP(Se, dims = 1:30, verbose = FALSE)
+Se <- RunTSNE(Se, dims = 1:30, verbose = FALSE)
+Se <- FindNeighbors(Se, dims = 1:10)
+Se <- FindClusters(Se, resolution = 0.5)
+DimPlot(Se, label = TRUE) + NoLegend()
+
+res <- pruneKnn(Se)
+## without pruning (fast)
+## res <- pruneKnn(Se,do.prune=FALSE,no_cores=1)
+sc  <- Seurat2SCseq(Se)
+plotmap(sc,um=TRUE)
+
+noise <- compTBNoise(res,getExpData(sc),no_cores=1)
+sc <- updateSC(sc,noise=noise)
+plotexpmap(sc,"Clca4",um=TRUE,cex=1,log=TRUE)
+plotexpmap(sc,"Clca4",um=TRUE,noise=TRUE,cex=1)
+```
+
+See previous paragraphs for more advice on how to explore the output data.
 
 
-For bug reports and any questions related to RaceID and StemID please email directly to [link](mailto:dominic.gruen@gmail.com). 
 
 # FAQ
 
+For bug reports and any questions related to RaceID and StemID please email directly to [link](mailto:dominic.gruen@gmail.com). 
+
 1. How can I perform RaceID/VarID2 analysis on 10x Genomics Chromium Single Cell RNA-Seq data?
 
-Processed count data from the Cell Ranger pipeline (or equivalent formats) can be read from the working directory (or any other path) and transformed into a sparse count matrix, which can be loaded into an `SCseq` object. This requires the `Matrix` package which is installed as a dependency together with `RaceID`. The following chunk of code can be used:
+Processed count data from the Cell Ranger pipeline (or equivalent formats) can be read from the working directory (or any other path) and transformed into a sparse count matrix, which can be loaded into an `SCseq` object. This requires the `Matrix` package, which is installed as a dependency together with `RaceID`. The following chunk of code can be used:
 
 ```{r eval=FALSE}
 require(Matrix)
@@ -1060,6 +1111,35 @@ This could be a consequence of technical noise, e.g., if experimental batches wi
 
 ---
 references:
+- id: RaceID
+  type: article-journal
+  author:
+  - family: Grun
+    given: D.
+  - family: Lyubimova
+    given: A.
+  - family: Kester
+    given: L.
+  - family: Wiebrands
+    given: K.
+  - family: Basak
+    given: O.
+  - family: Sasaki
+    given: N.
+  - family: Clevers
+    given: H.
+  - family: Oudenaarden
+    given: A.
+    dropping-particle: van
+  issued:
+  - year: '2015'
+    month: '9'
+  title: '[Single-cell messenger RNA sequencing reveals rare intestinal cell types]{.nocase}'
+  container-title: Nature
+  page: '251-255'
+  volume: '525'
+  issue: '7568'
+  
 - id: mnnCorrect
   type: article-journal
   author:
@@ -1106,8 +1186,9 @@ corrected by matching mutual nearest neighbors]{.nocase}'
     given: D.
   - family: Kester
     given: L.
-  - family: van Oudenaarden
+  - family: Oudenaarden
     given: A.
+    dropping-particle: van
   issued:
   - year: '2014'
     month: '6'
@@ -1384,7 +1465,9 @@ of single-cell RNA-seq UMI data]{.nocase}'
   - year: '2022'
     month: '8'
   title: '[Gene expression noise dynamics unveil functional heterogeneity of ageing hematopoietic stem cells]{.nocase}'
-  container-title: bioRxiv
-  URL: 'https://doi.org/10.1101/2022.08.04.502776'
+  container-title: Genome Biol.
+  page: '148'
+  volume: '24'
+  issue: '1'
   
 ...

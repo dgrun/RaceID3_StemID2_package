@@ -14,16 +14,16 @@ dist.gen <- function(x,method="euclidean", ...){
   else as.matrix(dist(x,method=method,...))
 }
 
-plot.err.bars.x <- function(x, y, x.err, col="black", lwd=1, lty=1, h=0.1){
-  arrows(x-x.err,y,x+x.err,y,code=0, col=col, lwd=lwd, lty=lty)
-  arrows(x-x.err,y-h,x-x.err,y+h,code=0, col=col, lwd=lwd, lty=lty)
-  arrows(x+x.err,y-h,x+x.err,y+h,code=0, col=col, lwd=lwd, lty=lty)
+plot.err.bars.x <- function(x, y, x.err, col="black", lwd=1, lty=1, h=0.1, ...){
+  arrows(x-x.err,y,x+x.err,y,code=0, col=col, lwd=lwd, lty=lty, ...)
+  arrows(x-x.err,y-h,x-x.err,y+h,code=0, col=col, lwd=lwd, lty=lty, ...)
+  arrows(x+x.err,y-h,x+x.err,y+h,code=0, col=col, lwd=lwd, lty=lty, ...)
 }
 
-plot.err.bars.y <- function(x, y, y.err, col="black", lwd=1, lty=1, h=0.1){
-  arrows(x,y-y.err,x,y+y.err,code=0, col=col, lwd=lwd, lty=lty)
-  arrows(x-h,y-y.err,x+h,y-y.err,code=0, col=col, lwd=lwd, lty=lty)
-  arrows(x-h,y+y.err,x+h,y+y.err,code=0, col=col, lwd=lwd, lty=lty)
+plot.err.bars.y <- function(x, y, y.err, col="black", lwd=1, lty=1, h=0.1, ...){
+  arrows(x,y-y.err,x,y+y.err,code=0, col=col, lwd=lwd, lty=lty, ...)
+  arrows(x-h,y-y.err,x+h,y-y.err,code=0, col=col, lwd=lwd, lty=lty, ...)
+  arrows(x-h,y+y.err,x+h,y+y.err,code=0, col=col, lwd=lwd, lty=lty, ...)
 }
 
 clusGapExt <-function (x, FUNcluster, K.max, B = 100, verbose = TRUE, method="euclidean",random=TRUE,diss=FALSE,

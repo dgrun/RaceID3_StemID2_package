@@ -378,7 +378,7 @@ plotBackVar <- function(x){
 
 #' @title Function inferring a pruned knn matrix
 #' @description This function determines k nearest neighbours for each cell in gene expression space, and tests if the links are supported by a negative binomial joint distribution of gene expression. A probability is assigned to each link which is given by the minimum joint probability across all genes.
-#' @param expData Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts.
+#' @param expData Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts. Alternatively, a Seurat object could be used as input, after normalization, PCA-dimensional reduction, and shared-nearest neighbour inference.
 #' @param distM Optional distance matrix used for determining k nearest neighbours. Default is \code{NULL} and the distance matrix is computed using a metric given by the parameter \code{metric}.
 #' @param large logical. If \code{TRUE} then no distance matrix is required and nearest neighbours are inferred by the \pkg{FNN} package based on a reduced
 #' feature matrix computed by a principle component analysis. Only the first \code{pcaComp} principle components are considered. Prior to principal component
@@ -404,6 +404,7 @@ plotBackVar <- function(x){
 #' the distance is computed as 1 – correlation. This parameter is only used if \code{large} is FALSE and \code{distM} is NULL.
 #' @param genes Vector of gene names corresponding to a subset of rownames of \code{x}. Only these genes are used for the computation of a distance matrix and for the computation of joint probabilities of nearest neighbours. Default is \code{NULL} and all genes are used.
 #' @param knn Positive integer number. Number of nearest neighbours considered for each cell. Default is 25.
+#' @param do.prune Logical parameter. If \code{TRUE}, then pruning of k-nearest neighbourhoods is performed. If \code{FALSE}, then no pruning is done. Default is \code{TRUE}.
 #' @param alpha Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weights of its k nearest neighbours as determined by quadratic programming sum up to one. The sum across all weights and alpha is normalized to one, and the weighted mean expression is used for computing the link porbabilities for each of the k nearest neighbours. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is value is 1. If \code{alpha} is set to NULL it is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression). This procedure is coputationally more intense and inceases the run time of the function significantly.
 #' @param nb Positive integer number. Number of genes with the lowest outlier probability included for calculating the link probabilities for the knn pruning. The link probability is computed as the geometric mean across these genes. Default is 3.
 #' @param no_cores Positive integer number. Number of cores for multithreading. If set to \code{NULL} then the number of available cores minus two is used. Default is \code{NULL}.
@@ -436,123 +437,152 @@ plotBackVar <- function(x){
 #' @importFrom runner mean_run
 #' @importFrom stats coefficients glm loess predict model.matrix rpois density approx
 #' @export
-pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,pca.scale=FALSE,ps=1,seed=12345,...){
+pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,do.prune=TRUE,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,pca.scale=FALSE,ps=1,seed=12345,...){
 
-    if ( ps < 0 ) stop("Pseudocount needs to be greater or equal to 0!" )
-    expData <- as.matrix(expData)
+    if ( class(expData)[1] != "Seurat" ){
+        if ( ps < 0 ) stop("Pseudocount needs to be greater or equal to 0!" )
+        expData <- as.matrix(expData)
     
-    rs <- rowSums(expData > 0)
-    cs <- colSums(expData)
-    expData <- expData[rs>0,cs>0]
+        rs <- rowSums(expData > 0)
+        cs <- colSums(expData)
+        expData <- expData[rs>0,cs>0]
 
     
-    if (!is.null(batch) ) batch <- batch[colnames(expData)]    
-    if ( is.null(genes) ) genes <- rownames(expData)
-    hflag <- FALSE
-    if ( !is.null(batch) & !is.null(bmethod) ){
-        if ( bmethod == "harmony" ){
-            #if(!requireNamespace("harmony")){
-            #    message("This option requires the 'harmony' package. Please install. Falling back to bmethod=NULL.")               
-            #}else{
-            hflag  <- TRUE
-            hbatch <- batch
-            batch  <- NULL
-            #}
+        if (!is.null(batch) ) batch <- batch[colnames(expData)]    
+        if ( is.null(genes) ) genes <- rownames(expData)
+        hflag <- FALSE
+        if ( !is.null(batch) & !is.null(bmethod) ){
+            if ( bmethod == "harmony" ){
+                ##if(!requireNamespace("harmony")){
+                ##    message("This option requires the 'harmony' package. Please install. Falling back to bmethod=NULL.")               
+                ##}else{
+                hflag  <- TRUE
+                hbatch <- batch
+                batch  <- NULL
+                ##}
+            }
         }
-    }
     
     
-    expData <- expData[genes,]
-    colS    <- cs[ cs > 0 ]
-    Xpca    <- NULL
-    bg      <- NULL
-    if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
-    no_cores <- min(no_cores,detectCores())
+        expData <- expData[genes,]
+        colS    <- cs[ cs > 0 ]
+        Xpca    <- NULL
+        bg      <- NULL
+        if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
+        no_cores <- min(no_cores,detectCores())
 
-    if ( large ){
-        distM <- NULL
+        if ( large ){
+            distM <- NULL
         
-        if ( regNB ){
-            if ( offsetModel ){
-                regData <- compResiduals0(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed,thetaML=thetaML,theta=theta)
+            if ( regNB ){
+                if ( offsetModel ){
+                    regData <- compResiduals0(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed,thetaML=thetaML,theta=theta)
+                }else{
+                    regData <- compResiduals(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed)
+                }
+                z <- regData$pearsonRes
             }else{
-                regData <- compResiduals(expData[genes,],batch=batch,regVar=regVar,span=span,no_cores=no_cores,ngenes=ngenes,seed=seed)
+                regData <- NULL
+                z <- t(t(expData)/colS*min(colS))
             }
-            z <- regData$pearsonRes
+            
+            if ( FSelect ){
+                bg <- fitBackVar(expData[genes,])
+                backModel <- bg$fit
+                genes     <- bg$genes
+                expData   <- expData[genes,]
+            }
+        
+            z <- z[genes,]
+            f <- rowSums(is.na(z)) == 0 
+            z <- z[f,]
+            if ( pca.scale ) z <- t(apply(z,1,scale))
+            
+            set.seed(seed)
+
+            if ( !is.null(pcaComp) ){
+                pcaComp <- min( pcaComp, ncol(expData) - 1)
+                pcaComp <- min( pcaComp, nrow(expData) - 1)
+                Xpca <- irlba(A = t(z), nv = pcaComp, tol = tol)
+            }else{
+                pcaComp <- 100
+                pcaComp <- min( pcaComp, ncol(expData) - 1)
+                pcaComp <- min( pcaComp, nrow(expData) - 1)
+                Xpca <- irlba(A = t(z), nv = pcaComp, tol = tol)
+                
+            
+                g <- Xpca$d/sum(Xpca$d)
+                g <- mean_run(g,3)
+                y <- g[ -length(g) ] - g[-1]
+                mm <- numeric(length(y))
+                nn <- numeric(length(y))
+                for ( i in 1:length(y)){
+                    mm[i] <- mean(y[i:length(y)]) 
+                    nn[i] <- sqrt(var(y[i:length(y)]))
+                }
+                ind <- which( y - (mm + nn) < 0 )
+                for ( i in ind ) { if ( sum( i:(i + 3) %in% ind ) >= 2 ){ pcaComp <- i; break} }
+                pcaComp <- max( 15, pcaComp )
+            }
+            dimRed <- Xpca$u[,1:pcaComp]%*%diag(Xpca$d[1:pcaComp])
+            if ( hflag ){
+                dimRed <- t(dimRed)
+                colnames(dimRed) <- colnames(expData)
+                dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE,...)
+                nn     <- get.knn(t(dimRed), k=knn, algorithm=algorithm)
+                nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
+                colnames(nn) <- colnames(expData)
+            }else{
+                nn     <- get.knn(dimRed, k=knn, algorithm=algorithm)
+                nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
+                dimRed <- t(dimRed)
+                colnames(nn) <- colnames(dimRed) <- colnames(expData)
+            }
         }else{
+            if ( FSelect ){
+                genes <- bg$genes
+                expData <- expData[genes,]
+            }
+            dimRed <- NULL
+            if ( is.null(distM) ) distM <- dist.gen(t(as.matrix(expData[genes,])), method = metric)
+            maxD <- 2
+            if ( metric == "euclidean" ) maxD <- max(distM)
+            nn <- apply(distM,1,function(x){ j <- order(x,decreasing=FALSE); head(j,knn + 1); } )
             regData <- NULL
-            z <- t(t(expData)/colS*min(colS))
-        }
-        
-        if ( FSelect ){
-            bg <- fitBackVar(expData[genes,])
-            backModel <- bg$fit
-            genes     <- bg$genes
-            expData   <- expData[genes,]
-        }
-        
-        z <- z[genes,]
-        f <- rowSums(is.na(z)) == 0 
-        z <- z[f,]
-        if ( pca.scale ) z <- t(apply(z,1,scale))
-
-        set.seed(seed)
-
-        if ( !is.null(pcaComp) ){
-            pcaComp <- min( pcaComp, ncol(expData) - 1)
-            pcaComp <- min( pcaComp, nrow(expData) - 1)
-            Xpca <- irlba(A = t(z), nv = pcaComp, tol = tol)
-        }else{
-            pcaComp <- 100
-            pcaComp <- min( pcaComp, ncol(expData) - 1)
-            pcaComp <- min( pcaComp, nrow(expData) - 1)
-            Xpca <- irlba(A = t(z), nv = pcaComp, tol = tol)
-            
-            
-            g <- Xpca$d/sum(Xpca$d)
-            g <- mean_run(g,3)
-            y <- g[ -length(g) ] - g[-1]
-            mm <- numeric(length(y))
-            nn <- numeric(length(y))
-            for ( i in 1:length(y)){
-                mm[i] <- mean(y[i:length(y)]) 
-                nn[i] <- sqrt(var(y[i:length(y)]))
-            }
-            ind <- which( y - (mm + nn) < 0 )
-            for ( i in ind ) { if ( sum( i:(i + 3) %in% ind ) >= 2 ){ pcaComp <- i; break} }
-            pcaComp <- max( 15, pcaComp )
-        }
-        dimRed <- Xpca$u[,1:pcaComp]%*%diag(Xpca$d[1:pcaComp])
-        if ( hflag ){
-            dimRed <- t(dimRed)
-            colnames(dimRed) <- colnames(expData)
-            dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE,...)
-            nn     <- get.knn(t(dimRed), k=knn, algorithm=algorithm)
-            nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
-            colnames(nn) <- colnames(expData)
-        }else{
-            nn     <- get.knn(dimRed, k=knn, algorithm=algorithm)
-            nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
-            dimRed <- t(dimRed)
-            colnames(nn) <- colnames(dimRed) <- colnames(expData)
-        }
+        } 
     }else{
-        if ( FSelect ){
-            genes <- bg$genes
-            expData <- expData[genes,]
-        }
-        dimRed <- NULL
-        if ( is.null(distM) ) distM <- dist.gen(t(as.matrix(expData[genes,])), method = metric)
-        maxD <- 2
-        if ( metric == "euclidean" ) maxD <- max(distM)
-        nn <- apply(distM,1,function(x){ j <- order(x,decreasing=FALSE); head(j,knn + 1); } )
+        Se <- expData
+        assay   <- Se@active.assay
+        expData <- Se@assays[assay][[1]]@counts
+        nn.name <- paste(assay,"nn",sep=".")
+        nm <- Se@graphs[paste(assay,"snn",sep="_")][[1]]
+        diag(nm) <- 0
+        m <- max(rowSums(nm > 0))
+        nn <- t(apply( nm, 1, function(x){ y <- which(x > 0); if (length(y)<m){ y <- c(y,rep(0,m-length(y)))}; return(y)}))
+        nn <- t(cbind(1:nrow(nn),nn))
+
+        
+        #nn <- t( cbind( 1:nrow(Se@neighbors[nn.name][[1]]@nn.idx), Se@neighbors[nn.name][[1]]@nn.idx) )
+        #colnames(nn) <- colnames(Se@assays[assay][[1]]@data) 
+        dimRed <- t(Se@reductions$pca@cell.embeddings)
+        if (FSelect) genes <- Se@assays[assay][[1]]@var.features else genes <- rownames(Se@assays[assay][[1]]@data)
+        expData <- expData[genes,]
         regData <- NULL
-    } 
+        Xpca <- NULL
+        bg <- NULL
+        knn  <- nrow(nn) - 1
+        if ( is.null(no_cores) ) no_cores <- max(1,detectCores() - 2)
+        no_cores <- min(no_cores,detectCores())
+        colS <- colSums(expData)
+    }
     
     cQP      <- cmpfun(QP)
     
     
     localFUN <- function(x,expData,colS,alpha,nb,cQP){
+        f    <- x == 0
+        x    <- x[ ! f ]
+        
         y    <- as.matrix( expData[,x] )
         fit  <- fitLogVarLogMean(y)
         #fit <- backModel
@@ -595,19 +625,34 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
         names(p) <- colnames(m)
         p.raw <- apply(z,2,function(x){ exp( mean(log( x[order(x,decreasing=FALSE)][1:nb] + 1e-16 ) ) ) })[-1]
         names(p.raw) <- colnames(m)
-        c(alpha,p,p.raw)
+        c(alpha, p, rep(0,sum(f)), p.raw, rep(0,sum(f)))
     }
-
-    if ( no_cores == 1 ){
-        out <- apply(t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,nb=nb,cQP=cQP)
+    if ( do.prune ){
+        if ( no_cores == 1 ){
+            out <- apply(t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,nb=nb,cQP=cQP)
+        }else{
+            clust <- makeCluster(no_cores) 
+            out <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,nb=nb,cQP=cQP)
+            stopCluster(clust)
+        }
+        pvM <- out[2:(knn + 1),]
+        pvM.raw <- out[(knn + 2):nrow(out),]
     }else{
-        clust <- makeCluster(no_cores) 
-        out <- parApply(cl=clust,t(nn),1,localFUN,expData=expData,colS=colS,alpha=alpha,nb=nb,cQP=cQP)
-        stopCluster(clust)
+        out <- matrix( rep(1, ncol(expData)*(2*knn +1)), ncol=ncol(expData) )
+        pvM <- out[2:(knn + 1),]
+        pvM <- pvM * (nn[-1,] > 0) 
+        pvM.raw <- out[(knn + 2):nrow(out),]
+        pvM.raw <- pvM.raw * (nn[-1,] > 0)
     }
     colnames(out) <- colnames(nn)
-    pars <- list(large=large,regNB=regNB,offsetModel=offsetModel,thetaML=thetaML,theta=theta,ngenes=2000,span=.75,pcaComp=pcaComp,algorithm=algorithm,metric=metric,genes=genes,knn=knn,alpha=alpha,nb=nb,no_cores=no_cores,FSelect=FSelect,pca.scale=pca.scale,ps=ps,seed=seed)
-    return(list(distM=distM,dimRed=dimRed,pvM=out[2:(knn + 1),],pvM.raw=out[(knn + 2):nrow(out),],NN=nn,B=bg,regData=regData,pars=pars,alpha=out[1,],pca=Xpca))
+    if (  class(expData)[1] != "Seurat" ){
+        pars <- list(large=large,regNB=regNB,offsetModel=offsetModel,thetaML=thetaML,theta=theta,ngenes=2000,span=.75,pcaComp=pcaComp,algorithm=algorithm,metric=metric,genes=genes,knn=knn,do.prune=do.prune,alpha=alpha,nb=nb,no_cores=no_cores,FSelect=FSelect,pca.scale=pca.scale,ps=ps,seed=seed)
+    }else{
+        pars <- list(genes=genes,knn=knn,do.prune=do.prune,alpha=alpha,nb=nb,no_cores=no_cores,FSelect=FSelect,seed=seed)
+    
+    }
+
+    return(list(distM=distM,dimRed=dimRed,pvM=pvM,pvM.raw=pvM.raw,NN=nn,B=bg,regData=regData,pars=pars,alpha=out[1,],pca=Xpca))
 }
 
 #' @title Function for pruning k-nearest neighborhoods based on neighborhood overlap
@@ -2322,7 +2367,7 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
     yl  <- if ( is.null(noise)  ) "normalized expression" else "epsilon" 
     col <- object@fcol[set]
     ggplot(x, aes(cluster, y, fill = cluster)) + 
-        geom_violin( lwd=0.2) +
+        geom_violin( scale="width",lwd=0.2) +
         geom_point( position = "jitter", size =0.5, alpha=0.8) +
         geom_boxplot(width=0.1, outlier.alpha = 0, fill="darkgrey",  color="black", lwd=0.2 ) +
         scale_fill_manual(values = col, labels = set) + ylab(yl) + 
@@ -2727,3 +2772,34 @@ plotUMINoise <- function(object,noise,log.scale=TRUE){
     }
     legend("topright",paste("Pearson's Correlation",z,sep="="),bty="n")
 }
+
+
+#' Converting a Seurat object to a RaceID/VarID object
+#' @description This function expects a class \code{Seurat} object from the \pkg{Seurat} package as input and converts this into a \pkg{RaceID} \code{SCseq} object. The function transfers the counts, initializes \code{ndata} and \code{fdata} without further filtering, transfers the PCA cell embeddings from the \code{Seurat} object to \code{dimRed}, transfers the clustering partition, and \code{umap} and \code{tsne} dimensional reduction (if available). CAUTION: Cluster numbers in RaceID start at 1 by default. Hence, all Seurat cluster numbers are shifted by 1. 
+#' @param Se \pkg{Seurat} object.
+#' @param rseed Integer number. Random seed for sampling cluster colours.
+#' @return \pkg{RaceID} \code{SCseq} object.
+#' @export
+Seurat2SCseq <- function(Se,rseed=12345){
+    assay   <- Se@active.assay
+    expData <- Se@assays[assay][[1]]@counts
+    sc <- SCseq(expData)
+    sc <- filterdata(sc,mintotal=1,minexpr=0,minnumber=0)
+
+    if ( "pca" %in% names(Se@reductions) ) sc@dimRed$x <-  t(Se@reductions$pca@cell.embeddings)
+    if ( "seurat_clusters" %in% names(Se@meta.data) ){
+        sc@cluster$kpart <- sc@cpart <- as.numeric(Se@meta.data$seurat_clusters)
+        names(sc@cluster$kpart) <- names(sc@cpart) <- colnames(sc@ndata)
+        set.seed(rseed)
+        sc@fcol    <- sample(rainbow(max(sc@cpart)))
+        sc@medoids <- compmedoids(sc, sc@cpart)
+    }
+    if ( "umap" %in% names(Se@reductions) ){
+        sc@umap <- as.data.frame(Se@reductions$umap@cell.embeddings)
+    }
+    if ( "tsne" %in% names(Se@reductions) ){
+        sc@tsne <- as.data.frame(Se@reductions$tsne@cell.embeddings)
+    }
+    return(sc)
+}
+

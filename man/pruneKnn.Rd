@@ -23,6 +23,7 @@ pruneKnn(
   metric = "pearson",
   genes = NULL,
   knn = 25,
+  do.prune = TRUE,
   alpha = 1,
   nb = 3,
   no_cores = NULL,
@@ -34,7 +35,7 @@ pruneKnn(
 )
 }
 \arguments{
-\item{expData}{Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts.}
+\item{expData}{Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts. Alternatively, a Seurat object could be used as input, after normalization, PCA-dimensional reduction, and shared-nearest neighbour inference.}
 
 \item{distM}{Optional distance matrix used for determining k nearest neighbours. Default is \code{NULL} and the distance matrix is computed using a metric given by the parameter \code{metric}.}
 
@@ -77,6 +78,8 @@ the distance is computed as 1 – correlation. This parameter is only used if \c
 \item{genes}{Vector of gene names corresponding to a subset of rownames of \code{x}. Only these genes are used for the computation of a distance matrix and for the computation of joint probabilities of nearest neighbours. Default is \code{NULL} and all genes are used.}
 
 \item{knn}{Positive integer number. Number of nearest neighbours considered for each cell. Default is 25.}
+
+\item{do.prune}{Logical parameter. If \code{TRUE}, then pruning of k-nearest neighbourhoods is performed. If \code{FALSE}, then no pruning is done. Default is \code{TRUE}.}
 
 \item{alpha}{Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of \code{alpha} while the weights of its k nearest neighbours as determined by quadratic programming sum up to one. The sum across all weights and alpha is normalized to one, and the weighted mean expression is used for computing the link porbabilities for each of the k nearest neighbours. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is value is 1. If \code{alpha} is set to NULL it is inferred by an optimization, i.e., \code{alpha} is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression). This procedure is coputationally more intense and inceases the run time of the function significantly.}
 
