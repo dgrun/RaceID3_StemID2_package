@@ -61,12 +61,9 @@ vignette("RaceID")
 
 ## Reference:
 
-Rosales-Alvarez RE,  Rettkowski J, Herman JS, Dumbovic G,
-Cabezas-Wallscheid N, Grün D (2022) Gene expression noise dynamics
-unveil functional heterogeneity of ageing hematopoietic stem
-cells. bioRXiv. doi: https://doi.org/10.1101/2022.08.04.502776
+Rosales-Alvarez RE,  Rettkowski J, Herman JS, Dumbovic G, Cabezas-Wallscheid N, Grün D (2022) VarID2 quantifies gene expression noise dynamics and unveils functional heterogeneity of ageing hematopoietic stem cells. Genome Biology 24(1):148. doi: 10.1186/s13059-023-02974-1.
 
 Grün D (2020) Revealing Dynamics of Gene Expression Variability in Cell State Space. Nature Methods 17(1):45-49.  doi: 10.1038/s41592-019-0632-3
 
-Herman JS, Sagar, Grün D. (2018) FateID infers cell fate bias in multipotent progenitors from single-cell RNA-seq data. Nat Methods. 2018 May;15(5):379-386. doi: 10.1038/nmeth.4662.
+Herman JS, Sagar, Grün D. (2018) FateID infers cell fate bias in multipotent progenitors from single-cell RNA-seq data. Nature Methods. 2018 May;15(5):379-386. doi: 10.1038/nmeth.4662.
 
