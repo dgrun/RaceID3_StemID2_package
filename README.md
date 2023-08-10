@@ -1,4 +1,4 @@
-# RaceID algorithm
+# RaceID/StemID/VarID algorithm
 
 RaceID is a clustering algorithm for the identification of cell types
 from single-cell RNA-sequencing data. It was specifically designed for
@@ -47,7 +47,7 @@ library(devtools)
 install_github("dgrun/RaceID3_StemID2_package")
 ```
 
-## Running a RaceID analysis
+## Running a RaceID/StemID/VarID analysis
 
 Load package:
 ```

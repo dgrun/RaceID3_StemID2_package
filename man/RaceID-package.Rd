@@ -3,32 +3,21 @@
 \alias{RaceID}
 \docType{package}
 \title{
-  A short title line describing what the package does
+Identification of Cell Types, Inference of Lineage Trees, and Prediction of Noise Dynamics from Single-Cell RNA-Seq Data
 }
 \description{
-  A more detailed description of what the package does. A length
-  of about one to five lines is recommended.
+RaceID is a clustering algorithm for the identification of cell types from single-cell RNA-sequencing data. It was specifically designed for the detection of rare cells which correspond to outliers in conventional clustering methods. The package contains RaceID3, the most recently published version of this algorithm, and StemID2, an algorithm for the identification of lineage trees based on RaceID3 analysis. RaceID3 utilizes single cell expression data, and was designed to work well with quantitative single-cell RNA-seq data incorporating unique molecular identifiers. It requires a gene-by-cell expression matrix as input and produces a clustering partition representing cell types. StemID2 assembles these cell types into a lineage tree.
+The RaceID package (>= v0.1.4) also contains functions for a VarID analysis. VarID comprises a sensitive clustering method utilizing pruned k-nearest neighbor networks, connecting only cells with links supported by a background model of gene expression. These pruned k-nearest neighbor networks further enable the definition of homogenous neighborhoods for the quantification of local gene expression
+variability in cell state space.
 }
 \details{
-  This section should provide a more detailed overview of how to use the
-  package, including the most important functions.
-}
+For details please see vignette.}
 \author{
-Your Name, email optional.
+Dominic Grun, dominic.gruen@gmail.com.
 
-Maintainer: Your Name <your@email.com>
+Maintainer: Dominic Grun <dominic.gruen@gmail.com>
 }
 \references{
-  This optional section can contain literature or other references for
-  background information.
-}
+Herman, J.S., Sagar, Grun D. (2018) <DOI:10.1038/nmeth.4662>
+Rosales-Alvarez, R.E., Rettkowski, J., Herman, J.S., Dumbovic, G., Cabezas-Wallscheid, N., Grun, D. (2023) <DOI:10.1186/s13059-023-02974-1>}
 \keyword{ package }
-\seealso{
-  Optional links to other man pages
-}
-\examples{
-  \dontrun{
-     ## Optional simple examples of the most important functions
-     ## These can be in \dontrun{} and \donttest{} blocks.   
-  }
-}

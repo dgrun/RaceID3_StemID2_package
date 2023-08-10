@@ -16,15 +16,15 @@ vignette: >
 knitr::opts_chunk$set(fig.width=8, fig.height=8, dpi=50, dev='jpeg') 
 ```
 # Prerequisites
-This vignettes provides a manual for the analysis of single-cell RNA-seq data with three different methods:
+This vignette provides a manual for the analysis of single-cell RNA-seq data with three different methods:
 
 1. RaceID3 [@FateID]: pre-processing, clustering and outlier identification
 2. StemID2 [@FateID]: lineage tree inference (dependend on a prior RaceID3 analysis)
-3. VarID2 [@VarID2]: pre-processing, clustering, quantification of technical and biological noise, pseudotime analysis (independent of RaceID3, but can be integrated)
+3. VarID2 [@VarID2]: pre-processing, clustering, quantification of technical and biological noise, pseudotime analysis (optional integration with RaceID3)
 
-RaceID [@RaceID] (the current version is RaceID3 [@FateID]) is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by  outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq with unique molecular identifiers. 
+RaceID [@RaceID] (the current version is RaceID3 [@FateID]) is a method for cell type identification from single-cell RNA-seq data by unsupervised learning. An initial clustering is followed by outlier identification based on a backgorund model of combined technical and biological variability in single-cell RNA-seq data with unique molecular identifiers. 
 
-StemID [@StemID] (the current version is StemID2 [@FateID]) permits  inference of a lineage tree based on clusters identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published together with the FateID algorithm [@FateID]. 
+StemID [@StemID] (the current version is StemID2 [@FateID]) permits inference of a lineage tree based on clusters identified by RaceID. The current version of RaceID (RaceID3) and StemID (StemID2) are published together with the FateID algorithm [@FateID]. 
 
 The current version of the RaceID package implements additional improvements in rare cell type detection, offers batch effect removal utilities, optional imputing of gene expression, and substantially decreases runtime as well as memory usage. 
 
@@ -33,7 +33,7 @@ VarID [@VarID] (the current version is VarID2 [@VarID2]) is implemented as part 
 RaceID is integrated with the FateID method for the prediction of cell fate probabilities [@FateID], which is available as a separate package.
 
 # RaceID 
-
+## Example RaceID analysis
 Input to RaceID is a matrix of raw expression values (unique molecular identifiers with or without Poisson correction [@Noise]) with cells as column and genes as rows. This matrix can be provided as a matrix object, a data.frame or a sparse matrix produced by the `Matrix` package.
 
 The `RaceID` package comes with sample data `intestinalData` for murine intestinal epethelial cells stored in sparse matrix format. The dataset was published previously [@StemID].
@@ -233,8 +233,8 @@ plotdiffgenesnb(x,pthr=.05,lthr=.5,mthr=-1,Aname="Cl.2,3",Bname="Cl.4",show_name
 
 See the paragraphs below for additional options of RaceID analyses and parameter choices ideal for analysing large datasets.
 
-# StemID: projection mode
-
+# StemID
+## Example StemID analysis: projection mode
 StemID is an algorithm for the inference of lineage trees and differentiation trajectories based on pseudo-temporal ordering of single-cell transcriptomes. It utilizies the clusters predicted by RaceID and thus requires to run RaceID first. The algorithm was originally published along with RaceID2 [@StemID] and the improved current version StemID2 was published later [@FateID].
 In a nutshell, StemID infers links between clusters which are more populated with intermediate single-cell transcriptomes than expected by chance. To assign cells to inter-cluster links, two fundamentally different strategies are available (see `nmode` argument below). The first strategy considers the projection of a vector connecting a cluster medoid to a member cell of the same cluster onto the links from the medoid of its cluster to the medoids of all other clusters. The longest projection identifies the link this cell is assigned to and defines the projection coordinate. The second (nearest neighbour) mode identifies for a cell in a given cluster the number of k nearest neighbours in each other cluster and assigns the cell to the link with the cluster where the average distance to these k nearest neighbours is minimized. The coordinate on the link is inferred as in the first mode. A faster approximate version of the first mode is also implemented.
 
@@ -316,8 +316,7 @@ The cells on the two branches can be plotted as additional clusters in the dimen
 plotmap(x$scl,fr=TRUE)
 ```
 
-# StemID: nearest-neighbour mode
-
+## Example StemID analysis: nearest-neighbour mode
 Since the randomizations of cell positions for the derivation of link significance require long computation time, and the projection-based method leads to some weak links which are potentially false positives (and can be filtered out based on linkscore), the nearest-neighbour-based method has now been selected to be the default mode of StemID. This method is more robust and fast even on large datasets. The downside is that it will miss some weak links, i.e. lead to more false negatives in comparison to the projection mode.
 
 First, a lineage tree object needs to be initialized followed by the calculation of the transcriptome entropy of each cell.
@@ -346,7 +345,7 @@ x <- compscore(ltr)
 ```
 
 
-# RaceID Options: 
+# RaceID/StemID Options 
 ## Batch effect removal
 RaceID offers the possibility of batch correction utilizing an internal method or the published `mnnCorrect` function from the `batchelor` package [@mnnCorrect]. The `batchelor` package needs to be separately installed from bioconductor if this mode is desired.
 In order to apply batch effect removal, a list with a vector of cell ids for each batch needs to be defined, e.g.:
@@ -580,7 +579,7 @@ plotexpression(fs,y,g,n$f,col=fcol,name="Node 24",cluster=FALSE,alpha=.5,types=s
 ```
 
 # VarID2
-
+## Example VarID2 analysis
 VarID2 is a novel algorithm utilizing a k nearest neighbour graph derived from transcriptome similarities [@VarID2]. The key idea is the inference of locally homogenous neighbourhoods of cells in cell state space, i.e., all k nearest neighbours follow the same transcript count distributions as the cell to which they are nearest neighbours ("central" cell).
 The computation starts with k nearest neighbours and infers a negative binomial distribution for the transcript counts of each gene, derived from the mean-variance dependence computed locally across a central cell and its k nearest neighbours. The mean expression is derived from a weighted average across the k nearest neighbours, with weights  inferred using quadratic programming, representing the central cell as a linear combination of its neighbours. The contribution of the central cell itself can be controlled by a tunable scaling parameter `alpha`. Typical values of `alpha` should be in the range of 0 to 10 (default 1). If `alpha` is `NULL`, then it is inferred by a local optimization, i.e., it is minimized under the constraint that the gene expression in the central cell does not deviate more then one standard deviation from the predicted weigthed mean across its k nearest neighbours, where the standard deviation is calculated from the predicted mean using the local background model (the average dependence of the variance on the mean expression).
 With the negative binomial distribution inferred from the local means and mean-variance dependence, the probabilities of observed transcript counts for all genes can be computed in each neighbour, and, after multiple testing correction, the geometric mean across the `nb` (deafult 3) genes with the lowest probability serves as a proxy for the link probability (i.e., the probability of neighbours being in the same state). If this probability falls below a user-defined threshold, the link to this neighbour is pruned After this procedure is applied to the nearest neighbours of each cell, a pruned k nearest neighbour graph with homogenous neighbourhoods in cell state space is obtained, in which the remaining links indicate that neighbours follow the same transcript count distribution for all genes. 
@@ -599,7 +598,7 @@ sc <- filterdata(sc,mintotal=1000,FGenes=grep("^Gm\\d",rownames(intestinalData),
 ```
 
 In this example, all cells with a raw UMI count <1,000 are discarded, and all gene IDs starting with Gm (genes without official gene symbol, uncharacterized loci) are removed. Moreover, all  mitochondrial and ribosomal sub-unit encoding genes as well as all genes correlating with these classes are filtered out.
-Although VarID2 analysis can be performed with any given distance matrix, the preferred (default) mode does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space. For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells. In this case, the `pruneKnn` function can be executed with `large=TRUE` (default setting). Here, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (PCs). The number of top PCs used for dimensional reduction is determined by an elbow criterion (requiring that the change in explained variability upon further increasing the number of PCs has become linear). However, the number of PCs can also be adjusted manually (parameter `pcaComp`). This reduced PC matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
+Although VarID2 analysis can be performed with any given distance matrix, the preferred (default) mode does not require a distance matrix, and relies on k-nearest neighbor analysis in PCA space. For large datasets, the computation of a distance matrix is prohibitive due to a memory requirement scaling with N^2 if N is the number of cells. In this case, the `pruneKnn` function can be executed with `large=TRUE` (default setting). Here, the input expression matrix is first optionally corrected for variability associated with total transcript count per cell by a negative binomial regression (if `regNB=TRUE` as by default; if `regNB=FALSE`, transcript counts in each cell are normalized to one, multipled by the minimal total transcript count across all cells, followed by adding a pseudocount of 0.1 and taking the logarithm). The mean dependence of the regression parameters is smoothed, and Pearson residual are computed. The matrix of Pearson residuals (default setting), or, alternatively, the raw count matrix then undergoes a dimensional reduction by a principle component analysis (PCA), including the top `pcaComp` principle components (PCs). The number of top PCs used for dimensional reduction is determined by an elbow criterion (requiring that the change in explained variability upon further increasing the number of PCs has become linear). However, the number of PCs can also be adjusted manually (parameter `pcaComp`). This reduced PC matrix is subsequently used for a fast k nearest neighbour search by the `get.knn` function from the `FNN` package based on euclidean distances. The `algorithm` parameter of the `pruneKnn` function enables the selection of the search algorithm to apply. 
 In general, it is recommended to run VarID2 with `large=TRUE` and `regNB=TRUE` (default settings).
 A RaceID object can be utilized to facilitate the analysis, but in this mode the `compdist` function does not need to be executed:
 ```{r}

@@ -386,9 +386,9 @@ plotBackVar <- function(x){
 #' this regression serve as input for the principal component analysis after smoothing the parameter dependence on the mean by a \code{loess} regression.
 #' Deafult is \code{TRUE}. Recommended mode for very large datasets, where storing a distance matrix requires too much memory. \code{distM}
 #'  will be ignored if \code{large} is \code{TRUE}.
-#' @param regNB logical. If \code{TRUE} then gene a negative binomial regression is performed to prior to the principle component analysis if \code{large = TRUE}. See \code{large}. Default is \code{TRUE}.
+#' @param regNB logical. If \code{TRUE} then gene a negative binomial regression is performed to prior to the principle component analysis if \code{large = TRUE}. See \code{large}. Otherwise, transcript counts in each cell are normalized to one, multipled by the minimal total transcript count across all cells, followed by adding a pseudocount of 0.1 and taking the logarithm.  Default is \code{TRUE}.
 #' @param bmethod Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. Default is \code{NULL} and batch correction will be done by negative binomial regression.
-#' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log UMI count per cell.An interaction term is included for the log UMI count with the batch variable. Default value is \code{NULL}.
+#' @param batch vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log UMI count per cell. An interaction term is included for the log UMI count with the batch variable. Default value is \code{NULL}.
 #' @param regVar data.frame with additional variables to be regressed out simultaneously with the log UMI count and the batch variable (if \code{batch} is \code{TRUE}). Column names indicate variable names (name \code{beta} is reserved for the coefficient of the log UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of \code{expData}. Interaction terms are included for each variable in \code{regVar} with the batch variable (if \code{batch} is \code{TRUE}). Default value is \code{NULL}.
 #' @param offsetModel Logical parameter. Only considered if \code{regNB} is \code{TRUE}. If \code{TRUE} then the \code{beta} (log UMI count) coefficient is set to 1 and the intercept is computed analytically as the log ration of UMI counts for a gene and the total UMI count across all cells. Batch variables and additional variables in \code{regVar} are regressed out with an offset term given by the sum of the intercept and the log UMI count. Default is \code{TRUE}.
 #' @param thetaML Logical parameter. Only considered if \code{offsetModel} equals \code{TRUE}. If \code{TRUE} then the dispersion parameter is estimated by a maximum likelihood fit. Otherwise, it is set to \code{theta}. Default is \code{FALSE}.
@@ -483,7 +483,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
                 z <- regData$pearsonRes
             }else{
                 regData <- NULL
-                z <- t(t(expData)/colS*min(colS))
+                z <- log( t(t(expData)/colS*min(colS)) + .1 )
             }
             
             if ( FSelect ){
