@@ -1558,7 +1558,7 @@ plotmarkergenes <- function(object,genes,imputed=FALSE,cthr=0,cl=NULL,cells=NULL
             for ( i in 1:ncol(xl) ) xl[ xl[,i] < flo, i] <- flo 
         }
         
-        pheatmap(xl[,cl],color=ColorRamp,cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA,fontsize=fontsize)
+        pheatmap(xl[,as.character(cl)],color=ColorRamp,cluster_cols=cluster_cols,cluster_rows=cluster_rows,border_color=NA,fontsize=fontsize)
     }else{
         if (length(unique(pt)) == 1 ){
             n <- names(pt)
