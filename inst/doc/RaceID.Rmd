@@ -902,7 +902,8 @@ To order cells pseudo-temporally, VarID2 offers a wrapper function `pseudoTime`,
 ```{r results='hide', message=FALSE}
 # ordered set of clusters on the trajectory
 set <- c(2,3,1)
-pt <- pseudoTime(sc,m="umap",set=set)
+# if slingshot is available, run with useSlingshot=TRUE (default)
+pt <- pseudoTime(sc,m="umap",set=set,useSlingshot=FALSE)
 ```
 
 Inferred pseudo-time can be highlighted in the inferred dimensional reduction representation:

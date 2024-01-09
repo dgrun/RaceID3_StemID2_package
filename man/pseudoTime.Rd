@@ -8,6 +8,7 @@ pseudoTime(
   object,
   set,
   m = NULL,
+  useSlingshot = TRUE,
   map = "umap",
   x = NULL,
   n_neighbors = 15,
@@ -28,6 +29,8 @@ pseudoTime(
 \item{set}{Set of valid ordered cluster numbers (in \code{object@cpart}) defining the trajectory for which the pseudo-temporal order of cells should be computed computed. Only clusters on a single, linear trajectory should be given.}
 
 \item{m}{Existing dimensional reduction representation of RaceID object. Either \code{"fr"}, \code{"tsne"} or \code{"umap"}. Default is NULL and dimensional reduction representation is computed for all cells in \code{set}.}
+
+\item{useSlingshot}{logical. If \code{TRUE} and the \pkg{slingshot} package is available, trajectory inference will be done using slingshot. If \code{FALSE}, inference will be done by principal curve analysis using the \pkg{princurve} package. Default is \code{TRUE}.}
 
 \item{map}{Either \code{"tsne"} or \code{"umap"}. If \code{m} is NULL this argument determines the algorithm (UMAP or t-SNE) for computing the dimensional reduction representation of all cells \code{set} used for pseudo-temporal ordering by the \code{Bioconductor} package \code{slingshot}. Default is \code{"umap"}.}
 

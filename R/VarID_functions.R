@@ -2379,6 +2379,7 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
 #' @param object \pkg{RaceID} \code{SCseq} object.
 #' @param set Set of valid ordered cluster numbers (in \code{object@cpart}) defining the trajectory for which the pseudo-temporal order of cells should be computed computed. Only clusters on a single, linear trajectory should be given.
 #' @param m Existing dimensional reduction representation of RaceID object. Either \code{"fr"}, \code{"tsne"} or \code{"umap"}. Default is NULL and dimensional reduction representation is computed for all cells in \code{set}.
+#' @param useSlingshot logical. If \code{TRUE} and the \pkg{slingshot} package is available, trajectory inference will be done using slingshot. If \code{FALSE}, inference will be done by principal curve analysis using the \pkg{princurve} package. Default is \code{TRUE}. 
 #' @param map Either \code{"tsne"} or \code{"umap"}. If \code{m} is NULL this argument determines the algorithm (UMAP or t-SNE) for computing the dimensional reduction representation of all cells \code{set} used for pseudo-temporal ordering by the \code{Bioconductor} package \code{slingshot}. Default is \code{"umap"}.
 #' @param x Optional feature matrix, which will be directly used for computation of the dimensional reduction representation. Default is NULL and \code{object@dimRed$x} is used, unless empty. In this case, \code{getfdata(object)} is used.
 #' @param n_neighbors Umap parameter (used if \code{map="umap"} and \code{m=NULL}). See \code{help(umap.defaults)} after loading package \pkg{umap}. Default is 15.
@@ -2404,7 +2405,7 @@ violinMarkerPlot <- function(g, object, noise = NULL, set = NULL, ti = NULL ){
 #' @import umap
 #' @import Rtsne
 #' @import princurve
-pseudoTime <- function(object,set,m=NULL,map="umap",x=NULL,n_neighbors = 15, metric = "euclidean", n_epochs = 200, min_dist = 0.1, local_connectivity = 1, spread = 1, initial_cmd=TRUE,perplexity=30,rseed=15555,...){
+pseudoTime <- function(object,set,m=NULL,useSlingshot=TRUE,map="umap",x=NULL,n_neighbors = 15, metric = "euclidean", n_epochs = 200, min_dist = 0.1, local_connectivity = 1, spread = 1, initial_cmd=TRUE,perplexity=30,rseed=15555,...){
 
     umap.pars <- umap.defaults
     umap.pars["min_dist"] <- min_dist
@@ -2473,7 +2474,7 @@ pseudoTime <- function(object,set,m=NULL,map="umap",x=NULL,n_neighbors = 15, met
         }
     }
 
-    if (requireNamespace('slingshot',quietly=TRUE)) {
+    if (useSlingshot & requireNamespace('slingshot',quietly=TRUE)) {
         sls <-  slingshot::getLineages(rd, part, start.clus = set[1])
         cset <- as.character(set)
         sls@metadata$adjacency <- matrix(rep(0,length(set)**2),ncol=length(set))

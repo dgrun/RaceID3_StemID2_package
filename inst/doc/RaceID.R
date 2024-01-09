@@ -465,7 +465,8 @@ plotexpmap(sc,"Apoa1",um=TRUE,cex=1,logsc=TRUE)
 ## ----results='hide', message=FALSE--------------------------------------------
 # ordered set of clusters on the trajectory
 set <- c(2,3,1)
-pt <- pseudoTime(sc,m="umap",set=set)
+# if slingshot is available, run with useSlingshot=TRUE (default)
+pt <- pseudoTime(sc,m="umap",set=set,useSlingshot=FALSE)
 
 ## -----------------------------------------------------------------------------
 plotPT(pt,sc,clusters=FALSE)
