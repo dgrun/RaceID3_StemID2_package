@@ -1462,7 +1462,7 @@ of single-cell RNA-seq UMI data]{.nocase}'
   - family: Grun
     given: D.
   issued:
-  - year: '2022'
+  - year: '2023'
     month: '8'
   title: '[Gene expression noise dynamics unveil functional heterogeneity of ageing hematopoietic stem cells]{.nocase}'
   container-title: Genome Biol.

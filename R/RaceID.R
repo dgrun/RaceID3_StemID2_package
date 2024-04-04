@@ -1308,7 +1308,7 @@ compmedoids <- function(object,part){
                 m <- append(m,f[which(y == min(y))[1]])
             }else{
                 g <- apply(as.matrix(object@dimRed$x[,part == i]) - as.vector(pam(t(object@dimRed$x[,part == i]),1)$medoids),2,sum) == 0
-                m <- append(m, names(part)[part == i][g])
+                m <- append(m, names(part)[part == i][g][1])
             }
         }
     }
