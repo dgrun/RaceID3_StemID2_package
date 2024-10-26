@@ -31,6 +31,7 @@ pruneKnn(
   pca.scale = FALSE,
   ps = 1,
   seed = 12345,
+  theta.harmony = NULL,
   ...
 )
 }
@@ -95,7 +96,9 @@ the distance is computed as 1 – correlation. This parameter is only used if \c
 
 \item{seed}{Integer number. Random number to initialize stochastic routines. Default is 12345.}
 
-\item{...}{Additional parameters for \code{HarmonyMatrix} function of the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.}
+\item{theta.harmony}{\code{theta} parameter of \code{RunHarmony} function from the \pkg{harmony} package (to avoid collision with the dispersion parameter \code{theta}). Default is NULL.}
+
+\item{...}{Additional parameters for \code{RunHarmony} function from the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.}
 }
 \value{
 List object of six components:

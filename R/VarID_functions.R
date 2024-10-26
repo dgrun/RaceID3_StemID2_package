@@ -412,7 +412,8 @@ plotBackVar <- function(x){
 #' @param pca.scale Logical parameter. If \code{TRUE}, then input features are scaled prior to PCA transformation. Default is \code{FALSE}.
 #' @param ps Real number greater or equal to zero. Pseudocount to be added to counts within local neighbourhoods for outlier identification and pruning. Default is 1.
 #' @param seed Integer number. Random number to initialize stochastic routines. Default is 12345.
-#' @param ... Additional parameters for \code{HarmonyMatrix} function of the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.
+#' @param theta.harmony \code{theta} parameter of \code{RunHarmony} function from the \pkg{harmony} package (to avoid collision with the dispersion parameter \code{theta}). Default is NULL.
+#' @param ... Additional parameters for \code{RunHarmony} function from the \pkg{harmony} package, if \code{batch} is not \code{NULL} and \code{bmethod="harmony"}.
 #' @return List object of six components:
 #' \item{distM}{Distance matrix.}
 #' \item{dimRed}{PCA transformation of \code{expData} including the first \code{pcaComp} principle components, computed on including \code{genes} or variable genes only if \code{Fselect} equals \code{TRUE}. Is is set to \code{NULL} if \code{large} equals \code{FALSE}.}
@@ -437,7 +438,7 @@ plotBackVar <- function(x){
 #' @importFrom runner mean_run
 #' @importFrom stats coefficients glm loess predict model.matrix rpois density approx
 #' @export
-pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,do.prune=TRUE,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,pca.scale=FALSE,ps=1,seed=12345,...){
+pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch=NULL,regVar=NULL,offsetModel=TRUE,thetaML=FALSE,theta=10,ngenes=2000,span=.75,pcaComp=NULL,tol=1e-5,algorithm="kd_tree",metric="pearson",genes=NULL,knn=25,do.prune=TRUE,alpha=1,nb=3,no_cores=NULL,FSelect=FALSE,pca.scale=FALSE,ps=1,seed=12345,theta.harmony=NULL,...){
 
     if ( class(expData)[1] != "Seurat" ){
         if ( ps < 0 ) stop("Pseudocount needs to be greater or equal to 0!" )
@@ -528,7 +529,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
             if ( hflag ){
                 dimRed <- t(dimRed)
                 colnames(dimRed) <- colnames(expData)
-                dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE,...)
+                dimRed <- RunHarmony( dimRed, hbatch ,do_pca=FALSE, theta=theta.harmony, ...)
                 nn     <- get.knn(t(dimRed), k=knn, algorithm=algorithm)
                 nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
                 colnames(nn) <- colnames(expData)
