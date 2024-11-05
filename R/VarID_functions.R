@@ -533,6 +533,7 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
                 #dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE, theta=theta.harmony, ...)
                 nn     <- get.knn(dimRed, k=knn, algorithm=algorithm)
                 nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
+                dimRed <- t(dimRed)
                 colnames(nn) <- colnames(expData)
             }else{
                 nn     <- get.knn(dimRed, k=knn, algorithm=algorithm)
