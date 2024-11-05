@@ -529,8 +529,9 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
             if ( hflag ){
                 dimRed <- t(dimRed)
                 colnames(dimRed) <- colnames(expData)
-                dimRed <- RunHarmony( dimRed, hbatch ,do_pca=FALSE, theta=theta.harmony, ...)
-                nn     <- get.knn(t(dimRed), k=knn, algorithm=algorithm)
+                dimRed <- RunHarmony( dimRed, hbatch, theta=theta.harmony, ...)
+                #dimRed <- HarmonyMatrix( dimRed, hbatch ,do_pca=FALSE, theta=theta.harmony, ...)
+                nn     <- get.knn(dimRed, k=knn, algorithm=algorithm)
                 nn     <- t( cbind( 1:ncol(expData),nn$nn.index) )
                 colnames(nn) <- colnames(expData)
             }else{

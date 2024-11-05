@@ -1,8 +1,8 @@
 Package: RaceID
 Title: Identification of Cell Types, Inference of Lineage Trees, and
         Prediction of Noise Dynamics from Single-Cell RNA-Seq Data
-Version: 0.3.6
-Date: 2024-10-26
+Version: 0.3.7
+Date: 2024-11-01
 Authors@R: person(given = "Dominic",
                     family = "Grün",
                     role = c("aut", "cre"),
@@ -25,5 +25,5 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2024-10-26 17:38:56 UTC; d.grun
+Packaged: 2024-11-01 22:52:25 UTC; d.grun
 Author: Dominic Grün [aut, cre]
