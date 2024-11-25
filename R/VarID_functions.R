@@ -556,19 +556,18 @@ pruneKnn <- function(expData,distM=NULL,large=TRUE,regNB=TRUE,bmethod=NULL,batch
     }else{
         Se <- expData
         assay   <- Se@active.assay
-        expData <- Se@assays[assay][[1]]@counts
+        expData <- Se@assays[assay][[1]]$counts
         nn.name <- paste(assay,"nn",sep=".")
         nm <- Se@graphs[paste(assay,"snn",sep="_")][[1]]
         diag(nm) <- 0
         m <- max(rowSums(nm > 0))
         nn <- t(apply( nm, 1, function(x){ y <- which(x > 0); if (length(y)<m){ y <- c(y,rep(0,m-length(y)))}; return(y)}))
         nn <- t(cbind(1:nrow(nn),nn))
-
+        if ( is.null(genes) ) genes <- rownames(expData)
         
         #nn <- t( cbind( 1:nrow(Se@neighbors[nn.name][[1]]@nn.idx), Se@neighbors[nn.name][[1]]@nn.idx) )
         #colnames(nn) <- colnames(Se@assays[assay][[1]]@data) 
         dimRed <- t(Se@reductions$pca@cell.embeddings)
-        if (FSelect) genes <- Se@assays[assay][[1]]@var.features else genes <- rownames(Se@assays[assay][[1]]@data)
         expData <- expData[genes,]
         regData <- NULL
         Xpca <- NULL
@@ -2786,7 +2785,7 @@ plotUMINoise <- function(object,noise,log.scale=TRUE){
 #' @export
 Seurat2SCseq <- function(Se,rseed=12345){
     assay   <- Se@active.assay
-    expData <- Se@assays[assay][[1]]@counts
+    expData <- Se@assays[assay][[1]]$counts
     sc <- SCseq(expData)
     sc <- filterdata(sc,mintotal=1,minexpr=0,minnumber=0)
 
