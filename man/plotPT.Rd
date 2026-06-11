@@ -4,7 +4,7 @@
 \alias{plotPT}
 \title{Plotting pseudo-time in dimensional reduction representation}
 \usage{
-plotPT(pt, object, clusters = TRUE, lineages = FALSE)
+plotPT(pt, object, clusters = TRUE, lineages = FALSE, cex = 1)
 }
 \arguments{
 \item{pt}{List object returned by function \code{pseudoTime}.}
@@ -14,6 +14,8 @@ plotPT(pt, object, clusters = TRUE, lineages = FALSE)
 \item{clusters}{logical. If \code{TRUE}, then clusters are highlighted. Otherwise, pseudotime is highlighted. Default is \code{TRUE}.}
 
 \item{lineages}{logical. If \code{TRUE}, then lineages as linear connections of clusters are hghlighted. Otherwise, continuous trajectories are shown. Default is \code{FALSE}.}
+
+\item{cex}{positive number. Points symbol size. Default is 1.}
 }
 \value{
 None
