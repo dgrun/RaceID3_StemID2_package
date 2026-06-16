@@ -49,7 +49,7 @@ Deafult is \code{TRUE}. Recommended mode for very large datasets, where storing 
 
 \item{regNB}{logical. If \code{TRUE} then gene a negative binomial regression is performed to prior to the principle component analysis if \code{large = TRUE}. See \code{large}. Otherwise, transcript counts in each cell are normalized to one, multipled by the minimal total transcript count across all cells, followed by adding a pseudocount of 0.1 and taking the logarithm.  Default is \code{TRUE}.}
 
-\item{bmethod}{Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. Default is \code{NULL} and batch correction will be done by negative binomial regression. This option is currently disabled, since harmony is not available on CRAN.}
+\item{bmethod}{Character string indicating the batch correction method. If "harmony", then batch correction is performed by the \pkg{harmony} package. Default is \code{NULL} and batch correction will be done by negative binomial regression.}
 
 \item{batch}{vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of \code{expData}. If \code{regNB} is \code{TRUE}, than the batch variable will be regressed out simultaneously with the log UMI count per cell. An interaction term is included for the log UMI count with the batch variable. Default value is \code{NULL}.}
 

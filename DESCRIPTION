@@ -1,8 +1,8 @@
 Package: RaceID
 Title: Identification of Cell Types, Inference of Lineage Trees, and
         Prediction of Noise Dynamics from Single-Cell RNA-Seq Data
-Version: 0.4.1
-Date: 2026-06-11
+Version: 0.4.2
+Date: 2026-06-16
 Authors@R: person(given = "Dominic",
                     family = "Grün",
                     role = c("aut", "cre"),
@@ -12,8 +12,8 @@ Description: Application of 'RaceID' allows inference of cell types and predicti
 Depends: R (>= 3.5.0)
 biocViews:
 Imports: coop, compiler, cluster, FateID, FNN, fpc, ggplot2, grDevices,
-        ica, igraph, irlba, leiden, locfit, methods, MASS, Matrix,
-        matrixStats, parallel, pheatmap, princurve, quadprog,
+        harmony, ica, igraph, irlba, leiden, locfit, methods, MASS,
+        Matrix, matrixStats, parallel, pheatmap, princurve, quadprog,
         randomForest, runner, Rcpp, RColorBrewer, Rtsne, umap, vegan
 LinkingTo: Rcpp (>= 0.11.0)
 Suggests: batchelor, DESeq2, knitr, rmarkdown, SingleCellExperiment,
@@ -25,5 +25,5 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2026-06-11 16:17:16 UTC; d.grun
+Packaged: 2026-06-16 12:17:59 UTC; d.grun
 Author: Dominic Grün [aut, cre]
