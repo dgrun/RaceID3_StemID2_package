@@ -50,18 +50,21 @@
 #' link is lower than the \code{pethr}-quantile of the randomized background distribution and 0.5 otherwise (if \code{nmode = FALSE}).
 #' \code{pvn.e} matrix of enrichment p-values estimated from sampling statistics (if \code{nmode = TRUE}); 1- quantile, with the quantile estimated from the number of cells on a link as derived from the randomized background distribution (if \code{nmode = FALSE}). 
 #' \code{pvn.d} matrix of depletion p-values estimated from sampling statistics (if \code{nmode = TRUE}); quantile estimated from the number of cells on a link as derived from the randomized background distribution (if \code{nmode = FALSE}).
-#' 
-#' @rdname Ltree
-#' @aliases Ltree-class
-#' @exportClass Ltree
-#' @export
-Ltree <- setClass("Ltree", slots = c(sc = "SCseq", ldata = "list", entropy = "vector", trproj = "list", par = "list", prback = "data.frame", prbacka = "data.frame", ltcoord = "matrix", prtree = "list", cdata = "list"  ))
-
-#' validity function for Ltree
 #'
-#' @param object An Ltree object.
 #' @name Ltree
+#' @rdname Ltree
+#' @aliases Ltree-class Ltree
+#' @exportClass Ltree
+setClass("Ltree", slots = c(sc = "SCseq", ldata = "list", entropy = "vector", trproj = "list", par = "list", prback = "data.frame", prbacka = "data.frame", ltcoord = "matrix", prtree = "list", cdata = "list"  ))
+
+#' @rdname Ltree
+#' @param sc An \code{SCseq} object with the RaceID3 analysis of the single-cell RNA-seq data for which a lineage tree should be derived.
+#' @return An object of class \code{Ltree}.
 #' @export
+Ltree <- function(sc) new("Ltree", sc = sc)
+
+
+# validity function for Ltree
 setValidity("Ltree",
             function(object) {
               msg <- NULL

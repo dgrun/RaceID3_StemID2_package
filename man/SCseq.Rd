@@ -5,8 +5,14 @@
 \alias{SCseq}
 \alias{SCseq-class}
 \title{The SCseq Class}
+\usage{
+SCseq(expdata)
+}
 \arguments{
-\item{object}{An SCseq object.}
+\item{expdata}{The raw expression data matrix with cells as columns and genes as rows in sparse matrix format.}
+}
+\value{
+An object of class \code{SCseq}.
 }
 \description{
 The SCseq class is the central object storing all information generated during cell type identification with the RaceID3 algorithm.

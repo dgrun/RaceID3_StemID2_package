@@ -19,6 +19,5 @@ The dataset is included for quick testing and examples. Only cells with >10,000 
 }
 \references{
 Grün et al. (2016) Cell Stem Cell 19(2): 266-77 <DOI:10.1016/j.stem.2016.05.010>
-(\href{https://pubmed.ncbi.nlm.nih.gov/27345837/}{PubMed})
 }
 \keyword{datasets}

@@ -41,16 +41,19 @@
 #'
 #' @name SCseq
 #' @rdname SCseq
-#' @aliases SCseq-class
+#' @aliases SCseq-class SCseq
 #' @exportClass SCseq
-#' @export
-SCseq <- setClass("SCseq", slots = c(expdata = "ANY", ndata = "ANY", noise = "ANY", counts = "vector", genes = "vector", dimRed = "list", distances = "ANY", imputed = "list", tsne = "data.frame", fr = "data.frame", umap = "data.frame", cluster = "list", background = "list", out = "list", cpart = "vector", medoids = "vector", fcol = "vector", filterpar = "list", clusterpar = "list", outlierpar ="list" ))
+setClass("SCseq", slots = c(expdata = "ANY", ndata = "ANY", noise = "ANY", counts = "vector", genes = "vector", dimRed = "list", distances = "ANY", imputed = "list", tsne = "data.frame", fr = "data.frame", umap = "data.frame", cluster = "list", background = "list", out = "list", cpart = "vector", medoids = "vector", fcol = "vector", filterpar = "list", clusterpar = "list", outlierpar ="list" ))
 
-#' validity function for SCceq
-#'
-#' @param object An SCseq object.
-#' @name SCseq
+
+#' @rdname SCseq
+#' @param expdata The raw expression data matrix with cells as columns and genes as rows in sparse matrix format.
+#' @return An object of class \code{SCseq}.
 #' @export
+SCseq <- function(expdata) new("SCseq", expdata = expdata)
+
+
+# validity function for SCseq
 setValidity("SCseq",
             function(object) {
               msg <- NULL
